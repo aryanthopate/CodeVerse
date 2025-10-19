@@ -62,13 +62,8 @@ export default function LoginPage() {
       });
       setLoading(false);
     } else {
-       toast({
-        title: 'Login Successful!',
-        description: 'Redirecting to your dashboard...',
-      });
        // Refresh the page to allow middleware to handle redirection
        router.refresh();
-       setLoading(false);
     }
   };
   
