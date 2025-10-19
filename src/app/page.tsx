@@ -1,3 +1,156 @@
+import Link from 'next/link';
+import Image from 'next/image';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ArrowRight, Bot, Code, Film, Star, Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { mockCourses } from '@/lib/mock-data';
+
 export default function Home() {
-  return <></>;
+  const features = [
+    {
+      icon: <Film className="w-8 h-8 text-primary" />,
+      title: 'Interactive Video Lessons',
+      description: 'Learn step-by-step with our engaging and modern video player.',
+    },
+    {
+      icon: <Bot className="w-8 h-8 text-primary" />,
+      title: 'AI-Powered Guidance',
+      description: 'Get instant explanations, code reviews, and hints from your personal AI tutor.',
+    },
+    {
+      icon: <Code className="w-8 h-8 text-primary" />,
+      title: 'Hands-on Code Practice',
+      description: 'Apply what you learn in our interactive code editor with AI feedback.',
+    },
+    {
+      icon: <Zap className="w-8 h-8 text-primary" />,
+      title: 'Engaging Quizzes',
+      description: 'Test your knowledge with fun, interactive quizzes after each topic.',
+    },
+  ];
+
+  const testimonials = [
+    {
+      name: 'Priya Sharma',
+      role: 'Computer Science Student',
+      avatar: 'https://picsum.photos/seed/priya/100/100',
+      comment: 'CodeVerse made learning Java feel like a game! The AI tutor is a lifesaver for tricky concepts.',
+    },
+    {
+      name: 'Rohan Verma',
+      role: 'Aspiring Developer',
+      avatar: 'https://picsum.photos/seed/rohan/100/100',
+      comment: 'I finally understand Python lists and dictionaries thanks to the bite-sized videos and practice sessions.',
+    },
+     {
+      name: 'Anika Singh',
+      role: 'Hobbyist Coder',
+      avatar: 'https://picsum.photos/seed/anika/100/100',
+      comment: 'The UI is just so cool and motivating. I love the progress tracking and earning XP!',
+    },
+  ];
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <Header />
+      <main className="flex-grow">
+        <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05] -z-10"></div>
+        
+        {/* Hero Section */}
+        <section className="pt-32 pb-20 text-center container mx-auto">
+          <Badge variant="outline" className="mb-4 border-primary/50 text-primary animate-float">
+            From Video to Code — The AI Way
+          </Badge>
+          <h1 className="text-5xl md:text-7xl font-bold font-headline bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
+            Learn Java, Python, C++
+            <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">The Fun Way 👾</span>
+          </h1>
+          <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
+            Your Code, Your Journey, Your Playground. Master programming with AI-powered lessons, interactive quizzes, and hands-on practice.
+          </p>
+          <div className="mt-8 flex justify-center gap-4">
+            <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground animate-glow-pulse shadow-lg shadow-primary/20">
+              <Link href="/signup">Start Learning Free</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="#">Watch Demo <Film className="ml-2 w-4 h-4" /></Link>
+            </Button>
+          </div>
+        </section>
+
+        {/* Course Preview Carousel */}
+        <section className="py-20 bg-card/20">
+          <div className="container mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">Choose Your Path</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {mockCourses.map((course) => (
+                <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
+                  <CardHeader className="p-0">
+                    <Image src={course.imageUrl} alt={course.name} width={600} height={400} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" data-ai-hint="abstract code"/>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <CardTitle className="text-2xl font-bold mb-2">{course.name}</CardTitle>
+                    <p className="text-muted-foreground mb-4">{`Learn ${course.name} → ${course.freeTopicsCount} Free Topics`}</p>
+                    <Button asChild variant="link" className="p-0 text-primary">
+                      <Link href={`/courses/${course.slug}`}>Explore Course <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="py-20 container mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">Why CodeVerse?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="bg-card/50 border-border/50 p-6 text-center transform transition-all duration-300 hover:bg-card hover:shadow-xl hover:shadow-accent/10">
+                <div className="flex justify-center mb-4">{feature.icon}</div>
+                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                <p className="text-muted-foreground">{feature.description}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Testimonials Carousel */}
+        <section className="py-20 bg-card/20">
+           <div className="container mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">Loved by Learners</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial) => (
+                <Card key={testimonial.name} className="bg-card/50 border-border/50 p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex text-yellow-400 mb-4">
+                      {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
+                    </div>
+                    <p className="text-foreground mb-4">"{testimonial.comment}"</p>
+                  </div>
+                  <div className="flex items-center gap-4 mt-auto">
+                    <Avatar>
+                      <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                      <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{testimonial.name}</p>
+                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+      </main>
+      <Footer />
+    </div>
+  );
 }
