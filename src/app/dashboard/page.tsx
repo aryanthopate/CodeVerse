@@ -14,7 +14,7 @@ import type { UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function DashboardPage() {
+function DashboardContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -120,4 +120,12 @@ export default function DashboardPage() {
         </div>
       </div>
   );
+}
+
+export default function DashboardPage() {
+  return (
+    <AppLayout>
+      <DashboardContent />
+    </AppLayout>
+  )
 }
