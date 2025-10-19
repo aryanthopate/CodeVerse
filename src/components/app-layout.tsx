@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarInset,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { Home, LayoutDashboard, BookOpen, GraduationCap, Share2 } from 'lucide-react';
@@ -91,11 +92,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <Logo />
         </SidebarHeader>
-        <SidebarContent className="p-2">
+        <SidebarContent>
             <SidebarGroup>
                 <SidebarGroupLabel>MAIN</SidebarGroupLabel>
                 <SidebarMenu>
@@ -150,13 +151,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Card>
         </SidebarFooter>
       </Sidebar>
-      <main className="flex-1 flex flex-col relative">
+      <SidebarInset>
         <AppHeader profile={profile} onLogout={handleLogout} />
         <div className="flex-1 p-4 md:p-8 overflow-auto">
           {children}
         </div>
         <FloatingAIButton />
-      </main>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
