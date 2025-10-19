@@ -16,7 +16,7 @@ import {
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { Home, BookOpen, BarChart2, NotebookText, Settings, LogOut, Search, User, Share2, Target, Calendar, Clock, BarChartBig, HelpCircle } from 'lucide-react';
+import { Home, BookOpen, Share2 } from 'lucide-react';
 import { FloatingAIButton } from './floating-ai-button';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -26,21 +26,9 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 const mainNav = [
-  { href: '/dashboard', icon: <Home />, label: 'Homepage' },
-  { href: '/courses', icon: <BookOpen />, label: 'Dashboard' }, // Changed to courses for now
+  { href: '/dashboard', icon: <Home />, label: 'Dashboard' },
+  { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
 ];
-
-const planningNav = [
-  { href: '/daily-goals', icon: <Target />, label: 'Daily Goals' },
-  { href: '/timetable', icon: <Calendar />, label: 'Timetable' },
-  { href: '/focus-zone', icon: <Clock />, label: 'Focus Zone' },
-];
-
-const analyticsNav = [
-  { href: '/progress-grid', icon: <BarChartBig />, label: 'Progress Grid' },
-  { href: '/questions-log', icon: <HelpCircle />, label: 'Questions Log' },
-];
-
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -69,11 +57,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     fetchUser();
-  }, [supabase]);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/');
+      } else {
+        setUser(session?.user ?? null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+
+  }, [supabase, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/');
   };
 
   if (loading) {
@@ -102,46 +102,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         tooltip={{ children: item.label }}
                     >
                         <Link href={item.href}>
-                        {item.icon}
-                        <span>{item.label}</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ))}
-                </SidebarMenu>
-            </SidebarGroup>
-            <SidebarGroup>
-                <SidebarGroupLabel>PLANNING</SidebarGroupLabel>
-                <SidebarMenu>
-                {planningNav.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                        asChild
-                        isActive={pathname.startsWith(item.href)}
-                        tooltip={{ children: item.label }}
-                        disabled // Placeholder
-                    >
-                        <Link href="#">
-                        {item.icon}
-                        <span>{item.label}</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ))}
-                </SidebarMenu>
-            </SidebarGroup>
-            <SidebarGroup>
-                <SidebarGroupLabel>ANALYTICS</SidebarGroupLabel>
-                <SidebarMenu>
-                {analyticsNav.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                        asChild
-                        isActive={pathname.startsWith(item.href)}
-                        tooltip={{ children: item.label }}
-                        disabled // Placeholder
-                    >
-                        <Link href="#">
                         {item.icon}
                         <span>{item.label}</span>
                         </Link>

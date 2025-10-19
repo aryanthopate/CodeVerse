@@ -3,7 +3,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Moon, Sun, Bell, Calendar, LogOut, User, Settings, PanelLeft } from 'lucide-react';
+import { Moon, Sun, Bell, LogOut, User, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { SidebarTrigger } from './ui/sidebar';
@@ -26,10 +26,9 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
   };
 
   const getPageTitle = () => {
-    const path = pathname.split('/').pop() || 'dashboard';
-    if (path === 'dashboard') return 'Dashboard';
-    if (path === 'courses') return 'My Courses';
-    return path.charAt(0).toUpperCase() + path.slice(1);
+    if (pathname.startsWith('/dashboard')) return 'Dashboard';
+    if (pathname.startsWith('/courses')) return 'My Courses';
+    return 'CodeVerse';
   };
 
   return (
@@ -40,10 +39,6 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
       </div>
       
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon">
-            <Calendar className="h-5 w-5" />
-            <span className="sr-only">Calendar</span>
-        </Button>
         <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
             <span className="sr-only">Notifications</span>
