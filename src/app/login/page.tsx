@@ -49,21 +49,30 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message,
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      setLoading(false);
-    } else {
-       // Refresh the page to allow middleware to handle redirection
-       router.refresh();
+      
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: error.message,
+        });
+      } else {
+         // On success, redirect to the welcome page which will handle the toast.
+         router.push('/u/welcome?toast=true');
+      }
+    } catch (e: any) {
+        toast({
+            variant: "destructive",
+            title: "An unexpected error occurred",
+            description: e.message || "Please try again.",
+        });
+    } finally {
+        setLoading(false);
     }
   };
   
