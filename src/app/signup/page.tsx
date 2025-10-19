@@ -5,20 +5,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { Github } from 'lucide-react';
-import Image from 'next/image';
 
 export default function SignupPage() {
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <Logo className="justify-center mb-2" />
-            <h1 className="text-3xl font-bold">Join CodeVerse</h1>
-            <p className="text-balance text-muted-foreground">
-              Start your playful coding journey today.
-            </p>
+    <div className="flex items-center justify-center min-h-screen bg-background relative">
+      <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05] -z-10"></div>
+      <Card className="mx-auto w-full max-w-md bg-card/50 border-border/50 backdrop-blur-lg">
+        <CardHeader>
+          <div className="flex justify-center mb-4">
+              <Logo />
           </div>
+          <CardTitle className="text-3xl font-bold text-center">Join CodeVerse</CardTitle>
+          <CardDescription className="text-center text-balance text-muted-foreground">
+            Start your playful coding journey today.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="full-name">Full Name</Label>
@@ -52,24 +54,8 @@ export default function SignupPage() {
               Login
             </Link>
           </div>
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:block relative">
-        <Image
-          src="https://picsum.photos/seed/signup/1200/1800"
-          alt="Image"
-          width="1200"
-          height="1800"
-          className="h-full w-full object-cover dark:brightness-[0.3]"
-          data-ai-hint="neon data stream"
-        />
-         <div className="absolute bottom-0 left-0 p-8 text-white">
-            <div className="p-4 bg-black/50 rounded-xl backdrop-blur-lg">
-                <h2 className="text-3xl font-bold">"The best way to predict the future is to invent it."</h2>
-                <p className="text-lg mt-2">- Alan Kay</p>
-            </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
