@@ -16,7 +16,7 @@ import {
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { Home, BookOpen, Share2 } from 'lucide-react';
+import { Home, LayoutDashboard, BookOpen, GraduationCap, Share2 } from 'lucide-react';
 import { FloatingAIButton } from './floating-ai-button';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -26,9 +26,14 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 const mainNav = [
-  { href: '/dashboard', icon: <Home />, label: 'Dashboard' },
-  { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
+  { href: '/', icon: <Home />, label: 'Homepage' },
+  { href: '/dashboard', icon: <LayoutDashboard />, label: 'Dashboard' },
 ];
+
+const coursesNav = [
+  { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
+  { href: '/courses/explore', icon: <GraduationCap />, label: 'Courses' },
+]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -98,7 +103,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                         asChild
-                        isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
+                        isActive={pathname === item.href}
+                        tooltip={{ children: item.label }}
+                    >
+                        <Link href={item.href}>
+                        {item.icon}
+                        <span>{item.label}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+                </SidebarMenu>
+            </SidebarGroup>
+            <SidebarGroup>
+                <SidebarGroupLabel>COURSES</SidebarGroupLabel>
+                <SidebarMenu>
+                {coursesNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
                         tooltip={{ children: item.label }}
                     >
                         <Link href={item.href}>
