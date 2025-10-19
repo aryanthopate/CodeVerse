@@ -5,11 +5,32 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth]);
 
   const navLinks = [
     { name: 'About', href: '#' },
@@ -32,12 +53,20 @@ export function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
-            <Link href="/signup">Start Learning</Link>
-          </Button>
+          {loading ? null : user ? (
+            <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
+                <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
+                <Link href="/signup">Start Learning</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Navigation */}
@@ -71,12 +100,20 @@ export function Header() {
                     </Link>
                   ))}
                   <div className="border-t border-border pt-6 mt-4 flex flex-col gap-4">
-                     <Button variant="ghost" asChild>
-                        <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
-                     </Button>
-                     <Button asChild>
-                        <Link href="/signup" onClick={() => setIsOpen(false)}>Start Learning</Link>
-                     </Button>
+                     {loading ? null : user ? (
+                        <Button asChild>
+                            <Link href="/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>
+                        </Button>
+                     ) : (
+                        <>
+                            <Button variant="ghost" asChild>
+                                <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
+                            </Button>
+                            <Button asChild>
+                                <Link href="/signup" onClick={() => setIsOpen(false)}>Start Learning</Link>
+                            </Button>
+                        </>
+                     )}
                   </div>
                 </nav>
               </div>
