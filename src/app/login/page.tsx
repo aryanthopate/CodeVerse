@@ -59,7 +59,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    const { data: { session }, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -72,14 +72,9 @@ export default function LoginPage() {
       });
       setLoading(false);
     } else {
-        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session?.user.id).single();
-        if(profile) {
-            router.push('/u/dashboard?toast=true');
-        } else {
-            // This is a fallback for the rare case where a profile isn't created.
-            // A more robust solution might redirect to a profile setup page.
-            router.push('/u/welcome?toast=true');
-        }
+        // Redirect will be handled by middleware
+        // Let's just make sure the page is reloaded to trigger middleware check
+        router.push('/u/dashboard?toast=true');
     }
   };
   
