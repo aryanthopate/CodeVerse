@@ -74,10 +74,11 @@ export default function LoginPage() {
     } else {
        toast({
         title: 'Login Successful!',
-        description: 'Welcome back!',
+        description: 'Redirecting to your dashboard...',
       });
        // Refresh the page to allow middleware to redirect
        router.refresh();
+       setLoading(false);
     }
   };
   
