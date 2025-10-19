@@ -60,9 +60,7 @@ export default function SignupPage() {
         title: "Signup Successful!",
         description: "Please check your email to verify your account.",
       });
-      // This will redirect the user to the dashboard and refresh the page, which will
-      // cause the middleware to run and handle the session.
-      router.refresh();
+      router.push('/auth/confirm');
     }
     setLoading(false);
   };

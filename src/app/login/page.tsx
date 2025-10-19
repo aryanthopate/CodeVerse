@@ -75,7 +75,15 @@ export default function LoginPage() {
         title: "Login Successful!",
         description: "Welcome back!",
       });
-      router.push('/dashboard');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      const isNewUser = session?.user?.created_at && (new Date().getTime() - new Date(session.user.created_at).getTime() < 60000);
+
+      if (isNewUser) {
+        router.push('/u/welcome');
+      } else {
+        router.push('/u/dashboard');
+      }
     }
     setLoading(false);
   };

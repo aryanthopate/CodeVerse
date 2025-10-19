@@ -21,22 +21,24 @@ import { Logo } from '@/components/logo';
 import { Home, BookOpen, BarChart2, NotebookText, User, Settings, LogOut } from 'lucide-react';
 import { FloatingAIButton } from './floating-ai-button';
 import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { UserProfile } from '@/lib/types';
+
 
 const navItems = [
-  { href: '/dashboard', icon: <Home />, label: 'Home' },
+  { href: '/u/dashboard', icon: <Home />, label: 'Home' },
   { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
-  { href: '/profile', icon: <BarChart2 />, label: 'Progress' },
-  { href: '/leaderboard', icon: <BarChart2 />, label: 'Leaderboard' },
-  { href: '/notes', icon: <NotebookText />, label: 'Notes' },
+  { href: '/u/profile', icon: <BarChart2 />, label: 'Progress' },
+  { href: '/u/leaderboard', icon: <BarChart2 />, label: 'Leaderboard' },
+  { href: '/u/notes', icon: <NotebookText />, label: 'Notes' },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     fetchUser();
-  }, [supabase.auth]);
+  }, [supabase, supabase.auth]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -121,7 +123,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={{ children: 'Settings' }}>
-                <Link href="/settings">
+                <Link href="/u/settings">
                   <Settings />
                   <span>Settings</span>
                 </Link>
