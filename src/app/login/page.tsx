@@ -58,12 +58,11 @@ export default function LoginPage() {
           title: "Login Failed",
           description: error.message,
         });
-        setLoading(false);
       } else {
-         // This will re-run the middleware. The middleware will see the user is
-         // authenticated and on the /login page, and it will issue a server-side
-         // redirect to the dashboard. This is the most reliable way to redirect.
-         router.refresh();
+         // This is the most reliable way to handle redirection after login
+         // in Next.js App Router. It ensures the middleware is re-evaluated.
+         // We add a toast=true param to show a message on the target page.
+         router.push('/dashboard?toast=true');
       }
     } catch (e: any) {
         toast({
@@ -71,6 +70,7 @@ export default function LoginPage() {
             title: "An unexpected error occurred",
             description: e.message || "Please try again.",
         });
+    } finally {
         setLoading(false);
     }
   };

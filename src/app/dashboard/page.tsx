@@ -12,12 +12,15 @@ import { createClient } from '@/lib/supabase/client';
 import { mockCourses } from '@/lib/mock-data'; // Keep for now for course structure
 import type { UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { toast } = useToast();
   
   useEffect(() => {
     const fetchProfile = async () => {
@@ -30,6 +33,17 @@ export default function DashboardPage() {
     }
     fetchProfile();
   }, [supabase]);
+
+  useEffect(() => {
+    if (searchParams.get('toast')) {
+      toast({
+        title: 'Login Successful!',
+        description: "Welcome to your dashboard!",
+      });
+      // Remove toast param from URL without reloading the page
+      router.replace('/dashboard', {scroll: false});
+    }
+  }, [searchParams, toast, router]);
 
   // Keep mock for UI structure until courses are in DB
   const lastTopic = mockCourses[0].chapters[0].topics[1];
