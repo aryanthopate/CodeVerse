@@ -72,8 +72,6 @@ export default function LoginPage() {
       });
       setLoading(false);
     } else {
-        // Redirect will be handled by middleware
-        // Let's just make sure the page is reloaded to trigger middleware check
         router.push('/u/dashboard?toast=true');
     }
   };
