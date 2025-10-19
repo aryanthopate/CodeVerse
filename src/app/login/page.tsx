@@ -86,7 +86,7 @@ export default function LoginPage() {
     if (error) {
        toast({
         variant: "destructive",
-        title: "Error sending OTP",
+        title: "Error sending reset link",
         description: error.message,
       });
     } else {
@@ -94,7 +94,7 @@ export default function LoginPage() {
       setTimer(60);
       setIsEditingEmail(false);
        toast({
-        title: "OTP Sent",
+        title: "Password Reset Link Sent",
         description: "Check your email for the password reset link.",
       });
     }
@@ -172,16 +172,12 @@ export default function LoginPage() {
 
                           <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <div className="flex items-center gap-4">
-                                    <Button
-                                      variant="secondary"
-                                      onClick={handleSendOtp}
-                                      disabled={timer > 0 || loading}
-                                  >
-                                      Resend {timer > 0 && `in ${timer}s`}
-                                  </Button>
-                                  <AlertDialogAction onClick={handleSendOtp} disabled={loading}>Send Reset Link</AlertDialogAction>
-                              </div>
+                              <Button
+                                onClick={handleSendOtp}
+                                disabled={loading || (isOtpSent && timer > 0)}
+                              >
+                                {loading ? 'Sending...' : isOtpSent ? (timer > 0 ? `Resend in ${timer}s` : 'Resend') : 'Send Reset Link'}
+                              </Button>
                           </AlertDialogFooter>
                       </AlertDialogContent>
                   </AlertDialog>
