@@ -6,8 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Moon, Sun, Bell, LogOut, User, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/types';
-import { SidebarTrigger } from './ui/sidebar';
-import { useSidebar } from './ui/sidebar';
+import { SidebarTrigger, useSidebar } from './ui/sidebar';
 
 export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; onLogout: () => void; }) {
   const pathname = usePathname();
@@ -36,7 +35,7 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-card/50 px-4 sm:px-6 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-transparent px-4 sm:px-6 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         {isMobile && <SidebarTrigger />}
         <h1 className="text-2xl font-semibold">{getPageTitle()}</h1>
