@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -35,16 +35,6 @@ export default function LoginPage() {
   const [timer, setTimer] = useState(60);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isOtpSent && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isOtpSent, timer]);
-  
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       // Reset state when dialog is closed
@@ -76,7 +66,7 @@ export default function LoginPage() {
         title: 'Login Successful!',
         description: 'Redirecting to your dashboard...',
       });
-       // Refresh the page to allow middleware to redirect
+       // Refresh the page to allow middleware to handle redirection
        router.refresh();
        setLoading(false);
     }
