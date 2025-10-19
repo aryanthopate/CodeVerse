@@ -31,14 +31,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const [isOtpSent, setIsOtpSent] = useState(false);
-  const [timer, setTimer] = useState(60);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       // Reset state when dialog is closed
       setIsOtpSent(false);
-      setTimer(60);
       setIsEditingEmail(false);
     }
   }
@@ -60,8 +58,12 @@ export default function LoginPage() {
           title: "Login Failed",
           description: error.message,
         });
+        setLoading(false);
       } else {
-         router.push('/dashboard/welcome?toast=true');
+         // This will re-run the middleware. The middleware will see the user is
+         // authenticated and on the /login page, and it will issue a server-side
+         // redirect to the dashboard. This is the most reliable way to redirect.
+         router.refresh();
       }
     } catch (e: any) {
         toast({
@@ -69,7 +71,6 @@ export default function LoginPage() {
             title: "An unexpected error occurred",
             description: e.message || "Please try again.",
         });
-    } finally {
         setLoading(false);
     }
   };
@@ -88,7 +89,6 @@ export default function LoginPage() {
       });
     } else {
       setIsOtpSent(true);
-      setTimer(60);
       setIsEditingEmail(false);
        toast({
         title: "Password Reset Link Sent",
@@ -171,9 +171,9 @@ export default function LoginPage() {
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <Button
                                 onClick={handleSendOtp}
-                                disabled={loading || (isOtpSent && timer > 0)}
+                                disabled={loading}
                               >
-                                {loading ? 'Sending...' : isOtpSent ? (timer > 0 ? `Resend in ${timer}s` : 'Resend') : 'Send Reset Link'}
+                                {loading ? 'Sending...' : 'Send Reset Link'}
                               </Button>
                           </AlertDialogFooter>
                       </AlertDialogContent>
