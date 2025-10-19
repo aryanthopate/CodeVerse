@@ -59,7 +59,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: { session }, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -72,14 +72,14 @@ export default function LoginPage() {
       });
       setLoading(false);
     } else {
-      const { data: { session } } = await supabase.auth.getSession();
-      const isNewUser = session?.user?.created_at && (new Date().getTime() - new Date(session.user.created_at).getTime() < 60000);
-
-      if (isNewUser) {
-        router.push('/u/welcome?toast=true');
-      } else {
-        router.push('/u/dashboard?toast=true');
-      }
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session?.user.id).single();
+        if(profile) {
+            router.push('/u/dashboard?toast=true');
+        } else {
+            // This is a fallback for the rare case where a profile isn't created.
+            // A more robust solution might redirect to a profile setup page.
+            router.push('/u/welcome?toast=true');
+        }
     }
   };
   
