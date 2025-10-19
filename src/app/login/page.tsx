@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,10 +20,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Pencil } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('m@example.com');
+  const router = useRouter();
+  const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [timer, setTimer] = useState(60);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
@@ -33,18 +41,9 @@ export default function LoginPage() {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
       }, 1000);
-    } else if (timer === 0) {
-      // Optional: auto-reset or enable resend button
     }
     return () => clearInterval(interval);
   }, [isOtpSent, timer]);
-
-  const handleSendOtp = () => {
-    // Logic to send OTP would go here
-    setIsOtpSent(true);
-    setTimer(60); // Reset timer on send/resend
-    setIsEditingEmail(false);
-  };
   
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -54,6 +53,53 @@ export default function LoginPage() {
       setIsEditingEmail(false);
     }
   }
+
+  const supabase = createClient();
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message,
+      });
+    } else {
+      router.push('/dashboard');
+      router.refresh();
+    }
+    setLoading(false);
+  };
+  
+  const handleSendOtp = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${location.origin}/auth/callback?next=/update-password`,
+    });
+
+    if (error) {
+       toast({
+        variant: "destructive",
+        title: "Error sending OTP",
+        description: error.message,
+      });
+    } else {
+      setIsOtpSent(true);
+      setTimer(60);
+      setIsEditingEmail(false);
+       toast({
+        title: "OTP Sent",
+        description: "Check your email for the password reset link.",
+      });
+    }
+    setLoading(false);
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background relative">
@@ -69,92 +115,92 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                className="bg-background"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                 <AlertDialog onOpenChange={handleOpenChange}>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="link" className="ml-auto inline-block text-sm underline p-0 h-auto">
-                            Forgot your password?
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Reset Password</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {isOtpSent 
-                                ? `An OTP has been sent to your email. Please enter it below.`
-                                : "We'll send a One-Time Password (OTP) to your email to reset your password."
-                            }
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        
-                        <div className="space-y-4 my-4">
-                             <div className="flex items-center gap-2">
-                                {isEditingEmail || !isOtpSent ? (
-                                    <Input 
-                                        type="email" 
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="bg-input"
-                                    />
-                                ) : (
-                                    <p className="font-medium text-sm flex-1">{email}</p>
-                                )}
-                                {isOtpSent && (
-                                    <Button variant="ghost" size="icon" onClick={() => setIsEditingEmail(!isEditingEmail)}>
-                                        <Pencil className="w-4 h-4"/>
-                                    </Button>
-                                )}
-                            </div>
-                            
-                            {isOtpSent && (
-                                <div className="grid gap-2">
-                                    <Label htmlFor="otp">Enter OTP</Label>
-                                    <Input id="otp" placeholder="_ _ _ _ _ _" className="tracking-[0.5em] text-center bg-input" maxLength={6}/>
-                                </div>
-                            )}
-                        </div>
-
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            {!isOtpSent ? (
-                                <AlertDialogAction onClick={handleSendOtp}>Send OTP</AlertDialogAction>
-                            ) : (
-                               <div className="flex items-center gap-4">
-                                     <Button
-                                        variant="secondary"
-                                        onClick={handleSendOtp}
-                                        disabled={timer > 0}
-                                    >
-                                        Resend OTP {timer > 0 && `in ${timer}s`}
-                                    </Button>
-                                    <AlertDialogAction>Verify & Reset</AlertDialogAction>
-                               </div>
-                            )}
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+          <form onSubmit={handleLogin}>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  className="bg-background"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                />
               </div>
-              <Input id="password" type="password" required className="bg-background"/>
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <AlertDialog onOpenChange={handleOpenChange}>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="link" className="ml-auto inline-block text-sm underline p-0 h-auto">
+                              Forgot your password?
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                          <AlertDialogTitle>Reset Password</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              {isOtpSent 
+                                  ? `A password reset link has been sent to your email.`
+                                  : "We'll send a link to your email to reset your password."
+                              }
+                          </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          
+                          <div className="space-y-4 my-4">
+                              <div className="flex items-center gap-2">
+                                  {isEditingEmail || !isOtpSent ? (
+                                      <Input 
+                                          type="email" 
+                                          value={email}
+                                          onChange={(e) => setEmail(e.target.value)}
+                                          className="bg-input"
+                                      />
+                                  ) : (
+                                      <p className="font-medium text-sm flex-1">{email}</p>
+                                  )}
+                                  {isOtpSent && (
+                                      <Button variant="ghost" size="icon" onClick={() => setIsEditingEmail(!isEditingEmail)}>
+                                          <Pencil className="w-4 h-4"/>
+                                      </Button>
+                                  )}
+                              </div>
+                          </div>
+
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <div className="flex items-center gap-4">
+                                    <Button
+                                      variant="secondary"
+                                      onClick={handleSendOtp}
+                                      disabled={timer > 0 || loading}
+                                  >
+                                      Resend {timer > 0 && `in ${timer}s`}
+                                  </Button>
+                                  <AlertDialogAction onClick={handleSendOtp} disabled={loading}>Send Reset Link</AlertDialogAction>
+                              </div>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  required 
+                  className="bg-background"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Logging in...' : 'Login'}
+              </Button>
             </div>
-            <Button type="submit" className="w-full" asChild>
-                <Link href="/dashboard">Login</Link>
-            </Button>
-          </div>
+          </form>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="underline text-primary">
