@@ -5,13 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { Github } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 export default function SignupPage() {
   return (
@@ -44,18 +37,8 @@ export default function SignupPage() {
               />
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="learning-goal">Primary Learning Goal</Label>
-                 <Select>
-                    <SelectTrigger id="learning-goal" className="bg-background">
-                        <SelectValue placeholder="What do you want to learn?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="java">Java</SelectItem>
-                        <SelectItem value="python">Python</SelectItem>
-                        <SelectItem value="cpp">C++</SelectItem>
-                        <SelectItem value="unsure">I'm not sure yet</SelectItem>
-                    </SelectContent>
-                </Select>
+                <Label htmlFor="learning-at">Learning At (College/University)</Label>
+                <Input id="learning-at" placeholder="e.g., State University" required className="bg-background"/>
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
