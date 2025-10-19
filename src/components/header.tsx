@@ -8,12 +8,14 @@ import { Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     const getUser = async () => {
@@ -31,6 +33,12 @@ export function Header() {
       subscription.unsubscribe();
     };
   }, [supabase.auth]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+    router.refresh();
+  };
 
   const navLinks = [
     { name: 'About', href: '#' },
@@ -54,9 +62,12 @@ export function Header() {
 
         <div className="hidden md:flex items-center gap-4">
           {loading ? null : user ? (
-            <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
-                <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
+            <>
+              <Button variant="ghost" onClick={handleLogout}>Logout</Button>
+              <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
+                  <Link href="/dashboard">Go to Dashboard</Link>
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild>
@@ -101,9 +112,12 @@ export function Header() {
                   ))}
                   <div className="border-t border-border pt-6 mt-4 flex flex-col gap-4">
                      {loading ? null : user ? (
-                        <Button asChild>
-                            <Link href="/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>
-                        </Button>
+                        <>
+                          <Button variant="ghost" onClick={() => { handleLogout(); setIsOpen(false); }}>Logout</Button>
+                          <Button asChild>
+                              <Link href="/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>
+                          </Button>
+                        </>
                      ) : (
                         <>
                             <Button variant="ghost" asChild>
