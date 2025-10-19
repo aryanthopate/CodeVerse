@@ -11,11 +11,24 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { mockCourses } from '@/lib/mock-data'; // Keep for now for course structure
 import type { UserProfile } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { useSearchParams } from 'next/navigation';
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const { toast } = useToast();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('toast')) {
+      toast({
+        title: 'Login Successful!',
+        description: 'Welcome back!',
+      });
+    }
+  }, [searchParams, toast]);
   
   useEffect(() => {
     const fetchProfile = async () => {

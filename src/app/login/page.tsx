@@ -70,22 +70,17 @@ export default function LoginPage() {
         title: "Login Failed",
         description: error.message,
       });
+      setLoading(false);
     } else {
-      toast({
-        title: "Login Successful!",
-        description: "Welcome back!",
-      });
-      
       const { data: { session } } = await supabase.auth.getSession();
       const isNewUser = session?.user?.created_at && (new Date().getTime() - new Date(session.user.created_at).getTime() < 60000);
 
       if (isNewUser) {
-        router.push('/u/welcome');
+        router.push('/u/welcome?toast=true');
       } else {
-        router.push('/u/dashboard');
+        router.push('/u/dashboard?toast=true');
       }
     }
-    setLoading(false);
   };
   
   const handleSendOtp = async () => {

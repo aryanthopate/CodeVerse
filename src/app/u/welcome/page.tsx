@@ -4,8 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function WelcomePage() {
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (searchParams.get('toast')) {
+      toast({
+        title: 'Signup Successful!',
+        description: "Let's get started!",
+      });
+    }
+  }, [searchParams, toast]);
+
   return (
     <div className="flex items-center justify-center min-h-screen">
        <Card className="mx-auto w-full max-w-lg bg-card/50 border-border/50 backdrop-blur-lg text-center p-8">
