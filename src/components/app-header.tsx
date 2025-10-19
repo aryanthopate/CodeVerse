@@ -7,10 +7,13 @@ import { Moon, Sun, Bell, LogOut, User, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { SidebarTrigger } from './ui/sidebar';
+import { useSidebar } from './ui/sidebar';
 
 export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; onLogout: () => void; }) {
   const pathname = usePathname();
   const [theme, setTheme] = useState('dark');
+  const { isMobile } = useSidebar();
+
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme') || 'dark';
@@ -27,18 +30,19 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
 
   const getPageTitle = () => {
     if (pathname.startsWith('/dashboard')) return 'Dashboard';
-    if (pathname.startsWith('/courses')) return 'Courses';
+    if (pathname.startsWith('/courses/explore')) return 'Explore Courses';
+    if (pathname.startsWith('/courses')) return 'My Courses';
     return 'CodeVerse';
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
-       <SidebarTrigger className="sm:hidden" />
-      <div className="flex-1">
-        <h1 className="text-2xl font-semibold hidden sm:block">{getPageTitle()}</h1>
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-card/50 px-4 sm:px-6 backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+        {isMobile && <SidebarTrigger />}
+        <h1 className="text-2xl font-semibold">{getPageTitle()}</h1>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex flex-1 items-center justify-end gap-2">
         <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
             <span className="sr-only">Notifications</span>
