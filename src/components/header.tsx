@@ -11,7 +11,7 @@ export function Header() {
           <Button variant="ghost" asChild>
             <Link href="/login">Login</Link>
           </Button>
-          <Button asChild className="animate-siren-flash">
+          <Button asChild>
             <Link href="/signup">Start Learning</Link>
           </Button>
         </nav>

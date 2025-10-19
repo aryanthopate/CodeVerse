@@ -103,23 +103,12 @@ export default {
           '0%, 100%': { boxShadow: '0 0 10px hsl(var(--primary) / 0.5), 0 0 20px hsl(var(--primary) / 0.3)' },
           '50%': { boxShadow: '0 0 20px hsl(var(--primary) / 0.7), 0 0 40px hsl(var(--primary) / 0.5)' },
         },
-        'siren-flash': {
-            '0%, 100%': { 
-              backgroundColor: 'hsl(var(--primary))', 
-              boxShadow: '0 0 20px hsl(var(--primary) / 0.7)' 
-            },
-            '50%': { 
-              backgroundColor: 'hsl(var(--secondary))', 
-              boxShadow: '0 0 20px hsl(var(--secondary) / 0.7)' 
-            },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'float': 'float 3s ease-in-out infinite',
         'glow-pulse': 'glow-pulse 4s ease-in-out infinite',
-        'siren-flash': 'siren-flash 1s ease-in-out infinite',
       },
     },
   },
