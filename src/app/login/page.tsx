@@ -71,6 +71,10 @@ export default function LoginPage() {
         description: error.message,
       });
     } else {
+      toast({
+        title: "Login Successful!",
+        description: "Welcome back!",
+      });
       // router.push('/dashboard') is not needed, middleware will redirect
       router.refresh();
     }
