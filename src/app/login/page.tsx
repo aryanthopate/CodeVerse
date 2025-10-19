@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { Github } from 'lucide-react';
 
 export default function LoginPage() {
   return (
@@ -46,10 +45,6 @@ export default function LoginPage() {
             </div>
             <Button type="submit" className="w-full" asChild>
                 <Link href="/dashboard">Login</Link>
-            </Button>
-            <Button variant="outline" className="w-full">
-              <Github className="mr-2 h-4 w-4" />
-              Login with Github
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
