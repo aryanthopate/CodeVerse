@@ -218,6 +218,7 @@ const Sidebar = React.forwardRef<
         className={cn(
           "group peer hidden md:block text-sidebar-foreground bg-sidebar",
           variant === 'sidebar' && 'border-r border-sidebar-border',
+          variant === 'inset' && 'border border-sidebar-border',
           className
         )}
         data-state={state}
@@ -306,8 +307,8 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background",
-        "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+        "relative flex min-h-svh flex-1 flex-col bg-muted/30",
+        "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0",
         className
       )}
       {...props}
