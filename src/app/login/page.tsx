@@ -59,7 +59,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -72,7 +72,8 @@ export default function LoginPage() {
       });
       setLoading(false);
     } else {
-        router.push('/u/dashboard?toast=true');
+       // Force a full page reload to ensure middleware catches the new session
+       window.location.href = '/u/dashboard?toast=true';
     }
   };
   

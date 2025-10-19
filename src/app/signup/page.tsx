@@ -46,6 +46,7 @@ export default function SignupPage() {
           full_name: fullName,
           learning_at: learningAt,
         },
+        emailRedirectTo: `${location.origin}/auth/callback?next=/u/welcome?toast=true`,
       },
     });
 
