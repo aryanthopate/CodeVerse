@@ -74,7 +74,7 @@ export default function Home() {
             Your Code, Your Journey, Your Playground. Master programming with AI-powered lessons, interactive quizzes, and hands-on practice.
           </p>
           <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground animate-glow-pulse shadow-lg shadow-primary/20">
+            <Button size="lg" asChild className="animate-siren-flash">
               <Link href="/signup">Start Learning Free</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
