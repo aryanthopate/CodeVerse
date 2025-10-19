@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,19 +12,35 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { Home, BookOpen, BarChart2, NotebookText, Settings, LogOut, Search, User } from 'lucide-react';
+import { Home, BookOpen, BarChart2, NotebookText, Settings, LogOut, Search, User, Share2, Target, Calendar, Clock, BarChartBig, HelpCircle } from 'lucide-react';
 import { FloatingAIButton } from './floating-ai-button';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { UserProfile } from '@/lib/types';
 import { AppHeader } from './app-header';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
-const navItems = [
-  { href: '/dashboard', icon: <Home />, label: 'Dashboard' },
-  { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
+const mainNav = [
+  { href: '/dashboard', icon: <Home />, label: 'Homepage' },
+  { href: '/courses', icon: <BookOpen />, label: 'Dashboard' }, // Changed to courses for now
 ];
+
+const planningNav = [
+  { href: '/daily-goals', icon: <Target />, label: 'Daily Goals' },
+  { href: '/timetable', icon: <Calendar />, label: 'Timetable' },
+  { href: '/focus-zone', icon: <Clock />, label: 'Focus Zone' },
+];
+
+const analyticsNav = [
+  { href: '/progress-grid', icon: <BarChartBig />, label: 'Progress Grid' },
+  { href: '/questions-log', icon: <HelpCircle />, label: 'Questions Log' },
+];
+
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -62,9 +76,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     router.push('/');
   };
 
-  const totalXpForLevel = 2000;
-  const xpProgress = useMemo(() => ( (profile?.xp || 0) / totalXpForLevel) * 100, [profile]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -79,49 +90,80 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <Logo />
         </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={{ children: item.label }}
-                >
-                  <Link href={item.href}>
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+        <SidebarContent className="p-2">
+            <SidebarGroup>
+                <SidebarGroupLabel>MAIN</SidebarGroupLabel>
+                <SidebarMenu>
+                {mainNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
+                        tooltip={{ children: item.label }}
+                    >
+                        <Link href={item.href}>
+                        {item.icon}
+                        <span>{item.label}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+                </SidebarMenu>
+            </SidebarGroup>
+            <SidebarGroup>
+                <SidebarGroupLabel>PLANNING</SidebarGroupLabel>
+                <SidebarMenu>
+                {planningNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
+                        tooltip={{ children: item.label }}
+                        disabled // Placeholder
+                    >
+                        <Link href="#">
+                        {item.icon}
+                        <span>{item.label}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+                </SidebarMenu>
+            </SidebarGroup>
+            <SidebarGroup>
+                <SidebarGroupLabel>ANALYTICS</SidebarGroupLabel>
+                <SidebarMenu>
+                {analyticsNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
+                        tooltip={{ children: item.label }}
+                        disabled // Placeholder
+                    >
+                        <Link href="#">
+                        {item.icon}
+                        <span>{item.label}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+                </SidebarMenu>
+            </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <div className="flex flex-col gap-3 p-2 rounded-lg bg-sidebar-accent/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:bg-transparent">
-             <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:p-0">
-               <Avatar className="h-10 w-10">
-                 <AvatarImage src={profile?.avatar_url} alt={profile?.full_name || 'User'} />
-                 <AvatarFallback>{profile?.full_name?.charAt(0) || 'U'}</AvatarFallback>
-               </Avatar>
-               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                 <span className="font-semibold">{profile?.full_name || 'User'}</span>
-                 <span className="text-sm text-muted-foreground">{profile?.xp || 0} XP</span>
-               </div>
-             </div>
-             <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
-                <Progress value={xpProgress} className="h-2 bg-background" />
-             </div>
-          </div>
-          
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Logout' }}>
-                  <LogOut />
-                  <span>Logout</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+            <Card className="bg-sidebar-accent/50 text-center p-4 m-2">
+                <CardHeader className="p-2">
+                    <div className="mx-auto bg-background rounded-full p-2 w-fit">
+                        <Share2 className="text-primary"/>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <CardTitle className="text-base">Share The App</CardTitle>
+                    <CardDescription className="text-xs mt-1 mb-3">Invite a friend to conquer their goals with you!</CardDescription>
+                    <Button size="sm" className="w-full">Invite Now</Button>
+                </CardContent>
+            </Card>
         </SidebarFooter>
       </Sidebar>
       <main className="flex-1 flex flex-col relative">

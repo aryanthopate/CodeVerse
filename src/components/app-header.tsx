@@ -2,9 +2,8 @@
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Moon, Sun, LogOut, User, Settings } from 'lucide-react';
+import { Search, Moon, Sun, Bell, Calendar, LogOut, User, Settings, PanelLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { SidebarTrigger } from './ui/sidebar';
@@ -27,45 +26,52 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
   };
 
   const getPageTitle = () => {
-    if (pathname.startsWith('/dashboard')) return 'Dashboard';
-    if (pathname.startsWith('/courses')) return 'My Courses';
-    return 'CodeVerse';
+    const path = pathname.split('/').pop() || 'dashboard';
+    if (path === 'dashboard') return 'Dashboard';
+    if (path === 'courses') return 'My Courses';
+    return path.charAt(0).toUpperCase() + path.slice(1);
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-lg px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      <SidebarTrigger className="sm:hidden" />
-      <h1 className="text-2xl font-semibold hidden sm:block">{getPageTitle()}</h1>
-      <div className="relative ml-auto flex-1 md:grow-0">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search courses..."
-          className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px]"
-        />
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-lg px-4 sm:px-6">
+       <SidebarTrigger className="sm:hidden" />
+      <div className="flex-1">
+        <h1 className="text-2xl font-semibold hidden sm:block">{getPageTitle()}</h1>
       </div>
-      <Button variant="ghost" size="icon" onClick={toggleTheme}>
-        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        <span className="sr-only">Toggle theme</span>
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={profile?.avatar_url} alt={profile?.full_name || 'User'} />
-              <AvatarFallback>{profile?.full_name?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{profile?.full_name || 'User'}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem><User className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
-          <DropdownMenuItem><Settings className="mr-2 h-4 w-4" />Settings</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onLogout}><LogOut className="mr-2 h-4 w-4" />Logout</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon">
+            <Calendar className="h-5 w-5" />
+            <span className="sr-only">Calendar</span>
+        </Button>
+        <Button variant="ghost" size="icon">
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">Notifications</span>
+        </Button>
+        <Button variant="ghost" size="icon" onClick={toggleTheme}>
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2 h-10 px-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={profile?.avatar_url} alt={profile?.full_name || 'User'} />
+                <AvatarFallback>{profile?.full_name?.charAt(0) || 'U'}</AvatarFallback>
+              </Avatar>
+              <span className="hidden md:inline">{profile?.full_name || 'User'}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>{profile?.full_name || 'User'}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem><User className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
+            <DropdownMenuItem><Settings className="mr-2 h-4 w-4" />Settings</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onLogout}><LogOut className="mr-2 h-4 w-4" />Logout</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }
