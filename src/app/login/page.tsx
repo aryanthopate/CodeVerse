@@ -59,10 +59,9 @@ export default function LoginPage() {
           description: error.message,
         });
       } else {
-         // This is the most reliable way to handle redirection after login
-         // in Next.js App Router. It ensures the middleware is re-evaluated.
-         // We add a toast=true param to show a message on the target page.
-         router.push('/dashboard?toast=true');
+         // Using router.replace is more robust for preview environments
+         // as it replaces the current history state, forcing a reload.
+         router.replace('/dashboard?toast=true');
       }
     } catch (e: any) {
         toast({
