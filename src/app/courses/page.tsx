@@ -1,9 +1,14 @@
+'use client';
 import { AppLayout } from '@/components/app-layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { mockCourses, mockUser } from '@/lib/mock-data';
+import { mockCourses } from '@/lib/mock-data';
 import Image from 'next/image';
 import Link from 'next/link';
+
+// We'll continue to use mockCourses for the list of available courses
+// until that data is moved to the database.
+// User-specific progress will be fetched from Supabase in a real scenario.
 
 export default function CoursesPage() {
   return (
@@ -15,7 +20,9 @@ export default function CoursesPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {mockCourses.map(course => {
-            const userProgress = mockUser.progress.find(p => p.language === course.name);
+            // In a real app, user progress would be fetched and matched here.
+            // For now, we'll show a generic state.
+            const userProgress = null; 
             return (
               <Link href={`/courses/${course.slug}`} key={course.id}>
                 <Card className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">

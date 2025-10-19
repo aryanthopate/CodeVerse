@@ -1,33 +1,58 @@
+'use client';
+
 import { AppLayout } from '@/components/app-layout';
-import { mockUser, mockCourses } from '@/lib/mock-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ArrowRight, BarChart, BookOpen, Star, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { mockCourses } from '@/lib/mock-data'; // Keep for now for course structure
 
 export default function DashboardPage() {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+  
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(profileData);
+      }
+      setLoading(false);
+    }
+    fetchProfile();
+  }, [supabase]);
+
+  // Keep mock for UI structure until courses are in DB
   const lastTopic = mockCourses[0].chapters[0].topics[1];
   const lastCourse = mockCourses[0];
   
   const stats = [
-    { title: 'XP Earned', value: `${mockUser.xp} XP`, icon: <Star className="text-yellow-400" /> },
-    { title: 'Courses in Progress', value: mockUser.progress.length, icon: <BookOpen className="text-blue-400" /> },
-    { title: 'Weekly Streak', value: `${mockUser.streak} days`, icon: <TrendingUp className="text-green-400" /> },
-    { title: 'Leaderboard Rank', value: '#12', icon: <BarChart className="text-red-400" /> },
+    { title: 'XP Earned', value: `${profile?.xp || 0} XP`, icon: <Star className="text-yellow-400" /> },
+    { title: 'Courses in Progress', value: 0, icon: <BookOpen className="text-blue-400" /> },
+    { title: 'Weekly Streak', value: `${profile?.streak || 0} days`, icon: <TrendingUp className="text-green-400" /> },
+    { title: 'Leaderboard Rank', value: '#- / -', icon: <BarChart className="text-red-400" /> },
   ];
+
+  if (loading) {
+    return <AppLayout><div>Loading...</div></AppLayout>
+  }
 
   return (
     <AppLayout>
       <div className="space-y-8">
         <div className="p-8 rounded-xl bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground">
-          <h1 className="text-4xl font-bold">Welcome back, {mockUser.name} 👋</h1>
+          <h1 className="text-4xl font-bold">Welcome back, {profile?.full_name || 'Explorer'} 👋</h1>
           <p className="text-lg mt-2 text-primary-foreground/80">Ready to continue your coding adventure?</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Continue Learning */}
+          {/* Continue Learning - This can be updated when progress is stored in DB */}
           <Card className="lg:col-span-2 bg-card/50 border-border/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>Continue Learning</CardTitle>
@@ -38,7 +63,7 @@ export default function DashboardPage() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">{lastCourse.name} / {lastCourse.chapters[0].title}</p>
                   <h3 className="text-xl font-semibold mt-1">{lastTopic.title}</h3>
-                  <Progress value={60} className="mt-4 h-2" />
+                  <Progress value={0} className="mt-4 h-2" />
                 </div>
                 <Button asChild>
                   <Link href={`/courses/${lastCourse.slug}/${lastTopic.slug}`}>

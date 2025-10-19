@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,9 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { Home, BookOpen, BarChart2, NotebookText, User, Settings, LogOut } from 'lucide-react';
-import { mockUser } from '@/lib/mock-data';
 import { FloatingAIButton } from './floating-ai-button';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 const navItems = [
   { href: '/dashboard', icon: <Home />, label: 'Home' },
@@ -32,9 +33,49 @@ const navItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileData) {
+          setProfile(profileData);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchUser();
+  }, [supabase.auth]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+    router.refresh();
+  };
 
   const totalXpForLevel = 2000;
-  const xpProgress = useMemo(() => (mockUser.xp / totalXpForLevel) * 100, []);
+  const xpProgress = useMemo(() => ( (profile?.xp || 0) / totalXpForLevel) * 100, [profile]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -64,12 +105,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col gap-3 p-2 rounded-lg bg-sidebar-accent/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:bg-transparent">
              <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:p-0">
                <Avatar className="h-10 w-10">
-                 <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />
-                 <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+                 <AvatarImage src={profile?.avatar_url} alt={profile?.full_name || 'User'} />
+                 <AvatarFallback>{profile?.full_name?.charAt(0) || 'U'}</AvatarFallback>
                </Avatar>
                <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                 <span className="font-semibold">{mockUser.name}</span>
-                 <span className="text-sm text-muted-foreground">{mockUser.xp} XP</span>
+                 <span className="font-semibold">{profile?.full_name || 'User'}</span>
+                 <span className="text-sm text-muted-foreground">{profile?.xp || 0} XP</span>
                </div>
              </div>
              <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
@@ -87,11 +128,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={{ children: 'Logout' }}>
-                <Link href="/">
+              <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Logout' }}>
                   <LogOut />
                   <span>Logout</span>
-                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

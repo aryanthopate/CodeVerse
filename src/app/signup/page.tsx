@@ -62,7 +62,6 @@ export default function SignupPage() {
       });
       // This will redirect the user to the dashboard and refresh the page, which will
       // cause the middleware to run and handle the session.
-      router.push('/dashboard');
       router.refresh();
     }
     setLoading(false);

@@ -71,7 +71,7 @@ export default function LoginPage() {
         description: error.message,
       });
     } else {
-      router.push('/dashboard');
+      // router.push('/dashboard') is not needed, middleware will redirect
       router.refresh();
     }
     setLoading(false);

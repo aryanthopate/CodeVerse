@@ -1,12 +1,10 @@
-export interface User {
-  name: string;
-  avatarUrl: string;
+export interface UserProfile {
+  id: string; // Corresponds to Supabase auth.users.id
+  full_name: string;
+  avatar_url?: string;
+  learning_at: string;
   xp: number;
   streak: number;
-  progress: {
-    language: string;
-    percentage: number;
-  }[];
 }
 
 export interface Topic {
@@ -40,4 +38,11 @@ export interface Course {
   chapters: Chapter[];
   freeTopicsCount: number;
   imageUrl: string;
+}
+
+export interface UserCourseProgress {
+    user_id: string;
+    course_id: string;
+    completed_topics: string[]; // array of topic_ids
+    progress_percentage: number;
 }
