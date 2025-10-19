@@ -35,7 +35,7 @@ export function Header() {
           <Button variant="ghost" asChild>
             <Link href="/login">Login</Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
             <Link href="/signup">Start Learning</Link>
           </Button>
         </div>
