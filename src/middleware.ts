@@ -5,24 +5,32 @@ export async function middleware(request: NextRequest) {
   const { supabase, response } = createClient(request)
 
   const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  const {
     data: { user },
   } = await supabase.auth.getUser()
 
   // Define public and authenticated routes
-  const publicRoutes = ['/', '/login', '/signup', '/courses', '/courses/.*']; // Landing page, auth pages, and course info are public
+  const publicRoutes = ['/', '/login', '/signup', '/courses'];
   const authRoutes = ['/dashboard', '/profile', '/notes', '/settings', '/leaderboard'];
+  const courseDetailRoutePattern = /^\/courses\/[^/]+(\/[^/]+)?$/;
 
-  const isPublicRoute = publicRoutes.some(route => {
-    if (route.endsWith('/.*')) {
-      return new RegExp(`^${route.replace('.*', '(/.*)?')}$`).test(request.nextUrl.pathname);
-    }
-    return request.nextUrl.pathname === route;
-  });
-  
-  const isAuthRoute = authRoutes.includes(request.nextUrl.pathname);
+  const pathname = request.nextUrl.pathname;
+
+  const isPublicRoute = publicRoutes.includes(pathname);
+  const isAuthRoute = authRoutes.includes(pathname);
+  const isCourseDetailRoute = courseDetailRoutePattern.test(pathname);
+
+  // Refresh session if expired - important for Server Components
+  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
+  if (session) {
+    await supabase.auth.refreshSession();
+  }
 
   // if user is signed in and the current path is login or signup, redirect to dashboard
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+  if (user && (pathname === '/login' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -30,9 +38,6 @@ export async function middleware(request: NextRequest) {
   if (!user && isAuthRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
-
-  // Refresh session
-  await supabase.auth.getSession();
   
   return response
 }

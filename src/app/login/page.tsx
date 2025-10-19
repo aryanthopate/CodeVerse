@@ -75,8 +75,7 @@ export default function LoginPage() {
         title: "Login Successful!",
         description: "Welcome back!",
       });
-      // router.push('/dashboard') is not needed, middleware will redirect
-      router.refresh();
+      router.push('/dashboard');
     }
     setLoading(false);
   };
