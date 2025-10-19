@@ -72,8 +72,12 @@ export default function LoginPage() {
       });
       setLoading(false);
     } else {
-       // Force a full page reload to ensure middleware catches the new session
-       window.location.href = '/u/dashboard?toast=true';
+       toast({
+        title: 'Login Successful!',
+        description: 'Welcome back!',
+      });
+       router.push('/u/dashboard');
+       router.refresh();
     }
   };
   

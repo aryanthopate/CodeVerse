@@ -5,10 +5,6 @@ export async function middleware(request: NextRequest) {
   const { supabase, response } = createClient(request)
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  const {
     data: { user },
   } = await supabase.auth.getUser()
 
@@ -18,18 +14,11 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = ['/', '/login', '/signup', '/courses', '/auth/confirm'];
   const courseDetailRoutePattern = /^\/courses\/[^/]+(\/[^/]+)?$/;
 
-  // Authenticated routes
-  const authRoutes = ['/u/dashboard', '/u/profile', '/u/notes', '/u/settings', '/u/leaderboard', '/u/welcome'];
+  // Authenticated routes start with /u/
+  const isAuthRoute = pathname.startsWith('/u/');
   
   const isPublicRoute = publicRoutes.includes(pathname) || courseDetailRoutePattern.test(pathname);
-  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
-
-  // Refresh session if expired - important for Server Components
-  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
-  if (session) {
-    await supabase.auth.refreshSession();
-  }
-
+  
   // if user is signed in and the current path is login or signup, redirect to dashboard
   if (user && (pathname === '/login' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/u/dashboard', request.url))
