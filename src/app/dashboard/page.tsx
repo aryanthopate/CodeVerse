@@ -10,9 +10,12 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { mockCourses } from '@/lib/mock-data'; // Keep for now for course structure
+import type { UserProfile } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { useSearchParams } from 'next/navigation';
 
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   

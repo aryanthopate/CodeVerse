@@ -55,7 +55,7 @@ export function Header() {
         <div className="hidden md:flex items-center gap-4">
           {loading ? null : user ? (
             <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
-                <Link href="/u/dashboard">Go to Dashboard</Link>
+                <Link href="/dashboard">Go to Dashboard</Link>
             </Button>
           ) : (
             <>
@@ -102,7 +102,7 @@ export function Header() {
                   <div className="border-t border-border pt-6 mt-4 flex flex-col gap-4">
                      {loading ? null : user ? (
                         <Button asChild>
-                            <Link href="/u/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>
+                            <Link href="/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>
                         </Button>
                      ) : (
                         <>

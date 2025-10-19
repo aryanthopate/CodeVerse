@@ -18,21 +18,16 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.includes(pathname) || courseDetailRoutePattern.test(pathname)
 
   // Define authenticated routes prefix
-  const isAuthenticatedRoute = pathname.startsWith('/u/')
+  const isAuthenticatedRoute = pathname.startsWith('/dashboard')
 
   // If user is logged in and tries to access login or signup, redirect to dashboard
   if (user && (pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/u/dashboard', request.url))
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // If user is not logged in and tries to access a protected route, redirect to login
   if (!user && isAuthenticatedRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
-  }
-  
-  // If user is not logged in and is on a page that is now inside /u (e.g. /dashboard), redirect to login
-  if (!user && (pathname === '/dashboard')) {
-      return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return response

@@ -1,5 +1,4 @@
 'use client';
-import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, PartyPopper } from 'lucide-react';
@@ -20,7 +19,7 @@ export default function WelcomePage() {
         description: "Welcome to your dashboard!",
       });
       // Remove toast param from URL without reloading the page
-      router.replace('/u/welcome', {scroll: false});
+      router.replace('/dashboard/welcome', {scroll: false});
     }
   }, [searchParams, toast, router]);
 
@@ -41,7 +40,7 @@ export default function WelcomePage() {
                     We're thrilled to have you here. Get ready to learn, build, and conquer the world of code in a fun and interactive way.
                 </p>
                 <Button asChild size="lg">
-                    <Link href="/u/dashboard">
+                    <Link href="/dashboard">
                         Let's Get Started <ArrowRight className="ml-2"/>
                     </Link>
                 </Button>

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
 import {
   SidebarProvider,
   Sidebar,
@@ -15,10 +14,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarInset,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { Home, BookOpen, BarChart2, NotebookText, User, Settings, LogOut } from 'lucide-react';
+import { Home, BookOpen, BarChart2, NotebookText, Settings, LogOut } from 'lucide-react';
 import { FloatingAIButton } from './floating-ai-button';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -26,11 +24,8 @@ import type { UserProfile } from '@/lib/types';
 
 
 const navItems = [
-  { href: '/u/dashboard', icon: <Home />, label: 'Home' },
+  { href: '/dashboard', icon: <Home />, label: 'Home' },
   { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
-  { href: '/u/profile', icon: <BarChart2 />, label: 'Progress' },
-  { href: '/u/leaderboard', icon: <BarChart2 />, label: 'Leaderboard' },
-  { href: '/u/notes', icon: <NotebookText />, label: 'Notes' },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -65,7 +60,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
-    router.refresh();
   };
 
   const totalXpForLevel = 2000;
@@ -122,14 +116,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={{ children: 'Settings' }}>
-                <Link href="/u/settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
               <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Logout' }}>
                   <LogOut />
                   <span>Logout</span>
@@ -138,12 +124,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
-        <main className="flex-1 p-4 md:p-8 overflow-auto relative">
-          {children}
-          <FloatingAIButton />
-        </main>
-      </SidebarInset>
+      <main className="flex-1 p-4 md:p-8 overflow-auto relative">
+        {children}
+        <FloatingAIButton />
+      </main>
     </SidebarProvider>
   );
 }

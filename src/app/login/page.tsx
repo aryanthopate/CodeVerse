@@ -10,14 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog"
 import { Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -62,8 +61,7 @@ export default function LoginPage() {
           description: error.message,
         });
       } else {
-         // On success, redirect to the welcome page which will handle the toast.
-         router.push('/u/welcome?toast=true');
+         router.push('/dashboard/welcome?toast=true');
       }
     } catch (e: any) {
         toast({
