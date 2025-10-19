@@ -68,7 +68,7 @@ export default function Home() {
           <h1 className="text-5xl md:text-7xl font-bold font-headline bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
             Learn Java, Python, C++
             <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">The Fun Way 👾</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">The Fun Way</span> 👾
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
             Your Code, Your Journey, Your Playground. Master programming with AI-powered lessons, interactive quizzes, and hands-on practice.
