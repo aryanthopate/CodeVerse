@@ -74,7 +74,7 @@ export default function Home() {
             Your Code, Your Journey, Your Playground. Master programming with AI-powered lessons, interactive quizzes, and hands-on practice.
           </p>
           <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" asChild>
+            <Button size="lg" asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
               <Link href="/signup">Start Learning Free</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
