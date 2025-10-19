@@ -58,7 +58,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow">
-        <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05] -z-10"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05] -z-10 animate-grid-pan"></div>
         
         {/* Hero Section */}
         <section className="pt-32 pb-20 text-center container mx-auto">
@@ -68,7 +68,7 @@ export default function Home() {
           <h1 className="text-5xl md:text-7xl font-bold font-headline bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
             Learn Java, Python, C++
             <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">The Fun Way</span> 👾
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary bg-[200%_auto] animate-gradient-x">The Fun Way</span> 👾
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
             Your Code, Your Journey, Your Playground. Master programming with AI-powered lessons, interactive quizzes, and hands-on practice.

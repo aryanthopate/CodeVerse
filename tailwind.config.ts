@@ -113,6 +113,10 @@ export default {
           '0%': { backgroundPosition: '0% 0%' },
           '100%': { backgroundPosition: '2rem 2rem' },
         },
+        'gradient-x': {
+            '0%, 100%': { 'background-position': '0% 50%' },
+            '50%': { 'background-position': '100% 50%' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -120,6 +124,7 @@ export default {
         'float': 'float 3s ease-in-out infinite',
         'glow-pulse': 'glow-pulse 4s ease-in-out infinite',
         'grid-pan': 'grid-pan 15s linear infinite',
+        'gradient-x': 'gradient-x 3s ease-in-out infinite',
       },
     },
   },
