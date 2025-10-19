@@ -16,15 +16,15 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { Home, BookOpen, BarChart2, NotebookText, Settings, LogOut } from 'lucide-react';
+import { Home, BookOpen, BarChart2, NotebookText, Settings, LogOut, Search, User } from 'lucide-react';
 import { FloatingAIButton } from './floating-ai-button';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { UserProfile } from '@/lib/types';
-
+import { AppHeader } from './app-header';
 
 const navItems = [
-  { href: '/dashboard', icon: <Home />, label: 'Home' },
+  { href: '/dashboard', icon: <Home />, label: 'Dashboard' },
   { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
 ];
 
@@ -41,7 +41,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       if (user) {
-        const { data: profileData, error } = await supabase
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
@@ -55,7 +55,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     fetchUser();
-  }, [supabase, supabase.auth]);
+  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -85,7 +85,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname === item.href}
+                  isActive={pathname.startsWith(item.href)}
                   tooltip={{ children: item.label }}
                 >
                   <Link href={item.href}>
@@ -124,8 +124,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <main className="flex-1 p-4 md:p-8 overflow-auto relative">
-        {children}
+      <main className="flex-1 flex flex-col relative">
+        <AppHeader profile={profile} onLogout={handleLogout} />
+        <div className="flex-1 p-4 md:p-8 overflow-auto">
+          {children}
+        </div>
         <FloatingAIButton />
       </main>
     </SidebarProvider>

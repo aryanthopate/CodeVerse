@@ -57,17 +57,11 @@ export default function DashboardPage() {
   ];
 
   if (loading) {
-    return <AppLayout><div>Loading...</div></AppLayout>
+    return <div>Loading...</div>
   }
 
   return (
-    <AppLayout>
       <div className="space-y-8">
-        <div className="p-8 rounded-xl bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground">
-          <h1 className="text-4xl font-bold">Welcome back, {profile?.full_name || 'Explorer'} 👋</h1>
-          <p className="text-lg mt-2 text-primary-foreground/80">Ready to continue your coding adventure?</p>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Continue Learning - This can be updated when progress is stored in DB */}
           <Card className="lg:col-span-2 bg-card/50 border-border/50 backdrop-blur-sm">
@@ -125,6 +119,5 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </AppLayout>
   );
 }
