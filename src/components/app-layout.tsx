@@ -32,7 +32,7 @@ const mainNav = [
 
 const coursesNav = [
   { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
-  { href: '/courses/explore', icon: <GraduationCap />, label: 'Courses' },
+  { href: '/courses/explore', icon: <GraduationCap />, label: 'Explore' },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

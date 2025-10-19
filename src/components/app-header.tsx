@@ -27,12 +27,12 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
 
   const getPageTitle = () => {
     if (pathname.startsWith('/dashboard')) return 'Dashboard';
-    if (pathname.startsWith('/courses')) return 'My Courses';
+    if (pathname.startsWith('/courses')) return 'Courses';
     return 'CodeVerse';
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-lg px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
        <SidebarTrigger className="sm:hidden" />
       <div className="flex-1">
         <h1 className="text-2xl font-semibold hidden sm:block">{getPageTitle()}</h1>
