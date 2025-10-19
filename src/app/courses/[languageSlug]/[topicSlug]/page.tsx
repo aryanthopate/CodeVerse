@@ -4,18 +4,23 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock } from 'lucide-react';
+import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const course = mockCourses.find(c => c.slug === params.languageSlug);
-    const topic = course?.chapters.flatMap(ch => ch.topics).find(t => t.slug === params.topicSlug);
+    const topics = course?.chapters.flatMap(ch => ch.topics);
+    const topicIndex = topics?.findIndex(t => t.slug === params.topicSlug);
 
-    if (!course || !topic) {
+    if (!course || !topics || topicIndex === undefined || topicIndex === -1) {
         notFound();
     }
     
+    const topic = topics[topicIndex];
     const chapter = course.chapters.find(ch => ch.topics.some(t => t.id === topic.id));
+
+    const prevTopic = topicIndex > 0 ? topics[topicIndex - 1] : null;
+    const nextTopic = topicIndex < topics.length - 1 ? topics[topicIndex + 1] : null;
 
     return (
         <AppLayout>
@@ -83,10 +88,25 @@ export default function TopicPage({ params }: { params: { languageSlug: string, 
                 </div>
 
                 <div className="flex justify-between mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
-                    <Button variant="outline">Previous Topic</Button>
+                    {prevTopic ? (
+                         <Button variant="outline" asChild>
+                            <Link href={`/courses/${course.slug}/${prevTopic.slug}`}>
+                               <ArrowLeft className="mr-2"/> Previous Topic
+                            </Link>
+                         </Button>
+                    ) : <div></div>}
+                   
                     <div className="flex gap-4">
                         <Button variant="secondary" className="bg-accent/80 hover:bg-accent">Take Quiz</Button>
-                        <Button>Next Topic</Button>
+                        {nextTopic ? (
+                             <Button asChild>
+                                <Link href={`/courses/${course.slug}/${nextTopic.slug}`}>
+                                    Next Topic <ArrowRight className="ml-2"/>
+                                </Link>
+                             </Button>
+                        ): (
+                            <Button>Finish Course</Button>
+                        )}
                     </div>
                 </div>
             </div>

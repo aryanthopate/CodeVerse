@@ -3,7 +3,7 @@ import { mockCourses } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
-import { Lock, PlayCircle } from 'lucide-react';
+import { Lock, PlayCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
@@ -17,6 +17,7 @@ export default function LanguagePage({ params }: { params: { languageSlug: strin
   const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
   const completedTopics = 3; // Mock data
   const progressPercentage = (completedTopics / totalTopics) * 100;
+  const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
 
   return (
     <AppLayout>
@@ -32,6 +33,14 @@ export default function LanguagePage({ params }: { params: { languageSlug: strin
             </div>
             <Progress value={progressPercentage} />
           </div>
+
+          {firstTopicSlug && (
+            <Button size="lg" asChild>
+                <Link href={`/courses/${course.slug}/${firstTopicSlug}`}>
+                    Continue Learning <ArrowRight className="ml-2"/>
+                </Link>
+            </Button>
+          )}
 
           <Accordion type="single" collapsible defaultValue={course.chapters[0].id} className="w-full">
             {course.chapters.map((chapter) => (

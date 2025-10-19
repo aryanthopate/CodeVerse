@@ -98,7 +98,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                         asChild
-                        isActive={pathname.startsWith(item.href)}
+                        isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
                         tooltip={{ children: item.label }}
                     >
                         <Link href={item.href}>
