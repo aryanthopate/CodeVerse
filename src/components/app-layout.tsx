@@ -148,13 +148,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <CardContent className="p-0">
                       <CardTitle className="text-base">Share The App</CardTitle>
                       <CardDescription className="text-xs mt-1 mb-3">Invite a friend to conquer their goals with you!</CardDescription>
-                      <Button size="sm" className="w-full">Invite Now</Button>
-                  </CardContent>
+                      <Button size="sm" className="w-full">Invite Now</Button>                  </CardContent>
               </Card>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="bg-muted/30 p-2">
-           <div className="flex flex-col w-full gap-2">
+        <SidebarInset>
+           <div className="flex flex-col w-full gap-2 p-2">
                 <div className="bg-card rounded-xl border border-border">
                     <AppHeader profile={profile} onLogout={handleLogout} />
                 </div>
