@@ -92,8 +92,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen p-2 gap-2">
-        <Sidebar variant="inset" collapsible="icon">
+      <div className="flex min-h-screen">
+        <Sidebar variant="inset" collapsible="icon" className="p-2">
           <SidebarHeader>
             <Logo />
           </SidebarHeader>
@@ -153,9 +153,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Card>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="bg-muted/30 p-0">
+        <SidebarInset className="bg-muted/30 p-2">
            <div className="flex flex-col w-full gap-2">
-                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="bg-card rounded-xl border border-border">
                     <AppHeader profile={profile} onLogout={handleLogout} />
                 </div>
                 <main className="flex-1 p-4 md:p-6 lg:p-8 bg-card rounded-xl border border-border">
