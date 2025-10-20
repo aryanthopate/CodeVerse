@@ -13,6 +13,7 @@ import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Uplo
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
+import { generateCodeTask } from '@/ai/flows/generate-code-task';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
@@ -24,6 +25,7 @@ interface TopicState {
     video_url: string;
     content?: string;
     uploadProgress?: number;
+    isGeneratingTask?: boolean;
 }
 
 interface ChapterState {
@@ -47,11 +49,11 @@ export default function NewCoursePage() {
 
 
     const [chapters, setChapters] = useState<ChapterState[]>([
-        { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '', uploadProgress: undefined }] }
+        { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '', uploadProgress: undefined, isGeneratingTask: false }] }
     ]);
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '' }] }] as any);
+        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false }] }] as any);
     };
 
     const handleRemoveChapter = (index: number) => {
@@ -67,7 +69,7 @@ export default function NewCoursePage() {
 
     const handleAddTopic = (chapterIndex: number) => {
         const newChapters = [...chapters];
-        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '' });
+        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false });
         setChapters(newChapters as any);
     };
 
@@ -167,19 +169,48 @@ export default function NewCoursePage() {
                 const result = reader.result as string;
                 setImagePreview(result);
                 setCourseImageUrl(result);
-                toast({
-                    title: "Image Preview Ready",
-                    description: "The image preview has been updated. The image will be saved when you create the course. Note: Backend storage is not yet implemented.",
-                });
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleGenerateCodeTask = async (chapterIndex: number, topicIndex: number) => {
+        const topic = chapters[chapterIndex].topics[topicIndex];
+        if (!topic.title || !courseName) {
+            toast({
+                variant: 'destructive',
+                title: 'Topic and Course Name are required',
+                description: 'Please provide a topic title and a course name to generate a code task.',
+            });
+            return;
+        }
+
+        handleTopicChange(chapterIndex, topicIndex, 'isGeneratingTask', true);
+
+        try {
+            const language = courseName.split(' ')[0]; // Simple logic to get language from course name
+            const result = await generateCodeTask({ topicTitle: topic.title, programmingLanguage: language });
+            handleTopicChange(chapterIndex, topicIndex, 'content', result.task);
+            toast({
+                title: 'AI Code Task Generated!',
+                description: `A new code task for "${topic.title}" has been created.`,
+            });
+        } catch (error) {
+            console.error('AI code task generation failed:', error);
+            toast({
+                variant: 'destructive',
+                title: 'AI Failed',
+                description: 'Could not generate a code task. Please try again.',
+            });
+        } finally {
+            handleTopicChange(chapterIndex, topicIndex, 'isGeneratingTask', false);
         }
     };
 
     const handleAiAction = (action: string) => {
         toast({
             title: `🤖 ${action} Initiated`,
-            description: `The AI is starting to work. This is a placeholder for the real process.`,
+            description: `The AI is starting to work. This feature is coming soon!`,
         });
     }
 
@@ -382,12 +413,13 @@ export default function NewCoursePage() {
                                                 </div>
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Topic Content</Label>
+                                                    <Label className="text-sm font-medium">Topic Content (AI Task)</Label>
                                                      <Textarea 
                                                         value={topic.content || ''}
                                                         onChange={e => handleTopicChange(chapterIndex, topicIndex, 'content', e.target.value)}
                                                         placeholder="AI-Generated code task will appear here."
-                                                        rows={3}
+                                                        className="mt-2 min-h-[120px] font-mono"
+                                                        rows={6}
                                                     />
                                                 </div>
                                                 <div className="pt-2 px-4 flex items-center justify-between">
@@ -395,7 +427,10 @@ export default function NewCoursePage() {
                                                     <div className="flex gap-2">
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Video Analysis")}><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Quiz Generation")}><Bot className="mr-2 h-4 w-4" /> Generate Quiz</Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Code Task Generation")}><Bot className="mr-2 h-4 w-4" /> Generate Code Task</Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapterIndex, topicIndex)} disabled={topic.isGeneratingTask}>
+                                                            <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingTask ? 'animate-spin' : ''}`} />
+                                                             {topic.isGeneratingTask ? 'Generating...' : 'Generate Code Task'}
+                                                        </Button>
                                                     </div>
                                                 </div>
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapterIndex, topicIndex)} disabled={chapter.topics.length === 1}>
