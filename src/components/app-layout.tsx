@@ -92,7 +92,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-background">
         <Sidebar variant="inset" collapsible="icon" className="p-2">
           <SidebarHeader>
             <Logo />
@@ -148,7 +148,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <CardContent className="p-0">
                       <CardTitle className="text-base">Share The App</CardTitle>
                       <CardDescription className="text-xs mt-1 mb-3">Invite a friend to conquer their goals with you!</CardDescription>
-                      <Button size="sm" className="w-full">Invite Now</Button>                  </CardContent>
+                      <Button size="sm" className="w-full">Invite Now</Button>
+                  </CardContent>
               </Card>
           </SidebarFooter>
         </Sidebar>
