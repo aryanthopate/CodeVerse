@@ -19,13 +19,22 @@ export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChapt
             chapters (
                 *,
                 topics (
-                    *
+                    *,
+                    quizzes (
+                        *,
+                        questions (
+                            *,
+                            question_options (*)
+                        )
+                    )
                 )
             )
         `)
         .order('created_at', { ascending: true })
         .order('order', { foreignTable: 'chapters', ascending: true })
-        .order('order', { foreignTable: 'chapters.topics', ascending: true });
+        .order('order', { foreignTable: 'chapters.topics', ascending: true })
+        .order('order', { foreignTable: 'chapters.topics.quizzes.questions', ascending: true });
+
 
     if (error) {
         console.error("Error fetching courses:", error.message);
@@ -46,13 +55,21 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
             chapters (
                 *,
                 topics (
-                    *
+                    *,
+                    quizzes (
+                        *,
+                        questions (
+                            *,
+                            question_options (*)
+                        )
+                    )
                 )
             )
         `)
         .eq('slug', slug)
         .order('order', { foreignTable: 'chapters', ascending: true })
         .order('order', { foreignTable: 'chapters.topics', ascending: true })
+        .order('order', { foreignTable: 'chapters.topics.quizzes.questions', ascending: true })
         .single();
     
     if (error) {
@@ -78,21 +95,21 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
                 title,
                 order,
                 topics (
-                    id,
-                    chapter_id,
-                    title,
-                    slug,
-                    video_url,
-                    content,
-                    summary,
-                    is_free,
-                    order
+                    *,
+                    quizzes (
+                        *,
+                        questions (
+                            *,
+                            question_options (*)
+                        )
+                    )
                 )
             )
         `)
         .eq('slug', courseSlug)
         .order('order', { foreignTable: 'chapters', ascending: true })
         .order('order', { foreignTable: 'chapters.topics', ascending: true })
+        .order('order', { foreignTable: 'chapters.topics.quizzes.questions', ascending: true })
         .single();
 
     if (courseError || !course) {

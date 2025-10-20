@@ -4,7 +4,8 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import { type VideoInsightsOutput } from '@/ai/flows/extract-video-insights';
+import type { QuizWithQuestions, QuestionWithOptions, QuestionOption } from '@/lib/types';
+
 
 interface TopicData {
     id?: string; // id is present when updating
@@ -13,9 +14,9 @@ interface TopicData {
     is_free: boolean;
     order: number;
     video_url?: string;
-    yt_url_for_ai?: string;
     content?: string;
     summary?: string;
+    quizzes?: QuizWithQuestions[];
 }
 
 interface ChapterData {
@@ -76,33 +77,35 @@ export async function createCourse(courseData: CourseData) {
         return { success: false, error: chaptersError.message };
     }
 
-    // Finally, insert the topics
-    const topicsToInsert = courseData.chapters.flatMap((chapterData, index) => {
-        // Find the corresponding newly created chapter. Note: This relies on the order being the same.
+    // Finally, insert the topics (and their quizzes)
+    for (const chapterData of courseData.chapters) {
         const createdChapter = chapters.find(c => c.order === chapterData.order);
-        if (!createdChapter) return [];
-        return chapterData.topics.map(topic => ({
-            title: topic.title,
-            slug: topic.slug,
-            is_free: topic.is_free,
-            order: topic.order,
-            video_url: topic.video_url,
-            yt_url_for_ai: topic.yt_url_for_ai,
-            content: topic.content,
-            summary: topic.summary,
-            chapter_id: createdChapter.id,
-        }));
-    });
-    
-    if (topicsToInsert.length > 0) {
-        const { error: topicsError } = await supabase
-            .from('topics')
-            .insert(topicsToInsert);
+        if (!createdChapter) continue;
 
-        if (topicsError) {
-            console.error('Error creating topics:', topicsError);
-            // More complex cleanup needed here
-            return { success: false, error: topicsError.message };
+        for (const topicData of chapterData.topics) {
+             const { data: topic, error: topicError } = await supabase
+                .from('topics')
+                .insert({
+                    title: topicData.title,
+                    slug: topicData.slug,
+                    is_free: topicData.is_free,
+                    order: topicData.order,
+                    video_url: topicData.video_url,
+                    content: topicData.content,
+                    summary: topicData.summary,
+                    chapter_id: createdChapter.id,
+                })
+                .select().single();
+
+            if (topicError) {
+                 console.error('Error creating topic:', topicError);
+                 continue; // Or handle more gracefully
+            }
+            
+            if (topicData.quizzes && topicData.quizzes.length > 0) {
+                const quizData = topicData.quizzes[0]; // Assuming one quiz per topic
+                await upsertQuiz(quizData, topic.id);
+            }
         }
     }
 
@@ -115,6 +118,68 @@ export async function createCourse(courseData: CourseData) {
 
     return { success: true, courseId: course.id };
 }
+
+
+// Helper function to handle quiz upsert logic
+async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
+    const supabase = createClient();
+    
+    // 1. Upsert Quiz
+    const { data: quiz, error: quizError } = await supabase
+        .from('quizzes')
+        .upsert({ id: quizData.id, topic_id: topicId })
+        .select()
+        .single();
+    if (quizError) throw new Error(`Quiz upsert failed: ${quizError.message}`);
+
+    // Get existing questions to find which ones to delete
+    const { data: existingQuestions } = await supabase.from('questions').select('id').eq('quiz_id', quiz.id);
+    const incomingQuestionIds = quizData.questions.map(q => q.id).filter(Boolean);
+    const questionsToDelete = existingQuestions?.filter(q => !incomingQuestionIds.includes(q.id)).map(q => q.id) || [];
+    
+    if (questionsToDelete.length > 0) {
+        await supabase.from('questions').delete().in('id', questionsToDelete);
+    }
+
+    // 2. Upsert Questions
+    for (const questionData of quizData.questions) {
+        const { data: question, error: questionError } = await supabase
+            .from('questions')
+            .upsert({
+                id: questionData.id,
+                quiz_id: quiz.id,
+                question_text: questionData.question_text,
+                question_type: questionData.question_type,
+                order: questionData.order
+            })
+            .select()
+            .single();
+        if (questionError) throw new Error(`Question upsert failed: ${questionError.message}`);
+        
+        // Get existing options to find which ones to delete
+        const { data: existingOptions } = await supabase.from('question_options').select('id').eq('question_id', question.id);
+        const incomingOptionIds = questionData.question_options.map(o => o.id).filter(Boolean);
+        const optionsToDelete = existingOptions?.filter(o => !incomingOptionIds.includes(o.id)).map(o => o.id) || [];
+        
+        if (optionsToDelete.length > 0) {
+            await supabase.from('question_options').delete().in('id', optionsToDelete);
+        }
+
+        // 3. Upsert Options
+        const optionsToUpsert = questionData.question_options.map(opt => ({
+            id: opt.id,
+            question_id: question.id,
+            option_text: opt.option_text,
+            is_correct: opt.is_correct,
+        }));
+        
+        if (optionsToUpsert.length > 0) {
+            const { error: optionsError } = await supabase.from('question_options').upsert(optionsToUpsert);
+            if (optionsError) throw new Error(`Options upsert failed: ${optionsError.message}`);
+        }
+    }
+}
+
 
 export async function updateCourse(courseId: string, courseData: CourseData) {
     const supabase = createClient();
@@ -140,7 +205,7 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
     // 2. Get existing chapters and topics to compare
     const { data: existingCourse } = await supabase
         .from('courses')
-        .select('*, chapters(*, topics(*))')
+        .select('*, chapters(*, topics(*, quizzes(*, questions(*, question_options(*)))))')
         .eq('id', courseId)
         .single();
     
@@ -172,51 +237,55 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
     }
 
     // 4. Upsert chapters
-    const chaptersToUpsert = courseData.chapters.map(chapter => ({
-        id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
-        title: chapter.title,
-        order: chapter.order,
-        course_id: courseId,
-    }));
+    for (const chapterData of courseData.chapters) {
+        const { data: upsertedChapter, error: chapterUpsertError } = await supabase
+            .from('chapters')
+            .upsert({
+                id: chapterData.id?.startsWith('ch-') ? undefined : chapterData.id,
+                title: chapterData.title,
+                order: chapterData.order,
+                course_id: courseId,
+            })
+            .select()
+            .single();
     
-    const { data: upsertedChapters, error: chapterUpsertError } = await supabase
-        .from('chapters')
-        .upsert(chaptersToUpsert)
-        .select();
-    
-    if (chapterUpsertError) {
-        console.error('Error upserting chapters:', chapterUpsertError);
-        return { success: false, error: chapterUpsertError.message };
-    }
-
-    // 5. Upsert topics
-     const topicsToUpsert = courseData.chapters.flatMap((chapterData) => {
-        const upsertedChapter = upsertedChapters.find(uc => uc.order === chapterData.order && uc.title === chapterData.title);
-        if (!upsertedChapter) return [];
+        if (chapterUpsertError) {
+            console.error('Error upserting chapter:', chapterUpsertError);
+            return { success: false, error: chapterUpsertError.message };
+        }
         
-        return chapterData.topics.map(topic => ({
-            id: topic.id?.startsWith('t-') ? undefined : topic.id,
-            title: topic.title,
-            slug: topic.slug,
-            order: topic.order,
-            video_url: topic.video_url,
-            yt_url_for_ai: topic.yt_url_for_ai,
-            is_free: topic.is_free,
-            content: topic.content,
-            summary: topic.summary,
-            chapter_id: upsertedChapter.id
-        }));
-    });
-
-    if (topicsToUpsert.length > 0) {
-        const { error: topicUpsertError } = await supabase
-            .from('topics')
-            .upsert(topicsToUpsert)
-            .select();
+        // 5. Upsert topics for this chapter
+        for (const topicData of chapterData.topics) {
+            const { quizzes, ...topicDetails } = topicData;
+            const { data: upsertedTopic, error: topicUpsertError } = await supabase
+                .from('topics')
+                .upsert({
+                    ...topicDetails,
+                    id: topicDetails.id?.startsWith('t-') ? undefined : topicDetails.id,
+                    chapter_id: upsertedChapter.id
+                })
+                .select()
+                .single();
             
-        if (topicUpsertError) {
-            console.error('Error upserting topics:', topicUpsertError);
-            return { success: false, error: topicUpsertError.message };
+            if (topicUpsertError) {
+                console.error('Error upserting topic:', topicUpsertError);
+                return { success: false, error: topicUpsertError.message };
+            }
+
+            // 6. Upsert quiz for this topic
+            if (quizzes && quizzes.length > 0) {
+                try {
+                     await upsertQuiz(quizzes[0], upsertedTopic.id);
+                } catch(error: any) {
+                     return { success: false, error: error.message };
+                }
+            } else {
+                 // If there's no quiz data, delete any existing quiz for this topic
+                 const { data: existingQuiz } = await supabase.from('quizzes').select('id').eq('topic_id', upsertedTopic.id).single();
+                 if (existingQuiz) {
+                     await supabase.from('quizzes').delete().eq('id', existingQuiz.id);
+                 }
+            }
         }
     }
 
@@ -247,65 +316,4 @@ export async function deleteCourse(courseId: string) {
     revalidatePath('/courses');
 
     return { success: true };
-}
-
-
-export async function createQuizForTopic(topicId: string, quizData: VideoInsightsOutput) {
-    const supabase = createClient();
-
-    // Delete existing quiz for the topic, if any.
-    // This simplifies logic by ensuring a fresh start.
-    const { data: existingQuiz } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
-    if (existingQuiz) {
-        await supabase.from('quizzes').delete().eq('id', existingQuiz.id);
-    }
-
-
-    // 1. Create the quiz entry
-    const { data: quiz, error: quizError } = await supabase
-        .from('quizzes')
-        .insert({ topic_id: topicId })
-        .select()
-        .single();
-
-    if (quizError) {
-        console.error('Error creating quiz:', quizError);
-        return { success: false, error: quizError.message };
-    }
-
-    // 2. Create the questions and their options
-    for (const [qIndex, questionData] of quizData.questions.entries()) {
-        const { data: question, error: questionError } = await supabase
-            .from('questions')
-            .insert({
-                quiz_id: quiz.id,
-                question_text: questionData.question,
-                order: qIndex + 1,
-            })
-            .select()
-            .single();
-
-        if (questionError) {
-            console.error('Error creating question:', questionError);
-            // In a real app, you might want to roll back the transaction here
-            return { success: false, error: questionError.message };
-        }
-
-        // 3. Create options for the question
-        const optionsToInsert = questionData.options.map(optionText => ({
-            question_id: question.id,
-            option_text: optionText,
-            is_correct: optionText === questionData.correctAnswer,
-        }));
-
-        const { error: optionsError } = await supabase.from('question_options').insert(optionsToInsert);
-
-        if (optionsError) {
-            console.error('Error creating options:', optionsError);
-            return { success: false, error: optionsError.message };
-        }
-    }
-    
-    revalidatePath(`/courses/*/${topicId}`);
-    return { success: true, quizId: quiz.id };
 }

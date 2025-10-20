@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { AdminLayout } from '@/components/admin-layout';
@@ -10,33 +9,230 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Upload, IndianRupee, Youtube } from 'lucide-react';
+import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Upload, IndianRupee, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
-import { generateCodeTask } from '@/ai/flows/generate-code-task';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import type { QuizWithQuestions, QuestionWithOptions, QuestionOption } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+
+type QuestionType = 'single' | 'multiple';
+
+interface OptionState extends Partial<QuestionOption> {
+    id: string;
+    option_text: string;
+    is_correct: boolean;
+}
+
+interface QuestionState extends Partial<QuestionWithOptions> {
+    id: string;
+    question_text: string;
+    question_type: QuestionType;
+    order: number;
+    question_options: OptionState[];
+}
+
+interface QuizState extends Partial<QuizWithQuestions> {
+    id: string;
+    questions: QuestionState[];
+}
 
 interface TopicState {
-    id: string; // Use a temporary client-side ID
+    id: string;
     title: string;
     slug: string;
     is_free: boolean;
     video_url: string;
-    yt_url_for_ai?: string;
     content?: string;
     summary?: string;
     uploadProgress?: number;
-    isGeneratingTask?: boolean;
-    isAnalyzingVideo?: boolean;
+    quizzes?: QuizState[];
 }
 
 interface ChapterState {
     id: string; // Use a temporary client-side ID
     title: string;
     topics: TopicState[];
+}
+
+
+function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic: TopicState; onTopicChange: (chapterId: string, topicId: string, field: keyof TopicState, value: any) => void; chapterId: string; topicId: string; }) {
+    
+    const quiz = topic.quizzes?.[0];
+
+    const handleAddQuiz = () => {
+        const newQuiz: QuizState = {
+            id: `quiz-${Date.now()}`,
+            questions: [],
+        };
+        onTopicChange(chapterId, topicId, 'quizzes', [newQuiz]);
+    };
+
+    const handleAddQuestion = () => {
+        if (!quiz) return;
+        const newQuestion: QuestionState = {
+            id: `q-${Date.now()}`,
+            question_text: '',
+            question_type: 'single',
+            order: quiz.questions.length + 1,
+            question_options: [],
+        };
+        const updatedQuiz = { ...quiz, questions: [...quiz.questions, newQuestion] };
+        onTopicChange(chapterId, topicId, 'quizzes', [updatedQuiz]);
+    };
+
+    const handleRemoveQuestion = (questionId: string) => {
+        if (!quiz) return;
+        const updatedQuestions = quiz.questions.filter(q => q.id !== questionId);
+        const updatedQuiz = { ...quiz, questions: updatedQuestions };
+        onTopicChange(chapterId, topicId, 'quizzes', [updatedQuiz]);
+    };
+
+    const handleQuestionChange = (questionId: string, field: keyof QuestionState, value: any) => {
+        if (!quiz) return;
+        const updatedQuestions = quiz.questions.map(q => {
+            if (q.id === questionId) {
+                return { ...q, [field]: value };
+            }
+            return q;
+        });
+        const updatedQuiz = { ...quiz, questions: updatedQuestions };
+        onTopicChange(chapterId, topicId, 'quizzes', [updatedQuiz]);
+    };
+
+    const handleAddOption = (questionId: string) => {
+        if (!quiz) return;
+        const newOption: OptionState = { id: `opt-${Date.now()}`, option_text: '', is_correct: false };
+        const updatedQuestions = quiz.questions.map(q => {
+            if (q.id === questionId) {
+                return { ...q, question_options: [...q.question_options, newOption] };
+            }
+            return q;
+        });
+        const updatedQuiz = { ...quiz, questions: updatedQuestions };
+        onTopicChange(chapterId, topicId, 'quizzes', [updatedQuiz]);
+    };
+
+    const handleRemoveOption = (questionId: string, optionId: string) => {
+        if (!quiz) return;
+         const updatedQuestions = quiz.questions.map(q => {
+            if (q.id === questionId) {
+                return { ...q, question_options: q.question_options.filter(o => o.id !== optionId) };
+            }
+            return q;
+        });
+        const updatedQuiz = { ...quiz, questions: updatedQuestions };
+        onTopicChange(chapterId, topicId, 'quizzes', [updatedQuiz]);
+    };
+
+    const handleOptionChange = (questionId: string, optionId: string, field: 'option_text' | 'is_correct', value: any) => {
+         if (!quiz) return;
+         const updatedQuestions = quiz.questions.map(q => {
+            if (q.id === questionId) {
+                let newOptions = q.question_options.map(o => {
+                    if (o.id === optionId) {
+                        return { ...o, [field]: value };
+                    }
+                    // If it's a single choice question, unselect other options
+                    if (q.question_type === 'single' && field === 'is_correct' && value === true) {
+                        return { ...o, is_correct: false };
+                    }
+                    return o;
+                });
+                
+                // Make sure the changed option is correctly set
+                if (q.question_type === 'single' && field === 'is_correct' && value === true) {
+                   newOptions = newOptions.map(o => o.id === optionId ? {...o, is_correct: true} : o);
+                }
+
+                return { ...q, question_options: newOptions };
+            }
+            return q;
+        });
+        const updatedQuiz = { ...quiz, questions: updatedQuestions };
+        onTopicChange(chapterId, topicId, 'quizzes', [updatedQuiz]);
+    }
+    
+    if (!quiz) {
+        return (
+            <div className="pt-2 px-4 flex flex-col gap-2">
+                <Label className="text-sm font-medium">Quiz Management</Label>
+                <div className="p-4 border-dashed border-2 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">No quiz exists for this topic.</p>
+                    <Button variant="link" onClick={handleAddQuiz}>Create a Manual Quiz</Button>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+         <div className="pt-2 px-4 flex flex-col gap-4">
+            <Label className="text-sm font-medium">Quiz Management</Label>
+            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
+                {quiz.questions.map((q, qIndex) => (
+                    <Card key={q.id}>
+                        <CardHeader className='flex-row items-center justify-between p-4'>
+                            <CardTitle className='text-lg'>Question {qIndex + 1}</CardTitle>
+                            <div className='flex items-center gap-2'>
+                                 <Select value={q.question_type} onValueChange={(value: QuestionType) => handleQuestionChange(q.id, 'question_type', value)}>
+                                    <SelectTrigger className="w-[180px] h-9">
+                                        <SelectValue placeholder="Question Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="single">Single Choice</SelectItem>
+                                        <SelectItem value="multiple">Multiple Choice</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id)}><Trash2 className="text-destructive h-4 w-4"/></Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0 space-y-4">
+                            <Textarea 
+                                placeholder="Enter question text..." 
+                                value={q.question_text}
+                                onChange={e => handleQuestionChange(q.id, 'question_text', e.target.value)}
+                            />
+                            <div className='space-y-2'>
+                                <Label className="text-xs">Options</Label>
+                                {q.question_options.map(opt => (
+                                    <div key={opt.id} className="flex items-center gap-2">
+                                        {q.question_type === 'single' ? (
+                                            <RadioGroup
+                                                value={q.question_options.find(o => o.is_correct)?.id}
+                                                onValueChange={() => handleOptionChange(q.id, opt.id, 'is_correct', true)}
+                                            >
+                                                <RadioGroupItem value={opt.id} id={`rb-${opt.id}`} />
+                                            </RadioGroup>
+                                        ) : (
+                                            <Checkbox
+                                                id={`cb-${opt.id}`}
+                                                checked={opt.is_correct}
+                                                onCheckedChange={checked => handleOptionChange(q.id, opt.id, 'is_correct', checked)}
+                                            />
+                                        )}
+                                        <Input 
+                                            value={opt.option_text}
+                                            onChange={(e) => handleOptionChange(q.id, opt.id, 'option_text', e.target.value)}
+                                            className="h-9"
+                                            placeholder="Option text..."
+                                        />
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveOption(q.id, opt.id)}><X className="h-4 w-4"/></Button>
+                                    </div>
+                                ))}
+                                <Button variant="outline" size="sm" onClick={() => handleAddOption(q.id)}><Plus className="mr-2 h-4 w-4"/>Add Option</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+                <Button onClick={handleAddQuestion}><Plus className="mr-2"/>Add Question</Button>
+            </div>
+        </div>
+    );
 }
 
 export default function NewCoursePage() {
@@ -54,11 +250,11 @@ export default function NewCoursePage() {
 
 
     const [chapters, setChapters] = useState<ChapterState[]>([
-        { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', uploadProgress: undefined, isGeneratingTask: false, isAnalyzingVideo: false }] }
+        { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', uploadProgress: undefined, quizzes: [] }] }
     ]);
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', isGeneratingTask: false, isAnalyzingVideo: false }] }]);
+        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', quizzes: [] }] }]);
     };
 
     const handleRemoveChapter = (chapterId: string) => {
@@ -74,7 +270,7 @@ export default function NewCoursePage() {
     const handleAddTopic = (chapterId: string) => {
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
-                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', isGeneratingTask: false, isAnalyzingVideo: false }] };
+                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', quizzes: [] }] };
             }
             return c;
         });
@@ -169,49 +365,6 @@ export default function NewCoursePage() {
         }
     };
 
-    const handleGenerateCodeTask = async (chapterId: string, topicId: string) => {
-        const chapter = chapters.find(c => c.id === chapterId);
-        const topic = chapter?.topics.find(t => t.id === topicId);
-
-        if (!topic?.title || !courseName) {
-            toast({
-                variant: 'destructive',
-                title: 'Topic and Course Name are required',
-                description: 'Please provide a topic title and a course name to generate a code task.',
-            });
-            return;
-        }
-
-        handleTopicChange(chapterId, topicId, 'isGeneratingTask', true);
-
-        try {
-            const language = courseName.split(' ')[0]; // Simple logic to get language from course name
-            const result = await generateCodeTask({ topicTitle: topic.title, programmingLanguage: language });
-            handleTopicChange(chapterId, topicId, 'content', result.task);
-            toast({
-                title: 'AI Code Task Generated!',
-                description: `A new code task for "${topic.title}" has been created.`,
-            });
-        } catch (error) {
-            console.error('AI code task generation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'AI Failed',
-                description: 'Could not generate a code task. Please try again.',
-            });
-        } finally {
-            handleTopicChange(chapterId, topicId, 'isGeneratingTask', false);
-        }
-    };
-
-    const handleAnalyzeVideo = async () => {
-        toast({
-            variant: 'destructive',
-            title: 'Create the course first',
-            description: 'AI analysis can only be performed on saved topics. Please save the course, then edit it to analyze videos.',
-        });
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -224,18 +377,12 @@ export default function NewCoursePage() {
             is_paid: isPaid,
             price: Number(price),
             chapters: chapters.map((chapter, chapterIndex) => ({
-                // Don't send client-side temporary id
+                id: chapter.id,
                 title: chapter.title,
                 order: chapterIndex + 1,
                 topics: chapter.topics.map((topic, topicIndex) => ({
-                    // Don't send client-side temporary id
-                    title: topic.title,
-                    slug: topic.slug,
-                    is_free: topic.is_free,
-                    video_url: topic.video_url,
-                    yt_url_for_ai: topic.yt_url_for_ai,
-                    content: topic.content,
-                    summary: topic.summary,
+                    ...topic,
+                    id: topic.id,
                     order: topicIndex + 1,
                 }))
             }))
@@ -246,7 +393,7 @@ export default function NewCoursePage() {
             if (result.success) {
                 toast({
                     title: "Course Created!",
-                    description: `${courseName} has been successfully added. You can now edit the course to upload videos and generate quizzes.`,
+                    description: `${courseName} has been successfully added. You can now edit the course to upload videos.`,
                 });
                 router.push('/admin/courses');
             } else {
@@ -369,7 +516,7 @@ export default function NewCoursePage() {
                                         </Button>
                                     </CardHeader>
                                     <CardContent className="space-y-4 pl-10">
-                                        {chapter.topics.map((topic, topicIndex) => (
+                                        {chapter.topics.map((topic) => (
                                             <div key={topic.id} className="p-4 rounded-lg bg-background border flex flex-col gap-4 relative">
                                                 <div className="flex items-start gap-4">
                                                     <FileText className="mt-2.5 text-accent-foreground/50"/>
@@ -407,19 +554,7 @@ export default function NewCoursePage() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="space-y-2 sm:col-span-2">
-                                                            <Label htmlFor={`topic-yt-url-${chapter.id}-${topic.id}`}>YouTube URL for AI Analysis</Label>
-                                                             <div className="relative">
-                                                                <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                                <Input 
-                                                                    id={`topic-yt-url-${chapter.id}-${topic.id}`} 
-                                                                    value={topic.yt_url_for_ai || ''} 
-                                                                    onChange={e => handleTopicChange(chapter.id, topic.id, 'yt_url_for_ai', e.target.value)} 
-                                                                    placeholder="Paste YouTube link here for AI features"
-                                                                    className="pl-8"
-                                                                />
-                                                            </div>
-                                                        </div>
+                                                        
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                             <Switch
                                                               id={`is-free-${chapter.id}-${topic.id}`}
@@ -438,7 +573,7 @@ export default function NewCoursePage() {
                                                      <Textarea 
                                                         value={topic.summary || ''}
                                                         onChange={e => handleTopicChange(chapter.id, topic.id, 'summary', e.target.value)}
-                                                        placeholder="Enter a manual summary or generate one using the AI analysis button below."
+                                                        placeholder="Enter a manual summary here."
                                                         className="mt-2 min-h-[120px]"
                                                         rows={4}
                                                     />
@@ -451,23 +586,21 @@ export default function NewCoursePage() {
                                                      <Textarea 
                                                         value={topic.content || ''}
                                                         onChange={e => handleTopicChange(chapter.id, topic.id, 'content', e.target.value)}
-                                                        placeholder="Manually enter a coding challenge or generate one with AI."
+                                                        placeholder="Manually enter a coding challenge here."
                                                         className="mt-2 min-h-[120px] font-mono"
                                                         rows={6}
                                                     />
                                                 </div>
-                                                <div className="pt-2 px-4 flex items-center justify-end">
-                                                    <div className="flex gap-2">
-                                                        <Button type="button" variant="outline" size="sm" onClick={handleAnalyzeVideo} disabled={topic.isAnalyzingVideo}>
-                                                            <Video className={`mr-2 h-4 w-4 ${topic.isAnalyzingVideo ? 'animate-spin' : ''}`} />
-                                                            {topic.isAnalyzingVideo ? 'Analyzing...' : 'Analyze Video & Gen Quiz'}
-                                                        </Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapter.id, topic.id)} disabled={topic.isGeneratingTask}>
-                                                            <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingTask ? 'animate-spin' : ''}`} />
-                                                             {topic.isGeneratingTask ? 'Generating...' : 'Generate Code Task'}
-                                                        </Button>
-                                                    </div>
-                                                </div>
+                                                
+                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
+
+                                                <ManualQuizEditor 
+                                                    topic={topic} 
+                                                    onTopicChange={handleTopicChange} 
+                                                    chapterId={chapter.id} 
+                                                    topicId={topic.id}
+                                                />
+
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapter.id, topic.id)} disabled={chapter.topics.length === 1}>
                                                     <X className="w-4 h-4 text-muted-foreground"/>
                                                 </Button>

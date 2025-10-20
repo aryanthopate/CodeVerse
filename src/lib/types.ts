@@ -20,7 +20,6 @@ export type Topic = Database['public']['Tables']['topics']['Row'];
 export type Quiz = Database['public']['Tables']['quizzes']['Row'];
 export type Question = Database['public']['Tables']['questions']['Row'];
 export type QuestionOption = Database['public']['Tables']['question_options']['Row'];
-export type CodingChallenge = Database['public']['Tables']['coding_challenges']['Row'];
 
 // Custom combined types for nested data fetching
 export type QuestionWithOptions = Question & {
@@ -30,8 +29,7 @@ export type QuizWithQuestions = Quiz & {
     questions: QuestionWithOptions[];
 }
 export type TopicWithContent = Topic & {
-    quizzes: QuizWithQuestions | null;
-    coding_challenges: CodingChallenge | null;
+    quizzes: QuizWithQuestions[] | null; // A topic can have one quiz, represented as an array of 1
 }
 export type ChapterWithTopics = Chapter & {
   topics: TopicWithContent[];
