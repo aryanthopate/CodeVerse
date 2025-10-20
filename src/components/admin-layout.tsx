@@ -19,7 +19,6 @@ import {
 import { Logo } from '@/components/logo';
 import { LayoutDashboard, BookCopy, Users, Home } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { UserProfile } from '@/lib/types';
 import { AppHeader } from './app-header';
 import { ScrollArea } from './ui/scroll-area';
@@ -137,7 +136,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </Sidebar>
 
-        <main className="flex-1 flex flex-col gap-2 p-2 pl-[calc(14rem+0.5rem)]">
+        <main className="flex-1 flex flex-col gap-2 p-2 pl-[calc(14rem+0.5rem)] h-screen">
           <div className="bg-card border rounded-xl flex flex-col">
             <AppHeader profile={profile} onLogout={handleLogout} />
           </div>
