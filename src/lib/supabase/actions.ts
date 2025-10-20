@@ -13,6 +13,7 @@ interface TopicData {
     is_free: boolean;
     order: number;
     video_url?: string;
+    yt_url_for_ai?: string;
     content?: string;
     summary?: string;
 }
@@ -86,6 +87,7 @@ export async function createCourse(courseData: CourseData) {
             is_free: topic.is_free,
             order: topic.order,
             video_url: topic.video_url,
+            yt_url_for_ai: topic.yt_url_for_ai,
             content: topic.content,
             summary: topic.summary,
             chapter_id: createdChapter.id,
@@ -111,7 +113,7 @@ export async function createCourse(courseData: CourseData) {
     revalidatePath(`/courses/${courseData.slug}`);
     revalidatePath('/admin/courses');
 
-    return { success: true };
+    return { success: true, courseId: course.id };
 }
 
 export async function updateCourse(courseId: string, courseData: CourseData) {
@@ -198,6 +200,7 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             slug: topic.slug,
             order: topic.order,
             video_url: topic.video_url,
+            yt_url_for_ai: topic.yt_url_for_ai,
             is_free: topic.is_free,
             content: topic.content,
             summary: topic.summary,

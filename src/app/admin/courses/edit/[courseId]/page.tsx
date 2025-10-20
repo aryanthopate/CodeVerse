@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse, createQuizForTopic } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Upload, IndianRupee } from 'lucide-react';
-import { useRouter, useParams } from 'next/navigation';
+import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Upload, IndianRupee, Youtube } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
 import { generateCodeTask } from '@/ai/flows/generate-code-task';
@@ -29,6 +29,7 @@ interface TopicState {
     slug: string;
     is_free: boolean;
     video_url: string;
+    yt_url_for_ai?: string;
     content?: string;
     summary?: string;
     uploadProgress?: number;
@@ -43,7 +44,6 @@ interface ChapterState {
 }
 
 export default function EditCoursePage() {
-    const router = useRouter();
     const params = useParams();
     const courseId = params.courseId as string;
     const { toast } = useToast();
@@ -56,7 +56,6 @@ export default function EditCoursePage() {
     const [courseSlug, setCourseSlug] = useState('');
     const [courseDescription, setCourseDescription] = useState('');
     const [courseImageUrl, setCourseImageUrl] = useState('');
-    const [imagePreview, setImagePreview] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
 
@@ -79,7 +78,6 @@ export default function EditCoursePage() {
                 setCourseSlug(course.slug);
                 setCourseDescription(course.description || '');
                 setCourseImageUrl(course.image_url || '');
-                setImagePreview(course.image_url || '');
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
                 setChapters(course.chapters.map(c => ({
@@ -91,6 +89,7 @@ export default function EditCoursePage() {
                         slug: t.slug,
                         is_free: t.is_free,
                         video_url: t.video_url || '',
+                        yt_url_for_ai: t.yt_url_for_ai || '',
                         content: t.content || '',
                         summary: t.summary || '',
                         uploadProgress: undefined,
@@ -104,14 +103,13 @@ export default function EditCoursePage() {
                     title: 'Course not found',
                     description: 'Could not load the course data to edit.'
                 });
-                router.push('/admin/courses');
             }
             setInitialLoading(false);
         }
         if (courseId) {
             fetchCourse();
         }
-    }, [courseId, router, supabase, toast]);
+    }, [courseId, supabase, toast]);
     
 
     const handleAddChapter = () => {
@@ -255,7 +253,6 @@ export default function EditCoursePage() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const result = reader.result as string;
-                setImagePreview(result);
                 setCourseImageUrl(result);
             };
             reader.readAsDataURL(file);
@@ -310,11 +307,11 @@ export default function EditCoursePage() {
             return;
         }
 
-        if (!topic.video_url || !topic.video_url.includes('youtube.com')) {
+        if (!topic.yt_url_for_ai) {
             toast({
                 variant: 'destructive',
-                title: 'YouTube Video URL is required',
-                description: 'AI analysis currently only supports YouTube videos. Please provide a valid YouTube URL.',
+                title: 'YouTube URL for AI is required',
+                description: 'AI analysis requires a YouTube URL. Please provide one in the dedicated field.',
             });
             return;
         }
@@ -322,7 +319,7 @@ export default function EditCoursePage() {
         handleTopicChange(chapterId, topicId, 'isAnalyzingVideo', true);
 
         try {
-            const insights = await extractVideoInsights({ videoUrl: topic.video_url });
+            const insights = await extractVideoInsights({ videoUrl: topic.yt_url_for_ai });
             
             if (insights.summary) {
                 handleTopicChange(chapterId, topicId, 'summary', insights.summary);
@@ -381,6 +378,7 @@ export default function EditCoursePage() {
                     slug: topic.slug,
                     is_free: topic.is_free,
                     video_url: topic.video_url,
+                    yt_url_for_ai: topic.yt_url_for_ai,
                     content: topic.content,
                     summary: topic.summary,
                     order: topicIndex + 1,
@@ -395,7 +393,6 @@ export default function EditCoursePage() {
                     title: "Course Updated!",
                     description: `${courseName} has been successfully saved.`,
                 });
-                router.push('/admin/courses');
             } else {
                 throw new Error(result.error || 'An unknown error occurred');
             }
@@ -460,14 +457,14 @@ export default function EditCoursePage() {
                                         <Card className="border-dashed">
                                             <CardContent className="p-4">
                                                 <div className="flex flex-col items-center justify-center space-y-2">
-                                                    {imagePreview ? (
-                                                        <Image src={imagePreview} alt="Image preview" width={400} height={200} className="rounded-md max-h-40 w-auto object-contain"/>
+                                                    {courseImageUrl ? (
+                                                        <Image src={courseImageUrl} alt="Image preview" width={400} height={200} className="rounded-md max-h-40 w-auto object-contain"/>
                                                     ) : (
                                                         <ImageIcon className="w-12 h-12 text-muted-foreground" />
                                                     )}
                                                     <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*"/>
                                                     <Label htmlFor="image-upload" className="cursor-pointer text-primary text-sm underline">
-                                                        {imagePreview ? 'Change image' : 'Upload an image'}
+                                                        {courseImageUrl ? 'Change image' : 'Upload an image'}
                                                     </Label>
                                                     <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
                                                 </div>
@@ -538,13 +535,13 @@ export default function EditCoursePage() {
                                                             <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                         </div>
                                                          <div className="space-y-2 sm:col-span-2">
-                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video</Label>
+                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File</Label>
                                                             <div className="flex items-center gap-2">
                                                                 <Input 
                                                                     id={`topic-video-${chapter.id}-${topic.id}`} 
                                                                     value={topic.video_url} 
                                                                     onChange={e => handleTopicChange(chapter.id!, topic.id!, 'video_url', e.target.value)} 
-                                                                    placeholder="Paste video link (e.g., YouTube) or upload"
+                                                                    placeholder="Upload a video file or paste a direct video link"
                                                                     className="flex-grow"
                                                                 />
                                                                 <Button type="button" variant="outline" size="icon" asChild>
@@ -562,6 +559,20 @@ export default function EditCoursePage() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        <div className="space-y-2 sm:col-span-2">
+                                                            <Label htmlFor={`topic-yt-url-${chapter.id}-${topic.id}`}>YouTube URL for AI Analysis</Label>
+                                                             <div className="relative">
+                                                                <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                                <Input 
+                                                                    id={`topic-yt-url-${chapter.id}-${topic.id}`} 
+                                                                    value={topic.yt_url_for_ai || ''} 
+                                                                    onChange={e => handleTopicChange(chapter.id!, topic.id!, 'yt_url_for_ai', e.target.value)} 
+                                                                    placeholder="Paste YouTube link here for AI features"
+                                                                    className="pl-8"
+                                                                />
+                                                            </div>
+                                                        </div>
+
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                             <Switch
                                                               id={`is-free-${chapter.id}-${topic.id}`}
@@ -576,11 +587,11 @@ export default function EditCoursePage() {
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
 
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Video Summary</Label>
+                                                    <Label className="text-sm font-medium">AI-Generated Video Summary</Label>
                                                      <Textarea 
                                                         value={topic.summary || ''}
                                                         onChange={e => handleTopicChange(chapter.id!, topic.id!, 'summary', e.target.value)}
-                                                        placeholder="AI-Generated video summary will appear here."
+                                                        placeholder="The AI-generated video summary will appear here after analysis."
                                                         className="mt-2 min-h-[120px]"
                                                         rows={4}
                                                     />
@@ -589,11 +600,11 @@ export default function EditCoursePage() {
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
 
                                                  <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Coding Challenge</Label>
+                                                    <Label className="text-sm font-medium">AI-Generated Coding Challenge</Label>
                                                      <Textarea 
                                                         value={topic.content || ''}
                                                         onChange={e => handleTopicChange(chapter.id!, topic.id!, 'content', e.target.value)}
-                                                        placeholder="AI-Generated code task will appear here."
+                                                        placeholder="The AI-generated code task will appear here."
                                                         className="mt-2 min-h-[120px] font-mono"
                                                         rows={6}
                                                     />

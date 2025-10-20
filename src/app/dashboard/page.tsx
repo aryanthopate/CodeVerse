@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
@@ -54,8 +55,9 @@ function DashboardContent() {
   }, [searchParams, toast, router]);
 
   const lastCourse = courses[0];
-  const lastTopic = lastCourse?.chapters[0]?.topics[1];
-  
+  // Logic to find the first topic of the first course
+  const firstTopic = lastCourse?.chapters[0]?.topics[0];
+
   const stats = [
     { title: 'XP Earned', value: `${profile?.xp || 0} XP`, icon: <Star className="text-yellow-400" /> },
     { title: 'Courses in Progress', value: 0, icon: <BookOpen className="text-blue-400" /> },
@@ -71,7 +73,7 @@ function DashboardContent() {
       <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Continue Learning */}
-          {lastCourse && lastTopic && (
+          {lastCourse && firstTopic && (
             <Card className="lg:col-span-2 bg-card border-border/50">
               <CardHeader>
                 <CardTitle>Continue Learning</CardTitle>
@@ -81,11 +83,11 @@ function DashboardContent() {
                   <Image src={lastCourse.image_url || `https://picsum.photos/seed/${lastCourse.slug}/150/100`} alt={lastCourse.name} width={150} height={100} className="rounded-md object-cover" data-ai-hint="abstract technology" />
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground">{lastCourse.name} / {lastCourse.chapters[0].title}</p>
-                    <h3 className="text-xl font-semibold mt-1">{lastTopic.title}</h3>
+                    <h3 className="text-xl font-semibold mt-1">{firstTopic.title}</h3>
                     <Progress value={0} className="mt-4 h-2" />
                   </div>
                   <Button asChild>
-                    <Link href={`/courses/${lastCourse.slug}/${lastTopic.slug}`}>
+                    <Link href={`/courses/${lastCourse.slug}/${firstTopic.slug}`}>
                       Jump Back In <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>

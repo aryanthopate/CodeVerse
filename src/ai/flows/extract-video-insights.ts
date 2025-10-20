@@ -30,6 +30,18 @@ const VideoInsightsOutputSchema = z.object({
 });
 export type VideoInsightsOutput = z.infer<typeof VideoInsightsOutputSchema>;
 
+// Helper to convert youtu.be links to standard youtube.com links
+const convertToStandardYoutubeUrl = (url: string) => {
+    if (url.includes('youtu.be')) {
+        const videoId = url.split('/').pop()?.split('?')[0];
+        if (videoId) {
+            return `https://www.youtube.com/watch?v=${videoId}`;
+        }
+    }
+    return url;
+};
+
+
 // Define a tool to fetch the transcript from a YouTube video.
 const getYouTubeTranscriptTool = ai.defineTool(
     {
@@ -40,11 +52,15 @@ const getYouTubeTranscriptTool = ai.defineTool(
     },
     async ({ videoUrl }) => {
         try {
-            const transcript = await YoutubeTranscript.fetchTranscript(videoUrl);
+            const standardUrl = convertToStandardYoutubeUrl(videoUrl);
+            const transcript = await YoutubeTranscript.fetchTranscript(standardUrl);
             return transcript.map(item => item.text).join(' ');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch transcript:', error);
-            throw new Error('Could not retrieve transcript. Please ensure the YouTube video has captions available.');
+            if (error.message && error.message.includes('subtitles are disabled')) {
+                 throw new Error('Could not retrieve transcript. The subtitles for this YouTube video are disabled.');
+            }
+             throw new Error('Could not retrieve transcript. Please ensure the video has captions and the URL is correct.');
         }
     }
 );
@@ -55,7 +71,7 @@ const insightsPrompt = ai.definePrompt({
     output: { schema: VideoInsightsOutputSchema },
     prompt: `You are an expert curriculum designer for an online learning platform.
 Based on the following video transcript, you will perform two tasks:
-1.  Generate a concise, single-paragraph summary of the video's key points.
+1.  Generate a concise, single-paragraph summary of the video's key points. This summary will be shown to students.
 2.  Generate a quiz with exactly 5 multiple-choice questions that test the main concepts from the video. Each question should have 3 or 4 options, and you must clearly indicate the correct answer.
 
 Video Transcript:
@@ -76,7 +92,7 @@ export const extractVideoInsightsFlow = ai.defineFlow(
     const transcript = await getYouTubeTranscriptTool({ videoUrl });
     
     if (!transcript) {
-        throw new Error('Failed to get transcript. The video may not have captions.');
+        throw new Error('Failed to get transcript. The video may not have captions or the URL is invalid.');
     }
 
     const { output } = await insightsPrompt({ transcript });
