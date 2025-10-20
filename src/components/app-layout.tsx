@@ -14,7 +14,6 @@ import {
   SidebarMenuButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarInset,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
@@ -146,20 +145,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                      <CardTitle className="text-base">Share The App</CardTitle>
-                      <CardDescription className="text-xs mt-1 mb-3">Invite a friend to conquer their goals with you!</CardDescription>
-                      <Button size="sm" className="w-full">Invite Now</Button>
+                      <CardTitle className="text-base">Invite a Friend</CardTitle>
+                      <CardDescription className="text-xs mt-1 mb-3">Share the learning adventure!</CardDescription>
+                      <Button size="sm" className="w-full">Invite</Button>
                   </CardContent>
               </Card>
           </SidebarFooter>
         </Sidebar>
+
         <div className="flex-1 flex flex-col border-l">
             <AppHeader profile={profile} onLogout={handleLogout} />
-            <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+            <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-muted/30">
                 {children}
             </main>
            <FloatingAIButton />
         </div>
+
       </div>
     </SidebarProvider>
   );

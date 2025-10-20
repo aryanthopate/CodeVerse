@@ -28,17 +28,28 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
   };
 
   const getPageTitle = () => {
-    if (pathname.startsWith('/dashboard')) return 'Dashboard';
-    if (pathname.startsWith('/courses/explore')) return 'Explore Courses';
-    if (pathname.startsWith('/courses')) return 'My Courses';
-    return 'CodeVerse';
+    const segments = pathname.split('/').filter(Boolean);
+    if (pathname === '/dashboard') return 'Dashboard';
+    if (pathname.startsWith('/courses')) {
+        if (segments.length === 1) return 'My Courses';
+        if (segments[1] === 'explore') return 'Explore Courses';
+        return 'Courses';
+    }
+    if (pathname.startsWith('/notes')) return 'My Notes';
+    if (pathname.startsWith('/leaderboard')) return 'Leaderboard';
+    if (pathname.startsWith('/profile')) return 'Profile & Progress';
+    if (pathname.startsWith('/settings')) return 'Settings';
+    
+    // Capitalize first letter of the last segment as a fallback
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : 'CodeVerse';
   };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
       <div className="flex items-center gap-2">
         {isMobile && <SidebarTrigger />}
-        <h1 className="text-2xl font-semibold">{getPageTitle()}</h1>
+        <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
       </div>
       
       <div className="flex flex-1 items-center justify-end gap-2">
