@@ -1,3 +1,4 @@
+
 'use server';
 
 import { AppLayout } from '@/components/app-layout';
@@ -8,6 +9,59 @@ import { Textarea } from '@/components/ui/textarea';
 import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
+
+function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: string } }) {
+    if (!topic.video_url) {
+        return (
+            <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center text-muted-foreground border border-border/50">
+                <span>Video not available.</span>
+            </div>
+        );
+    }
+
+    const isYoutubeVideo = topic.video_url.includes('youtube.com') || topic.video_url.includes('youtu.be');
+
+    if (isYoutubeVideo) {
+        // Extract video ID from URL
+        let videoId;
+        if (topic.video_url.includes('youtu.be')) {
+            videoId = topic.video_url.split('/').pop()?.split('?')[0];
+        } else {
+            const url = new URL(topic.video_url);
+            videoId = url.searchParams.get('v');
+        }
+
+        if (!videoId) {
+            return <div>Invalid YouTube URL</div>;
+        }
+
+        const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&modestbranding=1&rel=0`;
+
+        return (
+            <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
+                 <iframe 
+                    className="w-full h-full"
+                    src={embedUrl}
+                    title="YouTube video player" 
+                    frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                ></iframe>
+            </div>
+        );
+    }
+    
+    // For direct video links (e.g., from Supabase Storage)
+    return (
+        <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
+            <video className="w-full h-full" controls poster={`https://picsum.photos/seed/${topic.slug}/1280/720`}>
+                <source src={topic.video_url} type="video/mp4" />
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    );
+}
+
 
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const { course, chapter, topic, prevTopic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug, params.topicSlug);
@@ -32,14 +86,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                 <div className="grid lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
                         {/* Video Player */}
-                        <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
-                            <video className="w-full h-full" controls poster={`https://picsum.photos/seed/${topic.slug}/1280/720`}>
-                                {topic.video_url && <source src={topic.video_url} type="video/mp4" />}
-                            </video>
-                            <div className="absolute top-4 right-4 flex flex-col gap-2">
-                                <Button variant="outline" size="icon" className="bg-background/50 backdrop-blur-sm"><Code/></Button>
-                            </div>
-                        </div>
+                        <VideoPlayer topic={topic} />
 
                          {/* Player Actions */}
                         <div className="flex flex-wrap gap-4">

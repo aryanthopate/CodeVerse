@@ -19,6 +19,7 @@ import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { generateQuizFromTranscript } from '@/ai/flows/generate-quiz-from-transcript';
 
 
 interface TopicState {
@@ -30,6 +31,7 @@ interface TopicState {
     content?: string;
     uploadProgress?: number;
     isGeneratingTask?: boolean;
+    isGeneratingQuiz?: boolean;
 }
 
 interface ChapterState {
@@ -90,6 +92,7 @@ export default function EditCoursePage() {
                         content: t.content || '',
                         uploadProgress: undefined,
                         isGeneratingTask: false,
+                        isGeneratingQuiz: false,
                     }))
                 })));
             } else {
@@ -125,7 +128,7 @@ export default function EditCoursePage() {
 
     const handleAddTopic = (chapterIndex: number) => {
         const newChapters = [...chapters];
-        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false });
+        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false });
         setChapters(newChapters as any);
     };
 
@@ -278,6 +281,38 @@ export default function EditCoursePage() {
             });
         } finally {
             handleTopicChange(chapterIndex, topicIndex, 'isGeneratingTask', false);
+        }
+    };
+
+    const handleGenerateQuiz = async (chapterIndex: number, topicIndex: number) => {
+        const topic = chapters[chapterIndex].topics[topicIndex];
+        if (!topic.video_url || !topic.video_url.includes('youtube.com')) {
+            toast({
+                variant: 'destructive',
+                title: 'YouTube Video URL is required',
+                description: 'Please provide a valid YouTube video URL to generate a quiz.',
+            });
+            return;
+        }
+
+        handleTopicChange(chapterIndex, topicIndex, 'isGeneratingQuiz', true);
+
+        try {
+            const result = await generateQuizFromTranscript({ videoUrl: topic.video_url });
+            console.log('Generated Quiz:', result);
+            toast({
+                title: 'AI Quiz Generated!',
+                description: `A new quiz for "${topic.title}" has been created. Check the console for the output.`,
+            });
+        } catch (error: any) {
+            console.error('AI quiz generation failed:', error);
+            toast({
+                variant: 'destructive',
+                title: 'AI Quiz Generation Failed',
+                description: error.message || 'Could not generate a quiz. Please try again.',
+            });
+        } finally {
+            handleTopicChange(chapterIndex, topicIndex, 'isGeneratingQuiz', false);
         }
     };
     
@@ -514,7 +549,10 @@ export default function EditCoursePage() {
                                                     <Label className="text-sm font-medium">AI Tools</Label>
                                                     <div className="flex gap-2">
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Video Analysis")}><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Quiz Generation")}><Bot className="mr-2 h-4 w-4" /> Generate Quiz</Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateQuiz(chapterIndex, topicIndex)} disabled={topic.isGeneratingQuiz}>
+                                                            <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingQuiz ? 'animate-spin' : ''}`} />
+                                                            {topic.isGeneratingQuiz ? 'Generating...' : 'Generate Quiz'}
+                                                        </Button>
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapterIndex, topicIndex)} disabled={topic.isGeneratingTask}>
                                                             <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingTask ? 'animate-spin' : ''}`} />
                                                              {topic.isGeneratingTask ? 'Generating...' : 'Generate Code Task'}
