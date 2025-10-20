@@ -9,13 +9,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { mockCourses } from '@/lib/mock-data'; // Keep for now for course structure
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, CourseWithChaptersAndTopics } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
 
 function DashboardContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [courses, setCourses] = useState<CourseWithChaptersAndTopics[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const searchParams = useSearchParams();
@@ -23,15 +24,22 @@ function DashboardContent() {
   const { toast } = useToast();
   
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchInitialData = async () => {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setProfile(profileData);
       }
+
+      const courseData = await getCoursesWithChaptersAndTopics();
+      if(courseData) {
+        setCourses(courseData);
+      }
+
       setLoading(false);
     }
-    fetchProfile();
+    fetchInitialData();
   }, [supabase]);
 
   useEffect(() => {
@@ -45,9 +53,8 @@ function DashboardContent() {
     }
   }, [searchParams, toast, router]);
 
-  // Keep mock for UI structure until courses are in DB
-  const lastTopic = mockCourses[0].chapters[0].topics[1];
-  const lastCourse = mockCourses[0];
+  const lastCourse = courses[0];
+  const lastTopic = lastCourse?.chapters[0]?.topics[1];
   
   const stats = [
     { title: 'XP Earned', value: `${profile?.xp || 0} XP`, icon: <Star className="text-yellow-400" /> },
@@ -63,27 +70,29 @@ function DashboardContent() {
   return (
       <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Continue Learning - This can be updated when progress is stored in DB */}
-          <Card className="lg:col-span-2 bg-card border-border/50">
-            <CardHeader>
-              <CardTitle>Continue Learning</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row gap-6 items-center p-4 rounded-lg bg-muted/50">
-                <Image src={lastCourse.imageUrl} alt={lastCourse.name} width={150} height={100} className="rounded-md object-cover" data-ai-hint="abstract technology" />
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">{lastCourse.name} / {lastCourse.chapters[0].title}</p>
-                  <h3 className="text-xl font-semibold mt-1">{lastTopic.title}</h3>
-                  <Progress value={0} className="mt-4 h-2" />
+          {/* Continue Learning */}
+          {lastCourse && lastTopic && (
+            <Card className="lg:col-span-2 bg-card border-border/50">
+              <CardHeader>
+                <CardTitle>Continue Learning</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-6 items-center p-4 rounded-lg bg-muted/50">
+                  <Image src={lastCourse.image_url || `https://picsum.photos/seed/${lastCourse.slug}/150/100`} alt={lastCourse.name} width={150} height={100} className="rounded-md object-cover" data-ai-hint="abstract technology" />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">{lastCourse.name} / {lastCourse.chapters[0].title}</p>
+                    <h3 className="text-xl font-semibold mt-1">{lastTopic.title}</h3>
+                    <Progress value={0} className="mt-4 h-2" />
+                  </div>
+                  <Button asChild>
+                    <Link href={`/courses/${lastCourse.slug}/${lastTopic.slug}`}>
+                      Jump Back In <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
-                <Button asChild>
-                  <Link href={`/courses/${lastCourse.slug}/${lastTopic.slug}`}>
-                    Jump Back In <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Your Stats */}
           <Card className="bg-card border-border/50">
@@ -105,13 +114,13 @@ function DashboardContent() {
         <div>
           <h2 className="text-2xl font-bold mb-4">Recommended For You</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {mockCourses.slice(0, 4).map(course => (
+            {courses.slice(0, 4).map(course => (
               <Link key={course.id} href={`/courses/${course.slug}`}>
                 <Card className="bg-card border-border/50 overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-lg hover:shadow-primary/10">
-                    <Image src={course.imageUrl} alt={course.name} width={400} height={200} className="w-full h-32 object-cover" data-ai-hint="code background" />
+                    <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/400/200`} alt={course.name} width={400} height={200} className="w-full h-32 object-cover" data-ai-hint="code background" />
                     <CardContent className="p-4">
                       <h3 className="font-semibold truncate">{course.name}</h3>
-                      <p className="text-sm text-muted-foreground">{course.description.substring(0, 40)}...</p>
+                      <p className="text-sm text-muted-foreground">{course.description?.substring(0, 40) || ''}...</p>
                     </CardContent>
                 </Card>
               </Link>

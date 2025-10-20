@@ -1,22 +1,24 @@
+'use server';
+
 import { AppLayout } from '@/components/app-layout';
-import { mockCourses } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
 import { Lock, PlayCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { getCourseBySlug } from '@/lib/supabase/queries';
 
-export default function LanguagePage({ params }: { params: { languageSlug: string } }) {
-  const course = mockCourses.find(c => c.slug === params.languageSlug);
+export default async function LanguagePage({ params }: { params: { languageSlug: string } }) {
+  const course = await getCourseBySlug(params.languageSlug);
 
   if (!course) {
     notFound();
   }
   
   const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
-  const completedTopics = 3; // Mock data
-  const progressPercentage = (completedTopics / totalTopics) * 100;
+  const completedTopics = 0; // Mock data for now, will be replaced with user progress
+  const progressPercentage = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
   const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
 
   return (
@@ -42,7 +44,7 @@ export default function LanguagePage({ params }: { params: { languageSlug: strin
             </Button>
           )}
 
-          <Accordion type="single" collapsible defaultValue={course.chapters[0].id} className="w-full">
+          <Accordion type="single" collapsible defaultValue={course.chapters[0]?.id} className="w-full">
             {course.chapters.map((chapter) => (
               <AccordionItem key={chapter.id} value={chapter.id} className="bg-card/50 border-border/50 backdrop-blur-sm rounded-xl mb-4">
                 <AccordionTrigger className="p-6 text-xl font-semibold hover:no-underline">
@@ -52,13 +54,13 @@ export default function LanguagePage({ params }: { params: { languageSlug: strin
                   <ul className="space-y-3">
                     {chapter.topics.map(topic => (
                       <li key={topic.id}>
-                        <Link href={topic.isFree ? `/courses/${course.slug}/${topic.slug}` : '#'}>
-                          <div className={`flex items-center p-4 rounded-lg transition-colors ${topic.isFree ? 'hover:bg-muted/50' : 'opacity-60 cursor-not-allowed'}`}>
-                            <div className={`mr-4 ${topic.isFree ? 'text-primary' : 'text-muted-foreground'}`}>
-                              {topic.isFree ? <PlayCircle /> : <Lock />}
+                        <Link href={topic.is_free ? `/courses/${course.slug}/${topic.slug}` : '#'}>
+                          <div className={`flex items-center p-4 rounded-lg transition-colors ${topic.is_free ? 'hover:bg-muted/50' : 'opacity-60 cursor-not-allowed'}`}>
+                            <div className={`mr-4 ${topic.is_free ? 'text-primary' : 'text-muted-foreground'}`}>
+                              {topic.is_free ? <PlayCircle /> : <Lock />}
                             </div>
                             <span className="flex-grow">{topic.title}</span>
-                             {!topic.isFree && (
+                             {!topic.is_free && (
                                 <Button size="sm" variant="secondary" className="bg-accent/80 text-accent-foreground hover:bg-accent">Subscribe</Button>
                             )}
                           </div>

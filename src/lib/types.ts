@@ -1,3 +1,5 @@
+import type { Database } from './supabase/database.types';
+
 export interface UserProfile {
   id: string; // Corresponds to Supabase auth.users.id
   full_name: string;
@@ -8,38 +10,19 @@ export interface UserProfile {
   role: 'user' | 'admin';
 }
 
-export interface Topic {
-  id: string;
-  slug: string;
-  title: string;
-  isFree: boolean;
-  videoUrl: string;
-  problemStatement?: string;
-  initialCode?: string;
-  quiz?: {
-    question: string;
-    options: string[];
-    correctAnswer: number;
-    explanation: string;
-  }[];
-}
+// Re-exporting Supabase generated types for convenience
+export type Course = Database['public']['Tables']['courses']['Row'];
+export type Chapter = Database['public']['Tables']['chapters']['Row'];
+export type Topic = Database['public']['Tables']['topics']['Row'];
 
-export interface Chapter {
-  id: string;
-  title: string;
+// Custom combined types for nested data fetching
+export type ChapterWithTopics = Chapter & {
   topics: Topic[];
-}
+};
 
-export interface Course {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string;
-  description: string;
-  chapters: Chapter[];
-  freeTopicsCount: number;
-  imageUrl: string;
-}
+export type CourseWithChaptersAndTopics = Course & {
+  chapters: ChapterWithTopics[];
+};
 
 export interface UserCourseProgress {
     user_id: string;

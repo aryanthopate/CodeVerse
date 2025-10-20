@@ -1,27 +1,21 @@
+'use server';
+
 import { AppLayout } from '@/components/app-layout';
-import { mockCourses } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
 
-export default function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
-    const course = mockCourses.find(c => c.slug === params.languageSlug);
-    const topics = course?.chapters.flatMap(ch => ch.topics);
-    const topicIndex = topics?.findIndex(t => t.slug === params.topicSlug);
+export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
+    const { course, chapter, topic, prevTopic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug, params.topicSlug);
 
-    if (!course || !topics || topicIndex === undefined || topicIndex === -1) {
+    if (!course || !topic || !chapter) {
         notFound();
     }
     
-    const topic = topics[topicIndex];
-    const chapter = course.chapters.find(ch => ch.topics.some(t => t.id === topic.id));
-
-    const prevTopic = topicIndex > 0 ? topics[topicIndex - 1] : null;
-    const nextTopic = topicIndex < topics.length - 1 ? topics[topicIndex + 1] : null;
-
     return (
         <AppLayout>
             <div className="max-w-7xl mx-auto">
@@ -40,8 +34,7 @@ export default function TopicPage({ params }: { params: { languageSlug: string, 
                         {/* Video Player */}
                         <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
                             <video className="w-full h-full" controls poster={`https://picsum.photos/seed/${topic.slug}/1280/720`}>
-                                {/* In a real app, use a video source */}
-                                {/* <source src={topic.videoUrl} type="video/mp4" /> */}
+                                {topic.video_url && <source src={topic.video_url} type="video/mp4" />}
                             </video>
                             <div className="absolute top-4 right-4 flex flex-col gap-2">
                                 <Button variant="outline" size="icon" className="bg-background/50 backdrop-blur-sm"><Code/></Button>
@@ -77,10 +70,7 @@ export default function TopicPage({ params }: { params: { languageSlug: string, 
                             <TabsContent value="transcript" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 h-96 overflow-y-auto">
                                 <h3 className="font-semibold mb-2">Transcript</h3>
                                 <p className="text-sm text-muted-foreground whitespace-pre-line">
-                                    [00:01] Welcome to the lesson on variables.
-                                    {'\n'}[00:05] A variable is like a container to store data values.
-                                    {'\n'}[00:12] In Java, there are different types of variables, for example...
-                                    {'\n'}[00:20] `String` for text, `int` for integers, and so on.
+                                    {topic.content || 'Transcript not available.'}
                                 </p>
                             </TabsContent>
                         </Tabs>

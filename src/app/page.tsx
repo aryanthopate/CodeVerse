@@ -1,3 +1,5 @@
+'use server';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Header } from '@/components/header';
@@ -7,9 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowRight, Bot, Code, Film, Star, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { mockCourses } from '@/lib/mock-data';
+import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
+import { CourseWithChaptersAndTopics } from '@/lib/types';
 
-export default function Home() {
+
+export default async function Home() {
+  const courses: CourseWithChaptersAndTopics[] = await getCoursesWithChaptersAndTopics() || [];
+  
   const features = [
     {
       icon: <Film className="w-8 h-8 text-primary" />,
@@ -88,20 +94,23 @@ export default function Home() {
           <div className="container mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Choose Your Path</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {mockCourses.map((course) => (
-                <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
-                  <CardHeader className="p-0">
-                    <Image src={course.imageUrl} alt={course.name} width={600} height={400} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" data-ai-hint="abstract code"/>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <CardTitle className="text-2xl font-bold mb-2">{course.name}</CardTitle>
-                    <p className="text-muted-foreground mb-4">{`Learn ${course.name} → ${course.freeTopicsCount} Free Topics`}</p>
-                    <Button asChild variant="link" className="p-0 text-primary">
-                      <Link href={`/courses/${course.slug}`}>Explore Course <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {courses.map((course) => {
+                const freeTopicsCount = course.chapters.flatMap(c => c.topics).filter(t => t.is_free).length;
+                return (
+                  <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
+                    <CardHeader className="p-0">
+                      <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/400`} alt={course.name} width={600} height={400} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" data-ai-hint="abstract code"/>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <CardTitle className="text-2xl font-bold mb-2">{course.name}</CardTitle>
+                      <p className="text-muted-foreground mb-4">{`Learn ${course.name} → ${freeTopicsCount} Free Topics`}</p>
+                      <Button asChild variant="link" className="p-0 text-primary">
+                        <Link href={`/courses/${course.slug}`}>Explore Course <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         </section>

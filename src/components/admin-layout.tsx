@@ -98,45 +98,43 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-muted/30 flex">
-        <Sidebar className="p-0 m-0 h-full shrink-0 flex flex-col fixed left-0 top-0 w-[14rem]">
-          <div className='p-2 h-full'>
-            <div className="bg-card border rounded-xl h-full flex flex-col">
+        <div className="fixed top-0 left-0 h-screen p-2 flex flex-col">
+          <Sidebar className="p-0 m-0 h-full w-[14rem] shrink-0 rounded-xl bg-card border flex flex-col">
               <SidebarHeader>
                   <Logo />
               </SidebarHeader>
               <SidebarSeparator />
-              <ScrollArea className="my-2">
-                <SidebarContent className="flex-col">
+              <ScrollArea className="flex-grow my-2">
+              <SidebarContent className="flex-col">
                   <SidebarGroup>
-                    <SidebarGroupLabel>ADMIN</SidebarGroupLabel>
-                    <SidebarMenu>
+                  <SidebarGroupLabel>ADMIN</SidebarGroupLabel>
+                  <SidebarMenu>
                       {adminNav.map((item) => (
-                        <SidebarMenuItem key={item.href}>
+                      <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton
-                            asChild
-                            isActive={pathname === item.href}
+                          asChild
+                          isActive={pathname === item.href}
                           >
-                            <Link href={item.href}>
+                          <Link href={item.href}>
                               {item.icon}
                               <span>{item.label}</span>
-                            </Link>
+                          </Link>
                           </SidebarMenuButton>
-                        </SidebarMenuItem>
+                      </SidebarMenuItem>
                       ))}
-                    </SidebarMenu>
+                  </SidebarMenu>
                   </SidebarGroup>
-                </SidebarContent>
+              </SidebarContent>
               </ScrollArea>
               <SidebarFooter>
                 <Button variant="outline" asChild>
                     <Link href="/dashboard"><Home className="mr-2"/> Back to App</Link>
                 </Button>
               </SidebarFooter>
-            </div>
-          </div>
-        </Sidebar>
-
-        <main className="flex-1 flex flex-col gap-2 p-2 pl-[calc(14rem+0.5rem)] h-screen">
+          </Sidebar>
+        </div>
+        
+        <main className="flex-1 flex flex-col gap-2 p-2 pl-[calc(14rem+1rem)] h-screen">
           <div className="bg-card border rounded-xl flex flex-col">
             <AppHeader profile={profile} onLogout={handleLogout} />
           </div>

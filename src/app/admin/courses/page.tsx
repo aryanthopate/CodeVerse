@@ -1,12 +1,36 @@
+'use client';
+
 import { AdminLayout } from '@/components/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { mockCourses } from '@/lib/mock-data';
+import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import type { CourseWithChaptersAndTopics } from '@/lib/types';
+
 
 export default function AdminCoursesPage() {
+    const [courses, setCourses] = useState<CourseWithChaptersAndTopics[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCourses = async () => {
+            const fetchedCourses = await getCoursesWithChaptersAndTopics();
+            if (fetchedCourses) {
+                setCourses(fetchedCourses);
+            }
+            setLoading(false);
+        }
+        fetchCourses();
+    }, []);
+
+    if (loading) {
+        return <AdminLayout><div>Loading courses...</div></AdminLayout>
+    }
+
     return (
         <AdminLayout>
              <div className="space-y-8">
@@ -15,9 +39,11 @@ export default function AdminCoursesPage() {
                         <h1 className="text-4xl font-bold">Course Management</h1>
                         <p className="text-lg text-muted-foreground mt-1">Edit, add, or remove courses.</p>
                     </div>
-                    <Button>
-                        <PlusCircle className="mr-2"/>
-                        Add New Course
+                    <Button asChild>
+                        <Link href="/admin/courses/new">
+                            <PlusCircle className="mr-2"/>
+                            Add New Course
+                        </Link>
                     </Button>
                 </div>
 
@@ -37,7 +63,7 @@ export default function AdminCoursesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockCourses.map(course => (
+                                {courses.map(course => (
                                     <TableRow key={course.id}>
                                         <TableCell className="font-medium">{course.name}</TableCell>
                                         <TableCell>{course.chapters.length}</TableCell>
