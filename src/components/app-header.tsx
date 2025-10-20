@@ -35,7 +35,7 @@ export function AppHeader({ profile, onLogout }: { profile: UserProfile | null; 
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 px-4 sm:px-6 bg-card">
       <div className="flex items-center gap-2">
         {isMobile && <SidebarTrigger />}
         <h1 className="text-2xl font-semibold">{getPageTitle()}</h1>
