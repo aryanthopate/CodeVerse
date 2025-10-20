@@ -19,6 +19,7 @@ interface TopicState {
     title: string;
     slug: string;
     is_free: boolean;
+    video_url: string;
 }
 
 interface ChapterState {
@@ -39,11 +40,11 @@ export default function NewCoursePage() {
     const [imagePreview, setImagePreview] = useState('');
 
     const [chapters, setChapters] = useState<ChapterState[]>([
-        { title: '', topics: [{ title: '', slug: '', is_free: false }] }
+        { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '' }] }
     ]);
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false }] }]);
+        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '' }] }]);
     };
 
     const handleRemoveChapter = (index: number) => {
@@ -59,7 +60,7 @@ export default function NewCoursePage() {
 
     const handleAddTopic = (chapterIndex: number) => {
         const newChapters = [...chapters];
-        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false });
+        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '' });
         setChapters(newChapters);
     };
 
@@ -259,6 +260,10 @@ export default function NewCoursePage() {
                                                         <Label htmlFor={`topic-slug-${chapterIndex}-${topicIndex}`}>Topic Slug</Label>
                                                         <Input id={`topic-slug-${chapterIndex}-${topicIndex}`} value={topic.slug} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                     </div>
+                                                     <div className="space-y-2 sm:col-span-2">
+                                                        <Label htmlFor={`topic-video-${chapterIndex}-${topicIndex}`}>Video URL</Label>
+                                                        <Input id={`topic-video-${chapterIndex}-${topicIndex}`} value={topic.video_url} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'video_url', e.target.value)} placeholder="e.g., https://example.com/video.mp4" />
+                                                    </div>
                                                     <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                         <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
                                                         <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is free for everyone</Label>
@@ -285,6 +290,3 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
-
-
-    

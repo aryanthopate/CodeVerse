@@ -9,6 +9,7 @@ interface TopicData {
     slug: string;
     is_free: boolean;
     order: number;
+    video_url?: string;
 }
 
 interface ChapterData {
@@ -89,6 +90,25 @@ export async function createCourse(courseData: CourseData) {
     revalidatePath('/courses');
     revalidatePath(`/courses/${courseData.slug}`);
     revalidatePath('/admin/courses');
+
+    return { success: true };
+}
+
+
+export async function deleteCourse(courseId: string) {
+    const supabase = createClient();
+
+    // The database is set up with cascading deletes, so deleting the course
+    // will also delete its chapters and topics.
+    const { error } = await supabase.from('courses').delete().eq('id', courseId);
+
+    if (error) {
+        console.error('Error deleting course:', error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/courses');
+    revalidatePath('/courses');
 
     return { success: true };
 }

@@ -1,7 +1,9 @@
+
 import type { Database } from './supabase/database.types';
 
 export interface UserProfile {
   id: string; // Corresponds to Supabase auth.users.id
+  email?: string;
   full_name: string;
   avatar_url?: string;
   learning_at: string;
@@ -14,10 +16,24 @@ export interface UserProfile {
 export type Course = Database['public']['Tables']['courses']['Row'];
 export type Chapter = Database['public']['Tables']['chapters']['Row'];
 export type Topic = Database['public']['Tables']['topics']['Row'];
+export type Quiz = Database['public']['Tables']['quizzes']['Row'];
+export type Question = Database['public']['Tables']['questions']['Row'];
+export type QuestionOption = Database['public']['Tables']['question_options']['Row'];
+export type CodingChallenge = Database['public']['Tables']['coding_challenges']['Row'];
 
 // Custom combined types for nested data fetching
+export type QuestionWithOptions = Question & {
+    question_options: QuestionOption[];
+}
+export type QuizWithQuestions = Quiz & {
+    questions: QuestionWithOptions[];
+}
+export type TopicWithContent = Topic & {
+    quizzes: QuizWithQuestions | null;
+    coding_challenges: CodingChallenge | null;
+}
 export type ChapterWithTopics = Chapter & {
-  topics: Topic[];
+  topics: TopicWithContent[];
 };
 
 export type CourseWithChaptersAndTopics = Course & {
