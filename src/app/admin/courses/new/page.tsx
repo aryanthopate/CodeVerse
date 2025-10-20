@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
@@ -119,11 +119,12 @@ export default function NewCoursePage() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);
-                // In a real app, you'd upload the file and get a URL
+                // In a real app, you'd upload this file to a service like Supabase Storage
+                // and get a public URL. For now, we'll use a placeholder.
                 setCourseImageUrl(`https://picsum.photos/seed/${courseSlug || 'new'}/600/400`);
                  toast({
-                    title: "Image Preview Ready",
-                    description: "Note: Image upload is not fully implemented. Using a placeholder.",
+                    title: "Image Preview Updated",
+                    description: "Note: This is a preview. Direct image upload to storage is not yet implemented. A placeholder image will be used on save.",
                 });
             };
             reader.readAsDataURL(file);
@@ -249,24 +250,34 @@ export default function NewCoursePage() {
                                     </CardHeader>
                                     <CardContent className="space-y-4 pl-10">
                                         {chapter.topics.map((topic, topicIndex) => (
-                                            <div key={topicIndex} className="p-4 rounded-lg bg-background border flex items-start gap-4 relative">
-                                                <FileText className="mt-2.5 text-accent-foreground/50"/>
-                                                <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor={`topic-title-${chapterIndex}-${topicIndex}`}>Topic Title</Label>
-                                                        <Input id={`topic-title-${chapterIndex}-${topicIndex}`} value={topic.title} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'title', e.target.value)} placeholder="e.g., 'Variables'" required />
+                                            <div key={topicIndex} className="p-4 rounded-lg bg-background border flex flex-col gap-4 relative">
+                                                <div className="flex items-start gap-4">
+                                                    <FileText className="mt-2.5 text-accent-foreground/50"/>
+                                                    <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor={`topic-title-${chapterIndex}-${topicIndex}`}>Topic Title</Label>
+                                                            <Input id={`topic-title-${chapterIndex}-${topicIndex}`} value={topic.title} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'title', e.target.value)} placeholder="e.g., 'Variables'" required />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor={`topic-slug-${chapterIndex}-${topicIndex}`}>Topic Slug</Label>
+                                                            <Input id={`topic-slug-${chapterIndex}-${topicIndex}`} value={topic.slug} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
+                                                        </div>
+                                                        <div className="space-y-2 sm:col-span-2">
+                                                            <Label htmlFor={`topic-video-${chapterIndex}-${topicIndex}`}>Video URL</Label>
+                                                            <Input id={`topic-video-${chapterIndex}-${topicIndex}`} value={topic.video_url} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'video_url', e.target.value)} placeholder="e.g., https://example.com/video.mp4" />
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
+                                                            <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
+                                                            <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is free for everyone</Label>
+                                                        </div>
                                                     </div>
-                                                     <div className="space-y-2">
-                                                        <Label htmlFor={`topic-slug-${chapterIndex}-${topicIndex}`}>Topic Slug</Label>
-                                                        <Input id={`topic-slug-${chapterIndex}-${topicIndex}`} value={topic.slug} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
-                                                    </div>
-                                                     <div className="space-y-2 sm:col-span-2">
-                                                        <Label htmlFor={`topic-video-${chapterIndex}-${topicIndex}`}>Video URL</Label>
-                                                        <Input id={`topic-video-${chapterIndex}-${topicIndex}`} value={topic.video_url} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'video_url', e.target.value)} placeholder="e.g., https://example.com/video.mp4" />
-                                                    </div>
-                                                    <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
-                                                        <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
-                                                        <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is free for everyone</Label>
+                                                </div>
+                                                <div className="border-t border-dashed -mx-4 mt-2"></div>
+                                                <div className="pt-2 px-4 flex items-center justify-between">
+                                                    <Label className="text-sm font-medium">Topic Content</Label>
+                                                    <div className="flex gap-2">
+                                                        <Button type="button" variant="outline" size="sm" disabled><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
+                                                        <Button type="button" variant="outline" size="sm" disabled><Bot className="mr-2 h-4 w-4" /> Generate Quiz</Button>
                                                     </div>
                                                 </div>
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapterIndex, topicIndex)} disabled={chapter.topics.length === 1}>
