@@ -118,13 +118,12 @@ export default function NewCoursePage() {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-                // In a real app, you'd upload this file to a service like Supabase Storage
-                // and get a public URL. For now, we'll use a placeholder.
-                setCourseImageUrl(`https://picsum.photos/seed/${courseSlug || 'new'}/600/400`);
+                const result = reader.result as string;
+                setImagePreview(result);
+                setCourseImageUrl(result);
                  toast({
                     title: "Image Preview Ready",
-                    description: "Note: Storing uploaded images is not yet implemented. Using a placeholder.",
+                    description: "Note: Storing uploaded images is not yet implemented. Using a temporary preview.",
                 });
             };
             reader.readAsDataURL(file);
@@ -316,5 +315,3 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
-
-    
