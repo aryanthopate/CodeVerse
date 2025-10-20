@@ -4,7 +4,7 @@
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
 import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course } from '@/lib/types';
-
+import crypto from 'crypto';
 
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order'> {
     id?: string; // id is present when updating
@@ -75,7 +75,6 @@ export async function createCourse(courseData: CourseData) {
                 .from('topics')
                 .insert({
                     ...topicDetails,
-                    explanation: topicData.explanation,
                     chapter_id: createdChapter.id,
                 })
                 .select().single();
@@ -88,19 +87,7 @@ export async function createCourse(courseData: CourseData) {
             if (quizzes && quizzes.length > 0) {
                  try {
                     const quizData = quizzes[0];
-                    // Sanitize IDs before upserting
-                    const sanitizedQuestions = quizData.questions.map(q => ({
-                        ...q,
-                        id: undefined, // Always new on create
-                        question_options: q.question_options.map(o => ({
-                            ...o,
-                            id: undefined, // Always new on create
-                        }))
-                    }));
-
-                    const sanitizedQuizData = { ...quizData, id: undefined, questions: sanitizedQuestions };
-                    await upsertQuiz(sanitizedQuizData, topic.id);
-
+                    await upsertQuiz(quizData, topic.id);
                 } catch(error: any) {
                      return { success: false, error: error.message };
                 }
@@ -145,17 +132,8 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
         .select()
         .single();
 
-    if (quizError) {
-        // If it's a unique constraint violation, it means a quiz was created by another process, let's fetch it.
-        if (quizError.code === '23505' && !quiz) {
-            const { data: existingQuizAgain, error: fetchError } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
-            if (fetchError || !existingQuizAgain) {
-                 throw new Error(`Quiz upsert failed: ${quizError.message}`);
-            }
-            quizId = existingQuizAgain.id;
-        } else if (quizError && !quiz) {
-            throw new Error(`Quiz upsert failed: ${quizError.message}`);
-        }
+    if (quizError && !quiz) {
+         throw new Error(`Quiz upsert failed: ${quizError.message}`);
     }
     
     const finalQuizId = quiz?.id || quizId;
@@ -201,7 +179,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
 
         // 3. Upsert Options
         const optionsToUpsert = questionData.question_options.map(opt => ({
-            id: opt.id?.startsWith('opt-') ? undefined : opt.id,
+            id: opt.id?.startsWith('opt-') ? crypto.randomUUID() : opt.id,
             question_id: question.id,
             option_text: opt.option_text,
             is_correct: opt.is_correct,
