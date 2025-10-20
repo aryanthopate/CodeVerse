@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useDebouncedCallback } from 'use-debounce';
+
 
 type QuestionType = 'single' | 'multiple';
 
@@ -247,13 +249,32 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     );
 }
 
+type SaveStatus = 'unsaved' | 'saving' | 'saved';
+
+function AutoSaveStatus({ status }: { status: SaveStatus }) {
+    const messages = {
+        unsaved: { icon: <Save className="h-4 w-4 text-yellow-500" />, text: "Unsaved changes" },
+        saving: { icon: <Loader2 className="h-4 w-4 animate-spin" />, text: "Saving..." },
+        saved: { icon: <Save className="h-4 w-4 text-green-500" />, text: "All changes saved" },
+    };
+    const { icon, text } = messages[status];
+    
+    return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {icon}
+            <span>{text}</span>
+        </div>
+    );
+}
+
 export default function EditCoursePage() {
     const params = useParams();
     const courseId = params.courseId as string;
     const { toast } = useToast();
     const supabase = createClient();
-    const [loading, setLoading] = useState(false);
+
     const [initialLoading, setInitialLoading] = useState(true);
+    const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
 
     const [courseName, setCourseName] = useState('');
     const [courseSlug, setCourseSlug] = useState('');
@@ -263,8 +284,21 @@ export default function EditCoursePage() {
     const [price, setPrice] = useState<number | string>(0);
 
     const [chapters, setChapters] = useState<ChapterState[]>([]);
+
+    // A ref to hold the latest state, used for debounced saving
+    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters });
+    useEffect(() => {
+        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters };
+    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters]);
+
+
+    const handleStateChange = (setter: Function) => (...args: any[]) => {
+        setter(...args);
+        setSaveStatus('unsaved');
+    };
     
     const handleTopicChange = useCallback((chapterId: string, topicId: string, field: keyof TopicState, value: any) => {
+        setSaveStatus('unsaved');
         setChapters(prev => prev.map(c => {
             if (c.id === chapterId) {
                 return {
@@ -301,7 +335,7 @@ export default function EditCoursePage() {
             if (error) throw error;
             
             if (courseData) {
-                const course = courseData as CourseWithChaptersAndTopics;
+                const course = courseData as unknown as CourseWithChaptersAndTopics;
                 setCourseName(course.name);
                 setCourseSlug(course.slug);
                 setCourseDescription(course.description || '');
@@ -325,6 +359,7 @@ export default function EditCoursePage() {
                         quizzes: t.quizzes ? (Array.isArray(t.quizzes) ? t.quizzes : [t.quizzes]) : []
                     }))
                 })));
+                setSaveStatus('saved');
             } else {
                  toast({
                     variant: 'destructive',
@@ -347,23 +382,127 @@ export default function EditCoursePage() {
     useEffect(() => {
         fetchCourse();
     }, [fetchCourse]);
-    
+
+    const saveChanges = useCallback(async (showToast = false) => {
+        setSaveStatus('saving');
+        const currentState = stateRef.current;
+        
+        const courseData = {
+            name: currentState.courseName,
+            slug: currentState.courseSlug,
+            description: currentState.courseDescription,
+            image_url: currentState.courseImageUrl,
+            is_paid: currentState.isPaid,
+            price: Number(currentState.price),
+            chapters: currentState.chapters.map((chapter, chapterIndex) => ({
+                id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
+                title: chapter.title,
+                order: chapterIndex + 1,
+                topics: chapter.topics.map((topic, topicIndex) => ({
+                    id: topic.id?.startsWith('t-') ? undefined : topic.id,
+                    title: topic.title,
+                    slug: topic.slug,
+                    is_free: topic.is_free,
+                    video_url: topic.video_url,
+                    content: topic.content,
+                    summary: topic.summary,
+                    explanation: topic.explanation,
+                    order: topicIndex + 1,
+                    quizzes: topic.quizzes?.map(quiz => ({
+                        id: quiz.id?.startsWith('quiz-') ? undefined : quiz.id,
+                        questions: quiz.questions.map(q => ({
+                            id: q.id?.startsWith('q-') ? undefined : q.id,
+                            question_text: q.question_text,
+                            question_type: q.question_type,
+                            order: q.order,
+                            question_options: q.question_options.map(o => ({
+                                id: o.id?.startsWith('opt-') ? undefined : o.id,
+                                option_text: o.option_text,
+                                is_correct: o.is_correct,
+                                explanation: o.explanation,
+                            }))
+                        }))
+                    }))
+                }))
+            }))
+        };
+        
+        try {
+            const result = await updateCourse(courseId, courseData as any);
+            if (result.success) {
+                if (showToast) {
+                    toast({
+                        title: "Course Updated!",
+                        description: `${currentState.courseName} has been successfully saved.`,
+                    });
+                }
+                setSaveStatus('saved');
+                // Re-fetch to get the updated data with new DB-generated IDs, without resetting the whole page state
+                // This ensures accordion states etc. are maintained
+                const refreshedCourse = await getCourseBySlug(courseData.slug);
+                if (refreshedCourse) {
+                    setChapters(refreshedCourse.chapters.map(c => ({
+                        id: c.id,
+                        title: c.title,
+                        topics: (c.topics || []).map(t => ({
+                            id: t.id,
+                            title: t.title,
+                            slug: t.slug,
+                            is_free: t.is_free,
+                            video_url: t.video_url || '',
+                            content: t.content || '',
+                            summary: t.summary || '',
+                            explanation: t.explanation || '',
+                            uploadProgress: undefined,
+                            quizzes: t.quizzes ? (Array.isArray(t.quizzes) ? t.quizzes : [t.quizzes]) : []
+                        }))
+                    })));
+                }
+
+            } else {
+                throw new Error(result.error || 'An unknown error occurred');
+            }
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "Uh oh! Something went wrong.",
+                description: error.message || "Could not save the course. Please check your inputs and try again.",
+            });
+            setSaveStatus('unsaved');
+        }
+    }, [courseId, toast, getCourseBySlug]);
+
+
+    const debouncedSave = useDebouncedCallback(() => {
+        saveChanges(false);
+    }, 10000);
+
+    useEffect(() => {
+        if (saveStatus === 'unsaved') {
+            debouncedSave();
+        }
+        return () => debouncedSave.cancel();
+    }, [saveStatus, debouncedSave]);
 
     const handleAddChapter = () => {
+        setSaveStatus('unsaved');
         setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '' }] }]);
     };
 
     const handleRemoveChapter = (chapterId: string) => {
+        setSaveStatus('unsaved');
         const newChapters = chapters.filter(c => c.id !== chapterId);
         setChapters(newChapters);
     };
 
     const handleChapterChange = (chapterId: string, value: string) => {
+        setSaveStatus('unsaved');
         const newChapters = chapters.map(c => c.id === chapterId ? { ...c, title: value } : c);
         setChapters(newChapters);
     };
 
     const handleAddTopic = (chapterId: string) => {
+        setSaveStatus('unsaved');
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
                 return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', explanation: '' }] };
@@ -374,6 +513,7 @@ export default function EditCoursePage() {
     };
 
     const handleRemoveTopic = (chapterId: string, topicId: string) => {
+        setSaveStatus('unsaved');
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
                 return { ...c, topics: c.topics.filter(t => t.id !== topicId) };
@@ -432,13 +572,18 @@ export default function EditCoursePage() {
     };
 
 
-     const handleCourseNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const name = e.target.value;
-        setCourseName(name);
-        setCourseSlug(name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-    }
+     const handleCourseNameChange = handleStateChange(setCourseName);
+    
+     const handleSlugChange = handleStateChange(setCourseSlug);
+
+     const handleDescriptionChange = handleStateChange(setCourseDescription);
+
+     const handleIsPaidChange = handleStateChange(setIsPaid);
+     
+     const handlePriceChange = handleStateChange(setPrice);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSaveStatus('unsaved');
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -452,69 +597,7 @@ export default function EditCoursePage() {
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-
-        const courseData = {
-            name: courseName,
-            slug: courseSlug,
-            description: courseDescription,
-            image_url: courseImageUrl,
-            is_paid: isPaid,
-            price: Number(price),
-            chapters: chapters.map((chapter, chapterIndex) => ({
-                id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
-                title: chapter.title,
-                order: chapterIndex + 1,
-                topics: chapter.topics.map((topic, topicIndex) => ({
-                    id: topic.id?.startsWith('t-') ? undefined : topic.id,
-                    title: topic.title,
-                    slug: topic.slug,
-                    is_free: topic.is_free,
-                    video_url: topic.video_url,
-                    content: topic.content,
-                    summary: topic.summary,
-                    explanation: topic.explanation,
-                    order: topicIndex + 1,
-                    quizzes: topic.quizzes?.map(quiz => ({
-                        id: quiz.id?.startsWith('quiz-') ? undefined : quiz.id,
-                        questions: quiz.questions.map(q => ({
-                            id: q.id?.startsWith('q-') ? undefined : q.id,
-                            question_text: q.question_text,
-                            question_type: q.question_type,
-                            order: q.order,
-                            question_options: q.question_options.map(o => ({
-                                id: o.id?.startsWith('opt-') ? undefined : o.id,
-                                option_text: o.option_text,
-                                is_correct: o.is_correct,
-                                explanation: o.explanation,
-                            }))
-                        }))
-                    }))
-                }))
-            }))
-        };
-        
-        try {
-            const result = await updateCourse(courseId, courseData as any);
-            if (result.success) {
-                toast({
-                    title: "Course Updated!",
-                    description: `${courseName} has been successfully saved.`,
-                });
-                // Re-fetch to get the updated data with new DB-generated IDs
-                await fetchCourse();
-            } else {
-                throw new Error(result.error || 'An unknown error occurred');
-            }
-        } catch (error: any) {
-             toast({
-                variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: error.message || "Could not save the course. Please check your inputs and try again.",
-            });
-        } finally {
-            setLoading(false);
-        }
+        saveChanges(true);
     };
 
     if (initialLoading) {
@@ -529,9 +612,12 @@ export default function EditCoursePage() {
     return (
         <AdminLayout>
              <div className="space-y-8">
-                <div>
-                    <h1 className="text-4xl font-bold">Edit Course</h1>
-                    <p className="text-lg text-muted-foreground mt-1">Editing course: <span className="font-semibold text-foreground">{courseName}</span></p>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-4xl font-bold">Edit Course</h1>
+                        <p className="text-lg text-muted-foreground mt-1">Editing course: <span className="font-semibold text-foreground">{courseName}</span></p>
+                    </div>
+                    <AutoSaveStatus status={saveStatus} />
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -546,15 +632,19 @@ export default function EditCoursePage() {
                                 <CardContent className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="course-name">Course Name</Label>
-                                        <Input id="course-name" value={courseName} onChange={handleCourseNameChange} placeholder="e.g., Introduction to Python" required />
+                                        <Input id="course-name" value={courseName} onChange={e => {
+                                            setCourseName(e.target.value);
+                                            setCourseSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                                            setSaveStatus('unsaved');
+                                        }} placeholder="e.g., Introduction to Python" required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="course-slug">Course Slug</Label>
-                                        <Input id="course-slug" value={courseSlug} onChange={e => setCourseSlug(e.target.value)} placeholder="e.g., python-intro" required />
+                                        <Input id="course-slug" value={courseSlug} onChange={e => handleSlugChange(e.target.value)} placeholder="e.g., python-intro" required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="course-description">Description</Label>
-                                        <Textarea id="course-description" value={courseDescription} onChange={e => setCourseDescription(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
+                                        <Textarea id="course-description" value={courseDescription} onChange={e => handleDescriptionChange(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Course Image</Label>
@@ -585,7 +675,7 @@ export default function EditCoursePage() {
                                         </div>
                                         <Switch
                                           checked={isPaid}
-                                          onCheckedChange={setIsPaid}
+                                          onCheckedChange={handleIsPaidChange}
                                         />
                                       </div>
                                     </div>
@@ -598,7 +688,7 @@ export default function EditCoursePage() {
                                                     id="course-price"
                                                     type="number"
                                                     value={price}
-                                                    onChange={e => setPrice(e.target.value)}
+                                                    onChange={e => handlePriceChange(e.target.value)}
                                                     placeholder="e.g., 499"
                                                     className="pl-8"
                                                     min="0"
@@ -608,8 +698,8 @@ export default function EditCoursePage() {
                                     )}
                                 </CardContent>
                             </Card>
-                             <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                                {loading ? 'Saving Changes...' : 'Save Changes'}
+                             <Button type="submit" size="lg" className="w-full" disabled={saveStatus === 'saving'}>
+                                {saveStatus === 'saving' ? 'Saving...' : 'Save Changes'}
                             </Button>
                         </div>
 
