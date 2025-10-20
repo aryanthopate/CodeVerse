@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { AdminLayout } from '@/components/admin-layout';
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Upload, IndianRupee, Trash2 } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
@@ -309,7 +310,7 @@ export default function EditCoursePage() {
                         content: t.content || '',
                         summary: t.summary || '',
                         uploadProgress: undefined,
-                        quizzes: (t.quizzes || []).map(q => ({
+                        quizzes: t.quizzes ? (Array.isArray(t.quizzes) ? t.quizzes : [t.quizzes]).map(q => ({
                             ...q,
                             id: q.id || `quiz-${Date.now()}`,
                             questions: (q.questions || []).map(qu => ({
@@ -317,7 +318,7 @@ export default function EditCoursePage() {
                                 id: qu.id || `q-${Date.now()}`,
                                 question_options: (qu.question_options || []).map(o => ({...o, id: o.id || `opt-${Date.now()}`}))
                             }))
-                        }))
+                        })) : []
                     }))
                 })));
             } else {
@@ -555,7 +556,9 @@ export default function EditCoursePage() {
                                                     {courseImageUrl ? (
                                                         <Image src={courseImageUrl} alt="Image preview" width={400} height={200} className="rounded-md max-h-40 w-auto object-contain"/>
                                                     ) : (
-                                                        <ImageIcon className="w-12 h-12 text-muted-foreground" />
+                                                        <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                                                            <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                                        </div>
                                                     )}
                                                     <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*"/>
                                                     <Label htmlFor="image-upload" className="cursor-pointer text-primary text-sm underline">
@@ -636,7 +639,7 @@ export default function EditCoursePage() {
                                                                         <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                                     </div>
                                                                     <div className="space-y-2 sm:col-span-2">
-                                                                        <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Video URL or Upload</Label>
+                                                                        <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File or URL</Label>
                                                                         <div className="flex items-center gap-2">
                                                                             <Input 
                                                                                 id={`topic-video-${chapter.id}-${topic.id}`} 
