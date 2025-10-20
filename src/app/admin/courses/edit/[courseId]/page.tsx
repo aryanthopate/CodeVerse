@@ -112,30 +112,30 @@ export default function EditCoursePage() {
     
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '' }] }] as any);
+        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '' }] }]);
     };
 
     const handleRemoveChapter = (index: number) => {
         const newChapters = chapters.filter((_, i) => i !== index);
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleChapterChange = (index: number, value: string) => {
         const newChapters = [...chapters];
         newChapters[index].title = value;
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleAddTopic = (chapterIndex: number) => {
         const newChapters = [...chapters];
         newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false });
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleRemoveTopic = (chapterIndex: number, topicIndex: number) => {
         const newChapters = [...chapters];
         newChapters[chapterIndex].topics = newChapters[chapterIndex].topics.filter((_, i) => i !== topicIndex);
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleTopicChange = (chapterIndex: number, topicIndex: number, field: keyof TopicState, value: string | boolean | number | undefined) => {
@@ -147,7 +147,7 @@ export default function EditCoursePage() {
              topic.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         }
 
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
     
     const handleVideoFileChange = async (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,7 +155,7 @@ export default function EditCoursePage() {
         if (!file) return;
 
         const topic = chapters[chapterIndex].topics[topicIndex];
-        const filePath = `course-videos/${courseId}/${topic.slug}-${file.name}`;
+        const filePath = `${courseId}/${topic.slug}-${file.name}`;
 
         handleTopicChange(chapterIndex, topicIndex, 'uploadProgress', 0);
 

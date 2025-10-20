@@ -57,30 +57,30 @@ export default function NewCoursePage() {
     ]);
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] }] as any);
+        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] }]);
     };
 
     const handleRemoveChapter = (index: number) => {
         const newChapters = chapters.filter((_, i) => i !== index);
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleChapterChange = (index: number, value: string) => {
         const newChapters = [...chapters];
         newChapters[index].title = value;
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleAddTopic = (chapterIndex: number) => {
         const newChapters = [...chapters];
         newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false });
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleRemoveTopic = (chapterIndex: number, topicIndex: number) => {
         const newChapters = [...chapters];
         newChapters[chapterIndex].topics = newChapters[chapterIndex].topics.filter((_, i) => i !== topicIndex);
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
 
     const handleTopicChange = (chapterIndex: number, topicIndex: number, field: keyof TopicState, value: string | boolean | number | undefined) => {
@@ -92,25 +92,19 @@ export default function NewCoursePage() {
              topic.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         }
 
-        setChapters(newChapters as any);
+        setChapters(newChapters);
     };
     
     const handleVideoFileChange = async (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Need a courseId to upload, but we don't have one yet.
-        // We will handle the actual upload in the `handleSubmit` function after the course is created.
-        // For now, let's just show a warning.
         toast({
             variant: 'destructive',
             title: 'Create the course first',
             description: 'Please save the course before uploading videos. You can edit the course to add videos later.',
         });
-
-        // Or, to give a better UX, we could temporarily store the file object
-        // and upload it after course creation. This is more complex.
-        // For now, the simple warning is clearer.
+        
         e.target.value = ''; // Reset file input
     };
 
@@ -478,5 +472,3 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
-
-    

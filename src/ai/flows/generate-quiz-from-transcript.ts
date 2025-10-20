@@ -25,7 +25,7 @@ const QuizQuestionSchema = z.object({
 });
 
 const GenerateQuizOutputSchema = z.object({
-  questions: z.array(QuizQuestionSchema).describe('An array of 5-10 quiz questions.'),
+  questions: z.array(QuizQuestionSchema).describe('An array of 5-7 quiz questions.'),
 });
 export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 
@@ -35,8 +35,8 @@ const getYouTubeTranscriptTool = ai.defineTool(
     {
         name: 'getYouTubeTranscript',
         description: 'Fetches the transcript of a given YouTube video URL.',
-        input: { schema: z.object({ videoUrl: z.string().url() }) },
-        output: { schema: z.string() },
+        inputSchema: z.object({ videoUrl: z.string().url() }),
+        outputSchema: z.string(),
     },
     async ({ videoUrl }) => {
         try {
@@ -52,7 +52,7 @@ const getYouTubeTranscriptTool = ai.defineTool(
 
 const quizGenerationPrompt = ai.definePrompt({
     name: 'quizGenerationPrompt',
-    input: { schema: z.object({ transcript: z.string() }) },
+    inputSchema: z.object({ transcript: z.string() }),
     output: { schema: GenerateQuizOutputSchema },
     prompt: `You are a curriculum designer for an online learning platform.
 Based on the following video transcript, please generate a quiz with 5 to 7 multiple-choice questions.
@@ -64,7 +64,6 @@ Video Transcript:
 {{{transcript}}}
 ---
 `,
-    tools: [getYouTubeTranscriptTool],
 });
 
 
