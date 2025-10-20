@@ -16,6 +16,8 @@ import { generateCourseDescription } from '@/ai/flows/generate-course-descriptio
 import Image from 'next/image';
 import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
+import { Progress } from '@/components/ui/progress';
+
 
 interface TopicState {
     id?: string;
@@ -23,6 +25,7 @@ interface TopicState {
     slug: string;
     is_free: boolean;
     video_url: string;
+    uploadProgress?: number;
 }
 
 interface ChapterState {
@@ -75,7 +78,8 @@ export default function EditCoursePage() {
                         title: t.title,
                         slug: t.slug,
                         is_free: t.is_free,
-                        video_url: t.video_url || ''
+                        video_url: t.video_url || '',
+                        uploadProgress: undefined,
                     }))
                 })));
             } else {
@@ -95,33 +99,33 @@ export default function EditCoursePage() {
     
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '' }] }]);
+        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '' }] }] as any);
     };
 
     const handleRemoveChapter = (index: number) => {
         const newChapters = chapters.filter((_, i) => i !== index);
-        setChapters(newChapters);
+        setChapters(newChapters as any);
     };
 
     const handleChapterChange = (index: number, value: string) => {
         const newChapters = [...chapters];
         newChapters[index].title = value;
-        setChapters(newChapters);
+        setChapters(newChapters as any);
     };
 
     const handleAddTopic = (chapterIndex: number) => {
         const newChapters = [...chapters];
         newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '' });
-        setChapters(newChapters);
+        setChapters(newChapters as any);
     };
 
     const handleRemoveTopic = (chapterIndex: number, topicIndex: number) => {
         const newChapters = [...chapters];
         newChapters[chapterIndex].topics = newChapters[chapterIndex].topics.filter((_, i) => i !== topicIndex);
-        setChapters(newChapters);
+        setChapters(newChapters as any);
     };
 
-    const handleTopicChange = (chapterIndex: number, topicIndex: number, field: keyof TopicState, value: string | boolean) => {
+    const handleTopicChange = (chapterIndex: number, topicIndex: number, field: keyof TopicState, value: string | boolean | number | undefined) => {
         const newChapters = [...chapters];
         const topic = newChapters[chapterIndex].topics[topicIndex] as any;
         topic[field] = value;
@@ -130,8 +134,38 @@ export default function EditCoursePage() {
              topic.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         }
 
-        setChapters(newChapters);
+        setChapters(newChapters as any);
     };
+    
+    const simulateUpload = (chapterIndex: number, topicIndex: number, file: File) => {
+        handleTopicChange(chapterIndex, topicIndex, 'uploadProgress', 0);
+        const interval = setInterval(() => {
+            setChapters(prevChapters => {
+                const newChapters = [...prevChapters];
+                const currentProgress = newChapters[chapterIndex].topics[topicIndex].uploadProgress || 0;
+                const nextProgress = Math.min(currentProgress + 10, 100);
+                newChapters[chapterIndex].topics[topicIndex].uploadProgress = nextProgress;
+                
+                if (nextProgress === 100) {
+                    clearInterval(interval);
+                    newChapters[chapterIndex].topics[topicIndex].video_url = `https://example.com/videos/${file.name}`;
+                     toast({
+                        title: "Simulated Upload Complete",
+                        description: `${file.name} is ready. This is a placeholder URL.`,
+                    });
+                }
+                return newChapters;
+            });
+        }, 200);
+    };
+
+    const handleVideoFileChange = (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            simulateUpload(chapterIndex, topicIndex, file);
+        }
+    };
+
 
      const handleCourseNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value;
@@ -171,10 +205,10 @@ export default function EditCoursePage() {
             reader.onloadend = () => {
                 const result = reader.result as string;
                 setImagePreview(result);
-                setCourseImageUrl(result);
+                setCourseImageUrl(result); // This is now set to the base64 data URL
                  toast({
                     title: "Image Preview Ready",
-                    description: "Note: Storing uploaded images is not yet implemented. Using a temporary preview.",
+                    description: "Note: The image is locally previewed. Backend storage is not yet implemented.",
                 });
             };
             reader.readAsDataURL(file);
@@ -326,13 +360,13 @@ export default function EditCoursePage() {
                                                             <Input id={`topic-slug-${chapterIndex}-${topicIndex}`} value={topic.slug} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                         </div>
                                                          <div className="space-y-2 sm:col-span-2">
-                                                            <Label>Topic Video</Label>
+                                                            <Label htmlFor={`topic-video-${chapterIndex}-${topicIndex}`}>Topic Video</Label>
                                                             <div className="flex items-center gap-2">
                                                                 <Input 
                                                                     id={`topic-video-${chapterIndex}-${topicIndex}`} 
                                                                     value={topic.video_url} 
                                                                     onChange={e => handleTopicChange(chapterIndex, topicIndex, 'video_url', e.target.value)} 
-                                                                    placeholder="e.g., https://youtube.com/watch?v=..." 
+                                                                    placeholder="Paste video link (e.g., YouTube) or upload"
                                                                     className="flex-grow"
                                                                 />
                                                                 <Button type="button" variant="outline" size="icon" asChild>
@@ -341,8 +375,14 @@ export default function EditCoursePage() {
                                                                         <span className="sr-only">Upload Video</span>
                                                                     </Label>
                                                                 </Button>
-                                                                <Input id={`video-upload-${chapterIndex}-${topicIndex}`} type="file" className="sr-only" accept="video/*" />
+                                                                <Input id={`video-upload-${chapterIndex}-${topicIndex}`} type="file" className="sr-only" accept="video/*" onChange={(e) => handleVideoFileChange(chapterIndex, topicIndex, e)} />
                                                             </div>
+                                                            {topic.uploadProgress !== undefined && (
+                                                                <div className="mt-2 space-y-1">
+                                                                    <Progress value={topic.uploadProgress} className="h-2" />
+                                                                    <p className="text-xs text-muted-foreground text-center">{topic.uploadProgress === 100 ? "Upload complete!" : `Uploading... ${topic.uploadProgress}%`}</p>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                             <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
@@ -379,3 +419,5 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
+
+    
