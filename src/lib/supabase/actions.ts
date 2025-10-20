@@ -10,7 +10,6 @@ interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'or
     id?: string; // id is present when updating
     order: number;
     quizzes?: QuizWithQuestions[];
-    explanation?: string | null;
 }
 
 interface ChapterData extends Omit<Chapter, 'id' | 'created_at' | 'course_id' | 'order'> {
@@ -88,7 +87,20 @@ export async function createCourse(courseData: CourseData) {
             
             if (quizzes && quizzes.length > 0) {
                 const quizData = quizzes[0]; // Assuming one quiz per topic
-                await upsertQuiz(quizData, topic.id);
+                
+                // Sanitize IDs before upserting
+                const sanitizedQuestions = quizData.questions.map(q => ({
+                    ...q,
+                    id: q.id?.startsWith('q-') ? undefined : q.id,
+                    question_options: q.question_options.map(o => ({
+                        ...o,
+                        id: o.id?.startsWith('opt-') ? undefined : o.id,
+                    }))
+                }));
+
+                const sanitizedQuizData = { ...quizData, questions: sanitizedQuestions };
+                
+                await upsertQuiz(sanitizedQuizData, topic.id);
             }
         }
     }
@@ -126,13 +138,13 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
 
     if (quizError) {
         // If it's a unique constraint violation, it means a quiz was created by another process, let's fetch it.
-        if (quizError.code === '23505') {
+        if (quizError.code === '23505' && !quiz) {
             const { data: existingQuizAgain, error: fetchError } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
             if (fetchError || !existingQuizAgain) {
                  throw new Error(`Quiz upsert failed: ${quizError.message}`);
             }
             quiz.id = existingQuizAgain.id;
-        } else {
+        } else if (quizError && !quiz) {
             throw new Error(`Quiz upsert failed: ${quizError.message}`);
         }
     }
@@ -214,7 +226,7 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
     // 2. Get existing chapters and topics to compare
     const { data: existingCourse } = await supabase
         .from('courses')
-        .select('*, chapters(*, topics(*, quizzes(*, questions(*, question_options(*)))))')
+        .select('id, chapters(id, topics(id))')
         .eq('id', courseId)
         .single();
     
@@ -284,7 +296,18 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             // 6. Upsert quiz for this topic
             if (quizzes && quizzes.length > 0) {
                 try {
-                     await upsertQuiz(quizzes[0], upsertedTopic.id);
+                     const quizData = quizzes[0];
+                     // Sanitize IDs before upserting
+                     const sanitizedQuestions = quizData.questions.map(q => ({
+                         ...q,
+                         id: q.id?.startsWith('q-') ? undefined : q.id,
+                         question_options: q.question_options.map(o => ({
+                             ...o,
+                             id: o.id?.startsWith('opt-') ? undefined : o.id,
+                         }))
+                     }));
+                     const sanitizedQuizData = { ...quizData, questions: sanitizedQuestions };
+                     await upsertQuiz(sanitizedQuizData, upsertedTopic.id);
                 } catch(error: any) {
                      return { success: false, error: error.message };
                 }
