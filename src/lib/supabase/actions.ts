@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from './server';
@@ -14,6 +13,7 @@ interface TopicData {
     is_free: boolean;
     order: number;
     video_url?: string;
+    youtube_url?: string;
     content?: string;
     summary?: string;
     quizzes?: QuizWithQuestions[];
@@ -91,6 +91,7 @@ export async function createCourse(courseData: CourseData) {
                     is_free: topicData.is_free,
                     order: topicData.order,
                     video_url: topicData.video_url,
+                    youtube_url: topicData.youtube_url,
                     content: topicData.content,
                     summary: topicData.summary,
                     chapter_id: createdChapter.id,
@@ -143,7 +144,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
 
     // Get existing questions to find which ones to delete
     const { data: existingQuestions } = await supabase.from('questions').select('id').eq('quiz_id', quiz.id);
-    const incomingQuestionIds = quizData.questions.map(q => q.id).filter(id => !id.startsWith('q-'));
+    const incomingQuestionIds = quizData.questions.map(q => q.id).filter(id => !id?.startsWith('q-'));
     const questionsToDelete = existingQuestions?.filter(q => !incomingQuestionIds.includes(q.id)).map(q => q.id) || [];
     
     if (questionsToDelete.length > 0) {
@@ -169,7 +170,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
         
         // Get existing options to find which ones to delete
         const { data: existingOptions } = await supabase.from('question_options').select('id').eq('question_id', question.id);
-        const incomingOptionIds = questionData.question_options.map(o => o.id).filter(id => !id.startsWith('opt-'));
+        const incomingOptionIds = questionData.question_options.map(o => o.id).filter(id => !id?.startsWith('opt-'));
         const optionsToDelete = existingOptions?.filter(o => !incomingOptionIds.includes(o.id)).map(o => o.id) || [];
         
         if (optionsToDelete.length > 0) {

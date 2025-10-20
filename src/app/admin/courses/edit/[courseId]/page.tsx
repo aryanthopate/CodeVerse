@@ -11,9 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
 import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Upload, IndianRupee, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
 import { generateCodeTask } from '@/ai/flows/generate-code-task';
+import { extractVideoInsights } from '@/ai/flows/extract-video-insights';
 import Image from 'next/image';
 import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
@@ -50,6 +51,7 @@ interface TopicState {
     slug: string;
     is_free: boolean;
     video_url: string;
+    youtube_url?: string;
     content?: string;
     summary?: string;
     uploadProgress?: number;
@@ -244,6 +246,8 @@ export default function EditCoursePage() {
     const [loading, setLoading] = useState(false);
     const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
     const [generatingCodeTaskId, setGeneratingCodeTaskId] = useState<string | null>(null);
+    const [generatingSummaryId, setGeneratingSummaryId] = useState<string | null>(null);
+    const [generatingQuizId, setGeneratingQuizId] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState(true);
 
     const [courseName, setCourseName] = useState('');
@@ -254,11 +258,33 @@ export default function EditCoursePage() {
     const [price, setPrice] = useState<number | string>(0);
 
     const [chapters, setChapters] = useState<ChapterState[]>([]);
+    
+    const handleTopicChange = useCallback((chapterId: string, topicId: string, field: keyof TopicState, value: any) => {
+        setChapters(prev => prev.map(c => {
+            if (c.id === chapterId) {
+                return {
+                    ...c,
+                    topics: c.topics.map(t => {
+                        if (t.id === topicId) {
+                             const updatedTopic = { ...t, [field]: value };
+                            if (field === 'title' && typeof value === 'string') {
+                                updatedTopic.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                            }
+                            return updatedTopic;
+                        }
+                        return t;
+                    })
+                };
+            }
+            return c;
+        }));
+    }, []);
 
-    useEffect(() => {
-        const fetchCourse = async () => {
-            setInitialLoading(true);
-            const { data: courseData } = await supabase
+    const fetchCourse = useCallback(async () => {
+        if (!courseId) return;
+        setInitialLoading(true);
+        try {
+            const { data: courseData, error } = await supabase
                 .from('courses')
                 .select('*, chapters(*, topics(*, quizzes(*, questions(*, question_options(*)))))')
                 .eq('id', courseId)
@@ -266,6 +292,8 @@ export default function EditCoursePage() {
                 .order('order', { foreignTable: 'chapters.topics', ascending: true })
                 .order('order', { foreignTable: 'chapters.topics.quizzes.questions', ascending: true })
                 .single();
+            
+            if (error) throw error;
             
             if (courseData) {
                 const course = courseData as CourseWithChaptersAndTopics;
@@ -275,27 +303,31 @@ export default function EditCoursePage() {
                 setCourseImageUrl(course.image_url || '');
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
+
+                // This deep mapping is complex and can be error-prone.
+                // We ensure all nested arrays are properly initialized to prevent runtime errors.
                 setChapters(course.chapters.map(c => ({
                     id: c.id,
                     title: c.title,
-                    topics: c.topics.map(t => ({
+                    topics: (c.topics || []).map(t => ({
                         id: t.id,
                         title: t.title,
                         slug: t.slug,
                         is_free: t.is_free,
                         video_url: t.video_url || '',
+                        youtube_url: (t as any).youtube_url || '',
                         content: t.content || '',
                         summary: t.summary || '',
                         uploadProgress: undefined,
-                        quizzes: t.quizzes?.map(q => ({
+                        quizzes: (t.quizzes || []).map(q => ({
                             ...q,
                             id: q.id || `quiz-${Date.now()}`,
-                            questions: q.questions.map(qu => ({
+                            questions: (q.questions || []).map(qu => ({
                                 ...qu,
                                 id: qu.id || `q-${Date.now()}`,
-                                question_options: qu.question_options.map(o => ({...o, id: o.id || `opt-${Date.now()}`}))
+                                question_options: (qu.question_options || []).map(o => ({...o, id: o.id || `opt-${Date.now()}`}))
                             }))
-                        })) || []
+                        }))
                     }))
                 })));
             } else {
@@ -305,12 +337,21 @@ export default function EditCoursePage() {
                     description: 'Could not load the course data to edit.'
                 });
             }
+        } catch (err: any) {
+            console.error("Failed to fetch course:", err);
+            toast({
+                variant: 'destructive',
+                title: 'Error Loading Course',
+                description: err.message || 'An unexpected error occurred while fetching course data.'
+            });
+        } finally {
             setInitialLoading(false);
         }
-        if (courseId) {
-            fetchCourse();
-        }
     }, [courseId, supabase, toast]);
+
+    useEffect(() => {
+        fetchCourse();
+    }, [fetchCourse]);
     
 
     const handleAddChapter = () => {
@@ -345,27 +386,6 @@ export default function EditCoursePage() {
             return c;
         });
         setChapters(newChapters);
-    };
-
-    const handleTopicChange = (chapterId: string, topicId: string, field: keyof TopicState, value: any) => {
-        setChapters(prev => prev.map(c => {
-            if (c.id === chapterId) {
-                return {
-                    ...c,
-                    topics: c.topics.map(t => {
-                        if (t.id === topicId) {
-                             const updatedTopic = { ...t, [field]: value };
-                            if (field === 'title' && typeof value === 'string') {
-                                updatedTopic.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                            }
-                            return updatedTopic;
-                        }
-                        return t;
-                    })
-                };
-            }
-            return c;
-        }));
     };
     
     const handleVideoFileChange = async (chapterId: string, topicId: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -459,7 +479,6 @@ export default function EditCoursePage() {
         }
         setGeneratingCodeTaskId(topicId);
         try {
-            // Infer language from course name, fallback to 'javascript'
             const programmingLanguage = courseName.toLowerCase().includes('python') ? 'python' : 
                                        courseName.toLowerCase().includes('java') ? 'java' : 'javascript';
                                        
@@ -469,17 +488,94 @@ export default function EditCoursePage() {
                 title: 'Code Task Generated!',
                 description: `A new coding challenge for "${topicTitle}" has been created.`,
             });
-        } catch (error) {
+        } catch (error: any) {
              console.error('AI code task generation failed:', error);
             toast({
                 variant: 'destructive',
                 title: 'AI Failed',
-                description: 'Could not generate a code task. Please try again.'
+                description: error.message || 'Could not generate a code task. Please try again.'
             });
         } finally {
             setGeneratingCodeTaskId(null);
         }
     };
+    
+    const handleGenerateSummary = async (chapterId: string, topicId: string, youtubeUrl: string) => {
+        if (!youtubeUrl) {
+            toast({
+                variant: 'destructive',
+                title: 'YouTube URL is required',
+                description: 'Please provide a YouTube URL for AI analysis.'
+            });
+            return;
+        }
+        setGeneratingSummaryId(topicId);
+        try {
+            const result = await extractVideoInsights({ videoUrl: youtubeUrl });
+            handleTopicChange(chapterId, topicId, 'summary', result.summary);
+            toast({
+                title: 'Video Summary Generated!',
+                description: 'The summary has been populated in the textarea below.',
+            });
+        } catch (error: any) {
+            console.error('AI summary generation failed:', error);
+            toast({
+                variant: 'destructive',
+                title: 'AI Summary Failed',
+                description: error.message || 'Could not generate summary. Please check the URL and try again.',
+            });
+        } finally {
+            setGeneratingSummaryId(null);
+        }
+    };
+    
+    const handleGenerateQuiz = async (chapterId: string, topicId: string, youtubeUrl: string) => {
+        if (!youtubeUrl) {
+            toast({
+                variant: 'destructive',
+                title: 'YouTube URL is required',
+                description: 'Please provide a YouTube URL for AI analysis to generate a quiz.'
+            });
+            return;
+        }
+        setGeneratingQuizId(topicId);
+        try {
+            const result = await extractVideoInsights({ videoUrl: youtubeUrl });
+            
+            const newQuiz: QuizState = {
+                id: `quiz-${Date.now()}`,
+                questions: result.questions.map((q, index) => ({
+                    id: `q-${Date.now()}-${index}`,
+                    question_text: q.question,
+                    question_type: 'single', // Defaulting to single as AI doesn't specify
+                    order: index + 1,
+                    question_options: q.options.map((opt, optIndex) => ({
+                        id: `opt-${Date.now()}-${index}-${optIndex}`,
+                        option_text: opt,
+                        is_correct: opt === q.correctAnswer
+                    }))
+                }))
+            };
+            
+            handleTopicChange(chapterId, topicId, 'quizzes', [newQuiz]);
+            
+            toast({
+                title: 'AI Quiz Generated!',
+                description: 'A new quiz has been created and populated below. Please review and save the course.',
+            });
+
+        } catch (error: any) {
+            console.error('AI quiz generation failed:', error);
+            toast({
+                variant: 'destructive',
+                title: 'AI Quiz Failed',
+                description: error.message || 'Could not generate quiz. Please check the URL and try again.',
+            });
+        } finally {
+            setGeneratingQuizId(null);
+        }
+    };
+
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -514,6 +610,7 @@ export default function EditCoursePage() {
                     slug: topic.slug,
                     is_free: topic.is_free,
                     video_url: topic.video_url,
+                    youtube_url: topic.youtube_url,
                     content: topic.content,
                     summary: topic.summary,
                     order: topicIndex + 1,
@@ -540,6 +637,8 @@ export default function EditCoursePage() {
                     title: "Course Updated!",
                     description: `${courseName} has been successfully saved.`,
                 });
+                // Re-fetch to get the updated data with new DB-generated IDs
+                await fetchCourse();
             } else {
                 throw new Error(result.error || 'An unknown error occurred');
             }
@@ -682,7 +781,7 @@ export default function EditCoursePage() {
                                                             <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                         </div>
                                                          <div className="space-y-2 sm:col-span-2">
-                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File or URL</Label>
+                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File (for playback)</Label>
                                                             <div className="flex items-center gap-2">
                                                                 <Input 
                                                                     id={`topic-video-${chapter.id}-${topic.id}`} 
@@ -706,6 +805,15 @@ export default function EditCoursePage() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        <div className="space-y-2 sm:col-span-2">
+                                                          <Label htmlFor={`topic-yt-url-${chapter.id}-${topic.id}`}>YouTube URL for AI Analysis</Label>
+                                                          <Input 
+                                                              id={`topic-yt-url-${chapter.id}-${topic.id}`} 
+                                                              value={topic.youtube_url || ''} 
+                                                              onChange={e => handleTopicChange(chapter.id!, topic.id!, 'youtube_url', e.target.value)} 
+                                                              placeholder="e.g., https://www.youtube.com/watch?v=..."
+                                                          />
+                                                        </div>
 
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                             <Switch
@@ -721,11 +829,17 @@ export default function EditCoursePage() {
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
 
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Video Summary (Manual)</Label>
+                                                    <div className="flex justify-between items-center">
+                                                        <Label className="text-sm font-medium">Video Summary</Label>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateSummary(chapter.id!, topic.id!, topic.youtube_url || '')} disabled={generatingSummaryId === topic.id || !topic.youtube_url}>
+                                                            <Sparkles className={`mr-2 h-4 w-4 ${generatingSummaryId === topic.id ? 'animate-spin' : ''}`} />
+                                                            {generatingSummaryId === topic.id ? 'Generating...' : 'Generate with AI'}
+                                                        </Button>
+                                                    </div>
                                                      <Textarea 
                                                         value={topic.summary || ''}
                                                         onChange={e => handleTopicChange(chapter.id!, topic.id!, 'summary', e.target.value)}
-                                                        placeholder="Enter a manual summary here, or generate one from a video."
+                                                        placeholder="Manually enter a summary, or generate one with AI from a YouTube video."
                                                         className="mt-2 min-h-[120px]"
                                                         rows={4}
                                                     />
@@ -751,6 +865,13 @@ export default function EditCoursePage() {
                                                 </div>
 
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
+                                                
+                                                <div className="pt-2 px-4">
+                                                    <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateQuiz(chapter.id!, topic.id!, topic.youtube_url || '')} disabled={generatingQuizId === topic.id || !topic.youtube_url}>
+                                                        <Sparkles className={`mr-2 h-4 w-4 ${generatingQuizId === topic.id ? 'animate-spin' : ''}`} />
+                                                        {generatingQuizId === topic.id ? 'Generating Quiz...' : 'Generate Quiz with AI'}
+                                                    </Button>
+                                                </div>
                                                 
                                                 <ManualQuizEditor 
                                                     topic={topic} 
@@ -780,5 +901,3 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
-
-    
