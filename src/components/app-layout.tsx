@@ -15,7 +15,6 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarInset,
-  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { LayoutDashboard, BookOpen, Compass, Share2 } from 'lucide-react';
@@ -26,6 +25,7 @@ import type { UserProfile } from '@/lib/types';
 import { AppHeader } from './app-header';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Separator } from './ui/separator';
 
 const mainNav = [
   { href: '/dashboard', icon: <LayoutDashboard />, label: 'Dashboard' },
@@ -97,7 +97,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarHeader>
             <Logo />
           </SidebarHeader>
-          <SidebarSeparator className="my-2" />
+          <Separator className="my-2" />
           <SidebarContent>
               <SidebarGroup>
                   <SidebarGroupLabel>MAIN</SidebarGroupLabel>
