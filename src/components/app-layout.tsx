@@ -155,7 +155,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </Sidebar>
         <SidebarInset>
            <div className="flex flex-col w-full gap-2 p-2">
-              <AppHeader profile={profile} onLogout={handleLogout} />
+              <div className="-mt-px">
+                <AppHeader profile={profile} onLogout={handleLogout} />
+              </div>
               <main className="flex-1 p-4 md:p-6 lg:p-8 bg-card rounded-xl border border-border">
                   {children}
               </main>
