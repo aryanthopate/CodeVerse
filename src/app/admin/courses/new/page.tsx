@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot } from 'lucide-react';
+import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
@@ -123,8 +123,8 @@ export default function NewCoursePage() {
                 // and get a public URL. For now, we'll use a placeholder.
                 setCourseImageUrl(`https://picsum.photos/seed/${courseSlug || 'new'}/600/400`);
                  toast({
-                    title: "Image Preview Updated",
-                    description: "Note: This is a preview. Direct image upload to storage is not yet implemented. A placeholder image will be used on save.",
+                    title: "Image Preview Ready",
+                    description: "Note: Storing uploaded images is not yet implemented. Using a placeholder.",
                 });
             };
             reader.readAsDataURL(file);
@@ -263,8 +263,23 @@ export default function NewCoursePage() {
                                                             <Input id={`topic-slug-${chapterIndex}-${topicIndex}`} value={topic.slug} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                         </div>
                                                         <div className="space-y-2 sm:col-span-2">
-                                                            <Label htmlFor={`topic-video-${chapterIndex}-${topicIndex}`}>Video URL</Label>
-                                                            <Input id={`topic-video-${chapterIndex}-${topicIndex}`} value={topic.video_url} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'video_url', e.target.value)} placeholder="e.g., https://example.com/video.mp4" />
+                                                            <Label>Topic Video</Label>
+                                                            <div className="flex items-center gap-2">
+                                                                <Input 
+                                                                    id={`topic-video-${chapterIndex}-${topicIndex}`} 
+                                                                    value={topic.video_url} 
+                                                                    onChange={e => handleTopicChange(chapterIndex, topicIndex, 'video_url', e.target.value)} 
+                                                                    placeholder="e.g., https://youtube.com/watch?v=..." 
+                                                                    className="flex-grow"
+                                                                />
+                                                                <Button type="button" variant="outline" size="icon" asChild>
+                                                                    <Label htmlFor={`video-upload-${chapterIndex}-${topicIndex}`} className="cursor-pointer">
+                                                                        <Upload className="h-4 w-4" />
+                                                                        <span className="sr-only">Upload Video</span>
+                                                                    </Label>
+                                                                </Button>
+                                                                <Input id={`video-upload-${chapterIndex}-${topicIndex}`} type="file" className="sr-only" accept="video/*" />
+                                                            </div>
                                                         </div>
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                             <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
@@ -301,3 +316,5 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
+
+    
