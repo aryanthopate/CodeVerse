@@ -4,9 +4,9 @@
 /**
  * @fileOverview An AI agent for generating quizzes from video transcripts.
  *
- * - generateQuizFromTranscript - A function to generate quiz questions from a YouTube video transcript.
- * - GenerateQuizInput - Input type for the function (YouTube URL).
- * - GenerateQuizOutput - Output type for the function (structured quiz data).
+ * - generateQuizFromTranscript - A function to generate quiz questions from a YouTube video transcript and save them.
+ * - GenerateQuizInput - Input type for the function (YouTube URL and topic ID).
+ * - GenerateQuizOutput - Output type for the AI model (structured quiz data).
  */
 
 import { ai } from '@/ai/genkit';
@@ -46,7 +46,8 @@ const getYouTubeTranscriptTool = ai.defineTool(
             return transcript.map(item => item.text).join(' ');
         } catch (error) {
             console.error('Failed to fetch transcript:', error);
-            throw new Error('Could not retrieve transcript for the provided YouTube URL.');
+            // Return a structured error message that can be caught and displayed to the user
+            throw new Error('Could not retrieve transcript. Please ensure the YouTube video has captions available.');
         }
     }
 );
@@ -76,23 +77,32 @@ export const generateQuizFromTranscriptFlow = ai.defineFlow(
     outputSchema: z.object({ success: z.boolean(), quizId: z.string().optional(), error: z.string().optional() }),
   },
   async ({ videoUrl, topicId }) => {
+    try {
+        const transcript = await getYouTubeTranscriptTool({ videoUrl });
+        
+        if (!transcript) {
+            return { success: false, error: 'Failed to get transcript. The video may not have captions.' };
+        }
 
-    const transcriptResponse = await getYouTubeTranscriptTool({ videoUrl });
-    
-    if (!transcriptResponse) {
-        return { success: false, error: 'Failed to get transcript.' };
+        const { output } = await quizGenerationPrompt({ transcript });
+        
+        if (!output || !output.questions || output.questions.length === 0) {
+            return { success: false, error: 'The AI failed to generate quiz questions from the transcript.' };
+        }
+
+        // Save the generated quiz to the database
+        const saveResult = await createQuizForTopic(topicId, output);
+        
+        if (!saveResult.success) {
+            return { success: false, error: saveResult.error || 'Failed to save the generated quiz to the database.' };
+        }
+
+        return { success: true, quizId: saveResult.quizId };
+
+    } catch (error: any) {
+        console.error("Error in generateQuizFromTranscriptFlow:", error);
+        return { success: false, error: error.message || "An unexpected error occurred during quiz generation." };
     }
-
-    const { output } = await quizGenerationPrompt({ transcript: transcriptResponse });
-    
-    if (!output) {
-        return { success: false, error: 'Quiz generation failed.' };
-    }
-
-    // Save the generated quiz to the database
-    const saveResult = await createQuizForTopic(topicId, output);
-    
-    return saveResult;
   }
 );
 

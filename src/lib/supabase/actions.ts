@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from './server';
@@ -248,7 +249,7 @@ export async function createQuizForTopic(topicId: string, quizData: GenerateQuiz
 
     // Delete existing quiz for the topic, if any.
     // This simplifies logic by ensuring a fresh start.
-    const { data: existingQuiz, error: fetchError } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
+    const { data: existingQuiz } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
     if (existingQuiz) {
         await supabase.from('quizzes').delete().eq('id', existingQuiz.id);
     }
@@ -299,5 +300,6 @@ export async function createQuizForTopic(topicId: string, quizData: GenerateQuiz
         }
     }
     
+    revalidatePath(`/courses/*/${topicId}`);
     return { success: true, quizId: quiz.id };
 }

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { AdminLayout } from '@/components/admin-layout';
@@ -178,19 +179,19 @@ export default function EditCoursePage() {
 
         handleTopicChange(chapterId, topicId, 'uploadProgress', 0);
         
-        let uploadTimer = setInterval(() => {
-            handleTopicChange(chapterId, topicId, 'uploadProgress', (currentProgress: number) => Math.min(currentProgress + 10, 90) )
-        }, 300);
-
         const { error: uploadError } = await supabase.storage
             .from('course_videos')
             .upload(filePath, file, {
                 cacheControl: '3600',
                 upsert: true,
                 contentType: file.type,
+            }, (event) => {
+                if (event.type === 'progress') {
+                    const progress = Math.round((event.loaded / event.total) * 100);
+                     handleTopicChange(chapterId, topicId, 'uploadProgress', progress);
+                }
             });
 
-        clearInterval(uploadTimer);
 
         if (uploadError) {
             toast({
@@ -303,7 +304,7 @@ export default function EditCoursePage() {
         const chapter = chapters.find(c => c.id === chapterId);
         const topic = chapter?.topics.find(t => t.id === topicId);
         
-        if (!topic?.id) {
+        if (!topic?.id || topic.id.startsWith('t-')) {
              toast({
                 variant: 'destructive',
                 title: 'Topic Not Saved',
