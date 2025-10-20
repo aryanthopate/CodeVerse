@@ -4,38 +4,47 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
+import type { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
-    const getUser = async () => {
+    const getProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(data);
+      }
       setLoading(false);
     };
-    getUser();
+    getProfile();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        setProfile(data);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, [supabase, supabase.auth]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setProfile(null);
     router.push('/');
     router.refresh();
   };
@@ -45,6 +54,8 @@ export function Header() {
     { name: 'Courses', href: '/courses' },
     { name: 'Contact', href: '#' },
   ];
+
+  const user = profile; // for clarity
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-lg">
@@ -63,6 +74,11 @@ export function Header() {
         <div className="hidden md:flex items-center gap-4">
           {loading ? null : user ? (
             <>
+              {user.role === 'admin' && (
+                <Button variant="outline" asChild>
+                  <Link href="/admin"><Shield className="mr-2 h-4 w-4" />Admin Panel</Link>
+                </Button>
+              )}
               <Button variant="ghost" onClick={handleLogout}>Logout</Button>
               <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
                   <Link href="/dashboard">Go to Dashboard</Link>
@@ -113,6 +129,11 @@ export function Header() {
                   <div className="border-t border-border pt-6 mt-4 flex flex-col gap-4">
                      {loading ? null : user ? (
                         <>
+                          {user.role === 'admin' && (
+                            <Button variant="outline" asChild>
+                              <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Panel</Link>
+                            </Button>
+                          )}
                           <Button variant="ghost" onClick={() => { handleLogout(); setIsOpen(false); }}>Logout</Button>
                           <Button asChild>
                               <Link href="/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>

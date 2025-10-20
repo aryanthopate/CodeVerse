@@ -45,6 +45,9 @@ export default function SignupPage() {
         data: {
           full_name: fullName,
           learning_at: learningAt,
+          // New users are always 'user' by default.
+          // Admins are assigned manually in Supabase.
+          role: 'user', 
         },
         emailRedirectTo: `${location.origin}/auth/callback?next=/u/welcome?toast=true`,
       },

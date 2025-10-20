@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/middleware'
+import { notFound } from 'next/navigation';
 
 export async function middleware(request: NextRequest) {
   const { supabase, response } = createClient(request)
@@ -10,6 +11,30 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
+
+  // Protect admin route
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      // Not logged in, redirect to login
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // Check user role from profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'admin') {
+      // Not an admin, show 404. We can rewrite to a custom 404 if we had one,
+      // for now, Next.js default 404 will be triggered by this rewrite.
+      const url = request.nextUrl.clone()
+      url.pathname = '/404'
+      return NextResponse.rewrite(url)
+    }
+  }
+
 
   // Define public routes
   const publicRoutes = ['/', '/login', '/signup', '/auth/confirm']

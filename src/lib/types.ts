@@ -5,6 +5,7 @@ export interface UserProfile {
   learning_at: string;
   xp: number;
   streak: number;
+  role: 'user' | 'admin';
 }
 
 export interface Topic {
