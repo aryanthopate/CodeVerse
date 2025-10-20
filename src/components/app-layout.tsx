@@ -1,12 +1,11 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarFooter,
   SidebarMenu,
@@ -15,28 +14,31 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarSeparator,
-} from "@/components/ui/sidebar";
-import { Logo } from "@/components/logo";
-import { LayoutDashboard, BookOpen, Compass, Share2 } from "lucide-react";
-import { FloatingAIButton } from "./floating-ai-button";
-import { createClient } from "@/lib/supabase/client";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
-import type { UserProfile } from "@/lib/types";
-import { AppHeader } from "./app-header";
-import { Button } from "./ui/button";
+  SidebarHeader,
+} from '@/components/ui/sidebar';
+import { Logo } from '@/components/logo';
+import { LayoutDashboard, BookOpen, Compass, Share2 } from 'lucide-react';
+import { FloatingAIButton } from './floating-ai-button';
+import { createClient } from '@/lib/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { UserProfile } from '@/lib/types';
+import { AppHeader } from './app-header';
+import { Button } from './ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
+} from './ui/card';
 
-const mainNav = [{ href: "/dashboard", icon: <LayoutDashboard />, label: "Dashboard" }];
+const mainNav = [
+  { href: '/dashboard', icon: <LayoutDashboard />, label: 'Dashboard' },
+];
 
 const coursesNav = [
-  { href: "/courses", icon: <BookOpen />, label: "My Courses" },
-  { href: "/courses/explore", icon: <Compass />, label: "Explore" },
+  { href: '/courses', icon: <BookOpen />, label: 'My Courses' },
+  { href: '/courses/explore', icon: <Compass />, label: 'Explore' },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -55,9 +57,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       setUser(user);
       if (user) {
         const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
           .single();
 
         if (profileData) {
@@ -71,8 +73,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event === "SIGNED_OUT") {
-          router.push("/");
+        if (event === 'SIGNED_OUT') {
+          router.push('/');
         } else {
           setUser(session?.user ?? null);
         }
@@ -98,77 +100,81 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-muted/30 p-2 gap-2">
-        <Sidebar className="bg-card border rounded-xl">
-          <SidebarHeader>
-            <Logo />
-          </SidebarHeader>
-          <SidebarSeparator className="my-2" />
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>MAIN</SidebarGroupLabel>
-              <SidebarMenu>
-                {mainNav.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === item.href}
-                      tooltip={{ children: item.label }}
-                    >
-                      <Link href={item.href}>
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-            <SidebarGroup>
-              <SidebarGroupLabel>COURSES</SidebarGroupLabel>
-              <SidebarMenu>
-                {coursesNav.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={{ children: item.label }}
-                    >
-                      <Link href={item.href}>
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          </SidebarContent>
-          <SidebarFooter>
-            <Card className="bg-sidebar-accent/50 text-center p-4 m-2">
-              <CardHeader className="p-2">
-                <div className="mx-auto bg-background rounded-full p-2 w-fit">
-                  <Share2 className="text-primary" />
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <CardTitle className="text-base">Invite a Friend</CardTitle>
-                <CardDescription className="text-xs mt-1 mb-3">
-                  Share the learning adventure!
-                </CardDescription>
-                <Button size="sm" className="w-full">
-                  Invite
-                </Button>
-              </CardContent>
-            </Card>
-          </SidebarFooter>
-        </Sidebar>
+      <div className="min-h-screen bg-muted/30 p-2 flex gap-2">
+        <div className="flex flex-col gap-2 w-[14rem] shrink-0">
+          <div className="bg-card border rounded-xl flex flex-col h-16 justify-center">
+            <SidebarHeader>
+              <Logo />
+            </SidebarHeader>
+            <SidebarSeparator className="mt-auto" />
+          </div>
+          <Sidebar className="p-0 m-0 h-auto">
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupLabel>MAIN</SidebarGroupLabel>
+                <SidebarMenu>
+                  {mainNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.href}
+                        tooltip={{ children: item.label }}
+                      >
+                        <Link href={item.href}>
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+              <SidebarGroup>
+                <SidebarGroupLabel>COURSES</SidebarGroupLabel>
+                <SidebarMenu>
+                  {coursesNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
+                        tooltip={{ children: item.label }}
+                      >
+                        <Link href={item.href}>
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+            </SidebarContent>
+            <SidebarFooter>
+              <Card className="bg-sidebar-accent/50 text-center p-4 m-2">
+                <CardHeader className="p-2">
+                  <div className="mx-auto bg-background rounded-full p-2 w-fit">
+                    <Share2 className="text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <CardTitle className="text-base">Invite a Friend</CardTitle>
+                  <CardDescription className="text-xs mt-1 mb-3">
+                    Share the learning adventure!
+                  </CardDescription>
+                  <Button size="sm" className="w-full">
+                    Invite
+                  </Button>
+                </CardContent>
+              </Card>
+            </SidebarFooter>
+          </Sidebar>
+        </div>
 
         <div className="flex-1 flex flex-col gap-2">
           <AppHeader profile={profile} onLogout={handleLogout} />
-          <main className="flex-1 rounded-xl bg-card border p-4 md:p-6 lg:p-8 overflow-y-auto">
+          <div className="flex-1 bg-card border rounded-xl p-4 md:p-6 lg:p-8 overflow-y-auto">
             {children}
-          </main>
+          </div>
           <FloatingAIButton />
         </div>
       </div>
