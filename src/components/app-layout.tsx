@@ -152,9 +152,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="bg-muted/30 p-0">
-           <div className="flex flex-col flex-1 w-full bg-card rounded-xl overflow-hidden">
-                <AppHeader profile={profile} onLogout={handleLogout} />
-                <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+           <div className="flex flex-col flex-1 w-full gap-2">
+                <div className="bg-card rounded-xl border border-border">
+                    <AppHeader profile={profile} onLogout={handleLogout} />
+                </div>
+                <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-card rounded-xl border border-border">
                     {children}
                 </main>
            </div>
