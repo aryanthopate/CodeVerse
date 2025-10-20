@@ -88,14 +88,6 @@ export async function createCourse(courseData: CourseData) {
             if (quizzes && quizzes.length > 0) {
                  try {
                     const quizData = quizzes[0];
-                    // Sanitize IDs before upserting
-                    quizData.questions.forEach(q => {
-                        q.id = q.id?.startsWith('q-') ? undefined : q.id;
-                        q.question_options.forEach(o => {
-                            o.id = o.id?.startsWith('opt-') ? crypto.randomUUID() : o.id;
-                        });
-                    });
-
                     await upsertQuiz(quizData, topic.id);
                 } catch(error: any) {
                      return { success: false, error: error.message };
@@ -188,7 +180,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
 
         // 3. Upsert Options
         const optionsToUpsert = questionData.question_options.map(opt => ({
-            id: opt.id?.startsWith('opt-') ? crypto.randomUUID() : opt.id,
+            id: opt.id?.startsWith('opt-') ? undefined : opt.id,
             question_id: question.id,
             option_text: opt.option_text,
             is_correct: opt.is_correct,
