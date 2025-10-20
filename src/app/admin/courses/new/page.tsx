@@ -17,6 +17,7 @@ import { generateCodeTask } from '@/ai/flows/generate-code-task';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { createClient } from '@/lib/supabase/client';
 
 interface TopicState {
     title: string;
@@ -36,6 +37,7 @@ interface ChapterState {
 export default function NewCoursePage() {
     const router = useRouter();
     const { toast } = useToast();
+    const supabase = createClient();
     const [loading, setLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -91,42 +93,23 @@ export default function NewCoursePage() {
         setChapters(newChapters as any);
     };
     
-    const simulateUpload = (chapterIndex: number, topicIndex: number, file: File) => {
-        handleTopicChange(chapterIndex, topicIndex, 'uploadProgress', 0);
-        let progress = 0;
-
-        const interval = setInterval(() => {
-            progress = Math.min(progress + 10, 100);
-            setChapters(prevChapters => {
-                const newChapters = [...prevChapters];
-                 if (newChapters[chapterIndex] && newChapters[chapterIndex].topics[topicIndex]) {
-                    newChapters[chapterIndex].topics[topicIndex].uploadProgress = progress;
-                }
-                return newChapters;
-            });
-            
-            if (progress === 100) {
-                clearInterval(interval);
-                 setChapters(prevChapters => {
-                    const newChapters = [...prevChapters];
-                    if (newChapters[chapterIndex] && newChapters[chapterIndex].topics[topicIndex]) {
-                       newChapters[chapterIndex].topics[topicIndex].video_url = `https://example.com/videos/${file.name}`;
-                    }
-                    return newChapters;
-                });
-                toast({
-                    title: "Simulated Upload Complete",
-                    description: `${file.name} is ready. This is a placeholder URL.`,
-                });
-            }
-        }, 200);
-    };
-
-    const handleVideoFileChange = (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleVideoFileChange = async (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            simulateUpload(chapterIndex, topicIndex, file);
-        }
+        if (!file) return;
+
+        // Need a courseId to upload, but we don't have one yet.
+        // We will handle the actual upload in the `handleSubmit` function after the course is created.
+        // For now, let's just show a warning.
+        toast({
+            variant: 'destructive',
+            title: 'Create the course first',
+            description: 'Please save the course before uploading videos. You can edit the course to add videos later.',
+        });
+
+        // Or, to give a better UX, we could temporarily store the file object
+        // and upload it after course creation. This is more complex.
+        // For now, the simple warning is clearer.
+        e.target.value = ''; // Reset file input
     };
 
 
@@ -244,7 +227,7 @@ export default function NewCoursePage() {
             if (result.success) {
                 toast({
                     title: "Course Created!",
-                    description: `${courseName} has been successfully added.`,
+                    description: `${courseName} has been successfully added. You can now edit the course to upload videos.`,
                 });
                 router.push('/admin/courses');
             } else {
@@ -406,7 +389,11 @@ export default function NewCoursePage() {
                                                             )}
                                                         </div>
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
-                                                            <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
+                                                            <Switch
+                                                              id={`is-free-${chapterIndex}-${topicIndex}`}
+                                                              checked={topic.is_free}
+                                                              onCheckedChange={checked => handleTopicChange(chapterIndex, topicIndex, 'is_free', checked)}
+                                                            />
                                                             <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is a free preview</Label>
                                                         </div>
                                                     </div>
@@ -454,3 +441,5 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
+
+    

@@ -147,42 +147,60 @@ export default function EditCoursePage() {
         setChapters(newChapters as any);
     };
     
-     const simulateUpload = (chapterIndex: number, topicIndex: number, file: File) => {
+    const handleVideoFileChange = async (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const topic = chapters[chapterIndex].topics[topicIndex];
+        const filePath = `course-videos/${courseId}/${topic.slug}-${file.name}`;
+
         handleTopicChange(chapterIndex, topicIndex, 'uploadProgress', 0);
-        let progress = 0;
+
+        const { error: uploadError } = await supabase.storage
+            .from('course_videos')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: file.type,
+            });
+
+        if (uploadError) {
+            toast({
+                variant: 'destructive',
+                title: 'Video Upload Failed',
+                description: uploadError.message,
+            });
+            handleTopicChange(chapterIndex, topicIndex, 'uploadProgress', undefined);
+            return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('course_videos')
+            .getPublicUrl(filePath);
+
+        setChapters(prevChapters => {
+            const newChapters = [...prevChapters];
+            const updatedTopic = newChapters[chapterIndex].topics[topicIndex];
+            updatedTopic.video_url = publicUrl;
+            updatedTopic.uploadProgress = 100;
+            return newChapters;
+        });
+
+        toast({
+            title: 'Upload Complete!',
+            description: 'The video has been successfully uploaded and linked.',
+        });
         
-        const interval = setInterval(() => {
-            progress = Math.min(progress + 10, 100);
+        // Hide progress bar after a delay
+        setTimeout(() => {
             setChapters(prevChapters => {
                 const newChapters = [...prevChapters];
-                if (newChapters[chapterIndex] && newChapters[chapterIndex].topics[topicIndex]) {
-                    newChapters[chapterIndex].topics[topicIndex].uploadProgress = progress;
+                if (newChapters[chapterIndex]?.topics[topicIndex]) {
+                    newChapters[chapterIndex].topics[topicIndex].uploadProgress = undefined;
                 }
                 return newChapters;
             });
-            
-            if (progress === 100) {
-                clearInterval(interval);
-                 setChapters(prevChapters => {
-                    const newChapters = [...prevChapters];
-                    if (newChapters[chapterIndex] && newChapters[chapterIndex].topics[topicIndex]) {
-                        newChapters[chapterIndex].topics[topicIndex].video_url = `https://example.com/videos/${file.name}`;
-                    }
-                    return newChapters;
-                });
-                toast({
-                    title: "Simulated Upload Complete",
-                    description: `${file.name} is ready. This is a placeholder URL.`,
-                });
-            }
-        }, 200);
-    };
-
-    const handleVideoFileChange = (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            simulateUpload(chapterIndex, topicIndex, file);
-        }
+        }, 2000);
     };
 
 
@@ -472,7 +490,11 @@ export default function EditCoursePage() {
                                                             )}
                                                         </div>
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
-                                                            <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
+                                                            <Switch
+                                                              id={`is-free-${chapterIndex}-${topicIndex}`}
+                                                              checked={topic.is_free}
+                                                              onCheckedChange={checked => handleTopicChange(chapterIndex, topicIndex, 'is_free', checked)}
+                                                            />
                                                             <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is a free preview</Label>
                                                         </div>
                                                     </div>
@@ -520,3 +542,5 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
+
+    
