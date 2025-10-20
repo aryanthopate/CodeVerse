@@ -124,29 +124,40 @@ export async function createCourse(courseData: CourseData) {
 async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
     const supabase = createClient();
     
+    // Find existing quiz for the topic first
+    const { data: existingQuiz } = await supabase
+        .from('quizzes')
+        .select('id')
+        .eq('topic_id', topicId)
+        .single();
+    
+    const quizId = quizData.id?.startsWith('quiz-') ? (existingQuiz?.id || undefined) : (quizData.id || existingQuiz?.id);
+
     // 1. Upsert Quiz
     const { data: quiz, error: quizError } = await supabase
         .from('quizzes')
-        .upsert({ id: quizData.id, topic_id: topicId })
+        .upsert({ id: quizId, topic_id: topicId })
         .select()
         .single();
     if (quizError) throw new Error(`Quiz upsert failed: ${quizError.message}`);
 
     // Get existing questions to find which ones to delete
     const { data: existingQuestions } = await supabase.from('questions').select('id').eq('quiz_id', quiz.id);
-    const incomingQuestionIds = quizData.questions.map(q => q.id).filter(Boolean);
+    const incomingQuestionIds = quizData.questions.map(q => q.id).filter(id => !id.startsWith('q-'));
     const questionsToDelete = existingQuestions?.filter(q => !incomingQuestionIds.includes(q.id)).map(q => q.id) || [];
     
     if (questionsToDelete.length > 0) {
+        await supabase.from('question_options').delete().in('question_id', questionsToDelete);
         await supabase.from('questions').delete().in('id', questionsToDelete);
     }
 
     // 2. Upsert Questions
     for (const questionData of quizData.questions) {
+        const questionId = questionData.id?.startsWith('q-') ? undefined : questionData.id;
         const { data: question, error: questionError } = await supabase
             .from('questions')
             .upsert({
-                id: questionData.id,
+                id: questionId,
                 quiz_id: quiz.id,
                 question_text: questionData.question_text,
                 question_type: questionData.question_type,
@@ -158,7 +169,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
         
         // Get existing options to find which ones to delete
         const { data: existingOptions } = await supabase.from('question_options').select('id').eq('question_id', question.id);
-        const incomingOptionIds = questionData.question_options.map(o => o.id).filter(Boolean);
+        const incomingOptionIds = questionData.question_options.map(o => o.id).filter(id => !id.startsWith('opt-'));
         const optionsToDelete = existingOptions?.filter(o => !incomingOptionIds.includes(o.id)).map(o => o.id) || [];
         
         if (optionsToDelete.length > 0) {
@@ -167,7 +178,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
 
         // 3. Upsert Options
         const optionsToUpsert = questionData.question_options.map(opt => ({
-            id: opt.id,
+            id: opt.id?.startsWith('opt-') ? undefined : opt.id,
             question_id: question.id,
             option_text: opt.option_text,
             is_correct: opt.is_correct,
@@ -317,3 +328,76 @@ export async function deleteCourse(courseId: string) {
 
     return { success: true };
 }
+
+export async function createQuizForTopic(topicId: string, quizData: QuizWithQuestions) {
+  const supabase = createClient();
+
+  // 1. Create the quiz entry linked to the topic
+  const { data: quiz, error: quizError } = await supabase
+    .from('quizzes')
+    .insert({ topic_id: topicId })
+    .select()
+    .single();
+
+  if (quizError) {
+    console.error('Error creating quiz:', quizError);
+    if (quizError.code === '23505') { // unique constraint violation
+        return { success: false, error: 'A quiz already exists for this topic.'};
+    }
+    return { success: false, error: 'Failed to create quiz entry.' };
+  }
+
+  // 2. Create the questions for the quiz
+  const questionsToInsert = quizData.questions.map((q, index) => ({
+    quiz_id: quiz.id,
+    question_text: q.question_text,
+    question_type: 'single', // For now, defaulting to single
+    order: index + 1,
+  }));
+  
+  const { data: questions, error: questionsError } = await supabase
+    .from('questions')
+    .insert(questionsToInsert)
+    .select();
+
+  if (questionsError) {
+    console.error('Error creating questions:', questionsError);
+    // Clean up created quiz if questions fail
+    await supabase.from('quizzes').delete().eq('id', quiz.id);
+    return { success: false, error: 'Failed to save quiz questions.' };
+  }
+
+  // 3. Create the options for each question
+  const optionsToInsert = [];
+  for (let i = 0; i < quizData.questions.length; i++) {
+    const originalQuestion = quizData.questions[i];
+    const savedQuestion = questions.find(q => q.order === i + 1);
+
+    if (savedQuestion) {
+      for (const option of originalQuestion.question_options) {
+        optionsToInsert.push({
+          question_id: savedQuestion.id,
+          option_text: option.option_text,
+          is_correct: option.is_correct,
+        });
+      }
+    }
+  }
+
+  if (optionsToInsert.length > 0) {
+    const { error: optionsError } = await supabase
+        .from('question_options')
+        .insert(optionsToInsert);
+
+    if (optionsError) {
+        console.error('Error creating options:', optionsError);
+        // More complex cleanup could be done here, but for now we'll just report the error
+        return { success: false, error: 'Failed to save quiz options.' };
+    }
+  }
+
+  return { success: true, quizId: quiz.id };
+}
+
+
+    

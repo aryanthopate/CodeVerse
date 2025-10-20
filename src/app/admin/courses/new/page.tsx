@@ -13,6 +13,7 @@ import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Upload, IndianRu
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
+import { generateCodeTask } from '@/ai/flows/generate-code-task';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
@@ -239,7 +240,8 @@ export default function NewCoursePage() {
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+    const [generatingCodeTaskId, setGeneratingCodeTaskId] = useState<string | null>(null);
 
     const [courseName, setCourseName] = useState('');
     const [courseSlug, setCourseSlug] = useState('');
@@ -337,7 +339,7 @@ export default function NewCoursePage() {
             });
             return;
         }
-        setIsGenerating(true);
+        setIsGeneratingDesc(true);
         try {
             const result = await generateCourseDescription({ courseTitle: courseName });
             setCourseDescription(result.description);
@@ -349,7 +351,40 @@ export default function NewCoursePage() {
                 description: 'Could not generate a description. Please try again.'
             });
         } finally {
-            setIsGenerating(false);
+            setIsGeneratingDesc(false);
+        }
+    };
+    
+    const handleGenerateCodeTask = async (chapterId: string, topicId: string, topicTitle: string) => {
+        if (!topicTitle) {
+            toast({
+                variant: 'destructive',
+                title: 'Topic Title is required',
+                description: 'Please enter a topic title to generate a code task.'
+            });
+            return;
+        }
+        setGeneratingCodeTaskId(topicId);
+        try {
+            // Infer language from course name, fallback to 'javascript'
+            const programmingLanguage = courseName.toLowerCase().includes('python') ? 'python' : 
+                                       courseName.toLowerCase().includes('java') ? 'java' : 'javascript';
+                                       
+            const result = await generateCodeTask({ topicTitle, programmingLanguage });
+            handleTopicChange(chapterId, topicId, 'content', result.task);
+             toast({
+                title: 'Code Task Generated!',
+                description: `A new coding challenge for "${topicTitle}" has been created.`,
+            });
+        } catch (error) {
+             console.error('AI code task generation failed:', error);
+            toast({
+                variant: 'destructive',
+                title: 'AI Failed',
+                description: 'Could not generate a code task. Please try again.'
+            });
+        } finally {
+            setGeneratingCodeTaskId(null);
         }
     };
     
@@ -440,9 +475,9 @@ export default function NewCoursePage() {
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center">
                                             <Label htmlFor="course-description">Description</Label>
-                                            <Button type="button" variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>
-                                                <Sparkles className={`mr-2 h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                                                {isGenerating ? 'Generating...' : 'Generate with AI'}
+                                            <Button type="button" variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGeneratingDesc}>
+                                                <Sparkles className={`mr-2 h-4 w-4 ${isGeneratingDesc ? 'animate-spin' : ''}`} />
+                                                {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
                                             </Button>
                                         </div>
                                         <Textarea id="course-description" value={courseDescription} onChange={e => setCourseDescription(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
@@ -569,7 +604,7 @@ export default function NewCoursePage() {
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
                                                 
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Video Summary</Label>
+                                                    <Label className="text-sm font-medium">Video Summary (Manual)</Label>
                                                      <Textarea 
                                                         value={topic.summary || ''}
                                                         onChange={e => handleTopicChange(chapter.id, topic.id, 'summary', e.target.value)}
@@ -580,13 +615,19 @@ export default function NewCoursePage() {
                                                 </div>
 
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
-
+                                                
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Coding Challenge (Markdown)</Label>
+                                                     <div className="flex justify-between items-center">
+                                                        <Label className="text-sm font-medium">Coding Challenge (Markdown)</Label>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapter.id, topic.id, topic.title)} disabled={generatingCodeTaskId === topic.id}>
+                                                            <Sparkles className={`mr-2 h-4 w-4 ${generatingCodeTaskId === topic.id ? 'animate-spin' : ''}`} />
+                                                            {generatingCodeTaskId === topic.id ? 'Generating...' : 'Generate with AI'}
+                                                        </Button>
+                                                    </div>
                                                      <Textarea 
                                                         value={topic.content || ''}
                                                         onChange={e => handleTopicChange(chapter.id, topic.id, 'content', e.target.value)}
-                                                        placeholder="Manually enter a coding challenge here."
+                                                        placeholder="Manually enter a coding challenge, or generate one with AI."
                                                         className="mt-2 min-h-[120px] font-mono"
                                                         rows={6}
                                                     />
@@ -622,3 +663,5 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
+
+    
