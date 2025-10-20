@@ -18,8 +18,6 @@ import { generateCodeTask } from '@/ai/flows/generate-code-task';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
-import { createClient } from '@/lib/supabase/client';
-import { generateQuizFromTranscript } from '@/ai/flows/generate-quiz-from-transcript';
 
 interface TopicState {
     id: string; // Use a temporary client-side ID
@@ -28,9 +26,10 @@ interface TopicState {
     is_free: boolean;
     video_url: string;
     content?: string;
+    summary?: string;
     uploadProgress?: number;
     isGeneratingTask?: boolean;
-    isGeneratingQuiz?: boolean;
+    isAnalyzingVideo?: boolean;
 }
 
 interface ChapterState {
@@ -42,7 +41,6 @@ interface ChapterState {
 export default function NewCoursePage() {
     const router = useRouter();
     const { toast } = useToast();
-    const supabase = createClient();
     const [loading, setLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -56,11 +54,11 @@ export default function NewCoursePage() {
 
 
     const [chapters, setChapters] = useState<ChapterState[]>([
-        { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', uploadProgress: undefined, isGeneratingTask: false, isGeneratingQuiz: false }] }
+        { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', uploadProgress: undefined, isGeneratingTask: false, isAnalyzingVideo: false }] }
     ]);
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] }]);
+        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', isGeneratingTask: false, isAnalyzingVideo: false }] }]);
     };
 
     const handleRemoveChapter = (chapterId: string) => {
@@ -76,7 +74,7 @@ export default function NewCoursePage() {
     const handleAddTopic = (chapterId: string) => {
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
-                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] };
+                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', isGeneratingTask: false, isAnalyzingVideo: false }] };
             }
             return c;
         });
@@ -207,20 +205,13 @@ export default function NewCoursePage() {
         }
     };
 
-    const handleGenerateQuiz = async (chapterId: string, topicId: string) => {
+    const handleAnalyzeVideo = async () => {
         toast({
             variant: 'destructive',
             title: 'Create the course first',
-            description: 'Quizzes can only be generated for saved topics. Please save the course, then edit it to generate quizzes.',
+            description: 'AI analysis can only be performed on saved topics. Please save the course, then edit it to analyze videos.',
         });
     };
-
-    const handleAiAction = (action: string) => {
-        toast({
-            title: `🤖 ${action} Initiated`,
-            description: `This feature is coming soon!`,
-        });
-    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -244,6 +235,7 @@ export default function NewCoursePage() {
                     is_free: topic.is_free,
                     video_url: topic.video_url,
                     content: topic.content,
+                    summary: topic.summary,
                     order: topicIndex + 1,
                 }))
             }))
@@ -425,9 +417,24 @@ export default function NewCoursePage() {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
+                                                
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Topic Content (AI Task)</Label>
+                                                    <Label className="text-sm font-medium">Video Summary</Label>
+                                                     <Textarea 
+                                                        value={topic.summary || ''}
+                                                        onChange={e => handleTopicChange(chapter.id, topic.id, 'summary', e.target.value)}
+                                                        placeholder="AI-Generated video summary will appear here."
+                                                        className="mt-2 min-h-[120px]"
+                                                        rows={4}
+                                                    />
+                                                </div>
+
+                                                <div className="border-t border-dashed -mx-4 mt-2"></div>
+
+                                                <div className="pt-2 px-4 flex flex-col gap-2">
+                                                    <Label className="text-sm font-medium">Coding Challenge</Label>
                                                      <Textarea 
                                                         value={topic.content || ''}
                                                         onChange={e => handleTopicChange(chapter.id, topic.id, 'content', e.target.value)}
@@ -436,13 +443,11 @@ export default function NewCoursePage() {
                                                         rows={6}
                                                     />
                                                 </div>
-                                                <div className="pt-2 px-4 flex items-center justify-between">
-                                                    <Label className="text-sm font-medium">AI Tools</Label>
+                                                <div className="pt-2 px-4 flex items-center justify-end">
                                                     <div className="flex gap-2">
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Video Analysis")}><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateQuiz(chapter.id, topic.id)} disabled={topic.isGeneratingQuiz}>
-                                                            <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingQuiz ? 'animate-spin' : ''}`} />
-                                                            {topic.isGeneratingQuiz ? 'Generating...' : 'Generate Quiz'}
+                                                        <Button type="button" variant="outline" size="sm" onClick={handleAnalyzeVideo} disabled={topic.isAnalyzingVideo}>
+                                                            <Video className={`mr-2 h-4 w-4 ${topic.isAnalyzingVideo ? 'animate-spin' : ''}`} />
+                                                            {topic.isAnalyzingVideo ? 'Analyzing...' : 'Analyze Video & Gen Quiz'}
                                                         </Button>
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapter.id, topic.id)} disabled={topic.isGeneratingTask}>
                                                             <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingTask ? 'animate-spin' : ''}`} />

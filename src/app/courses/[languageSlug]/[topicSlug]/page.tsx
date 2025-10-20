@@ -104,7 +104,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                         <Tabs defaultValue="notes" className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
                                 <TabsTrigger value="notes"><Edit className="mr-2 w-4 h-4"/> Notes</TabsTrigger>
-                                <TabsTrigger value="transcript"><Book className="mr-2 w-4 h-4"/> Transcript</TabsTrigger>
+                                <TabsTrigger value="transcript"><Book className="mr-2 w-4 h-4"/> Summary</TabsTrigger>
                             </TabsList>
                             <TabsContent value="notes" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50">
                                 <div className="space-y-4">
@@ -115,9 +115,9 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                 </div>
                             </TabsContent>
                             <TabsContent value="transcript" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 h-96 overflow-y-auto">
-                                <h3 className="font-semibold mb-2">Transcript</h3>
+                                <h3 className="font-semibold mb-2">Video Summary</h3>
                                 <p className="text-sm text-muted-foreground whitespace-pre-line">
-                                    {topic.content || 'Transcript not available.'}
+                                    {topic.summary || 'Summary not available.'}
                                 </p>
                             </TabsContent>
                         </Tabs>

@@ -4,7 +4,7 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import { type GenerateQuizOutput } from '@/ai/flows/generate-quiz-from-transcript';
+import { type VideoInsightsOutput } from '@/ai/flows/extract-video-insights';
 
 interface TopicData {
     id?: string; // id is present when updating
@@ -14,6 +14,7 @@ interface TopicData {
     order: number;
     video_url?: string;
     content?: string;
+    summary?: string;
 }
 
 interface ChapterData {
@@ -86,6 +87,7 @@ export async function createCourse(courseData: CourseData) {
             order: topic.order,
             video_url: topic.video_url,
             content: topic.content,
+            summary: topic.summary,
             chapter_id: createdChapter.id,
         }));
     });
@@ -169,7 +171,7 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
 
     // 4. Upsert chapters
     const chaptersToUpsert = courseData.chapters.map(chapter => ({
-        id: chapter.id, // may be undefined for new chapters
+        id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
         title: chapter.title,
         order: chapter.order,
         course_id: courseId,
@@ -191,13 +193,14 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
         if (!upsertedChapter) return [];
         
         return chapterData.topics.map(topic => ({
-            id: topic.id, // may be undefined
+            id: topic.id?.startsWith('t-') ? undefined : topic.id,
             title: topic.title,
             slug: topic.slug,
             order: topic.order,
             video_url: topic.video_url,
             is_free: topic.is_free,
             content: topic.content,
+            summary: topic.summary,
             chapter_id: upsertedChapter.id
         }));
     });
@@ -244,7 +247,7 @@ export async function deleteCourse(courseId: string) {
 }
 
 
-export async function createQuizForTopic(topicId: string, quizData: GenerateQuizOutput) {
+export async function createQuizForTopic(topicId: string, quizData: VideoInsightsOutput) {
     const supabase = createClient();
 
     // Delete existing quiz for the topic, if any.

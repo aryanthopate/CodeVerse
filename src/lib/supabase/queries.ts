@@ -1,3 +1,4 @@
+
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
@@ -81,6 +82,7 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
                     slug,
                     video_url,
                     content,
+                    summary,
                     is_free,
                     order
                 )

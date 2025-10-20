@@ -7,4 +7,4 @@ import '@/ai/flows/review-code-and-provide-feedback.ts';
 import '@/ai/flows/provide-hint-for-code-practice.ts';
 import '@/ai/flows/generate-course-description.ts';
 import '@/ai/flows/generate-code-task.ts';
-import '@/ai/flows/generate-quiz-from-transcript.ts';
+import '@/ai/flows/extract-video-insights.ts';

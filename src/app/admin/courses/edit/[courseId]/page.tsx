@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { updateCourse } from '@/lib/supabase/actions';
+import { updateCourse, createQuizForTopic } from '@/lib/supabase/actions';
 import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Upload, IndianRupee } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -20,7 +20,7 @@ import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
-import { generateQuizFromTranscript } from '@/ai/flows/generate-quiz-from-transcript';
+import { extractVideoInsights } from '@/ai/flows/extract-video-insights';
 
 
 interface TopicState {
@@ -30,9 +30,10 @@ interface TopicState {
     is_free: boolean;
     video_url: string;
     content?: string;
+    summary?: string;
     uploadProgress?: number;
     isGeneratingTask?: boolean;
-    isGeneratingQuiz?: boolean;
+    isAnalyzingVideo?: boolean;
 }
 
 interface ChapterState {
@@ -91,9 +92,10 @@ export default function EditCoursePage() {
                         is_free: t.is_free,
                         video_url: t.video_url || '',
                         content: t.content || '',
+                        summary: t.summary || '',
                         uploadProgress: undefined,
                         isGeneratingTask: false,
-                        isGeneratingQuiz: false,
+                        isAnalyzingVideo: false,
                     }))
                 })));
             } else {
@@ -129,7 +131,7 @@ export default function EditCoursePage() {
     const handleAddTopic = (chapterId: string) => {
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
-                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] };
+                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', isGeneratingTask: false, isAnalyzingVideo: false }] };
             }
             return c;
         });
@@ -185,11 +187,6 @@ export default function EditCoursePage() {
                 cacheControl: '3600',
                 upsert: true,
                 contentType: file.type,
-            }, (event) => {
-                if (event.type === 'progress') {
-                    const progress = Math.round((event.loaded / event.total) * 100);
-                     handleTopicChange(chapterId, topicId, 'uploadProgress', progress);
-                }
             });
 
 
@@ -300,7 +297,7 @@ export default function EditCoursePage() {
         }
     };
 
-    const handleGenerateQuiz = async (chapterId: string, topicId: string) => {
+    const handleAnalyzeVideo = async (chapterId: string, topicId: string) => {
         const chapter = chapters.find(c => c.id === chapterId);
         const topic = chapter?.topics.find(t => t.id === topicId);
         
@@ -308,7 +305,7 @@ export default function EditCoursePage() {
              toast({
                 variant: 'destructive',
                 title: 'Topic Not Saved',
-                description: 'Please save the course before generating a quiz for a new topic.',
+                description: 'Please save the course before analyzing a video for a new topic.',
             });
             return;
         }
@@ -317,42 +314,52 @@ export default function EditCoursePage() {
             toast({
                 variant: 'destructive',
                 title: 'YouTube Video URL is required',
-                description: 'Please provide a valid YouTube video URL to generate a quiz.',
+                description: 'AI analysis currently only supports YouTube videos. Please provide a valid YouTube URL.',
             });
             return;
         }
 
-        handleTopicChange(chapterId, topicId, 'isGeneratingQuiz', true);
+        handleTopicChange(chapterId, topicId, 'isAnalyzingVideo', true);
 
         try {
-            const result = await generateQuizFromTranscript({ videoUrl: topic.video_url, topicId: topic.id });
-            if (result.success) {
+            const insights = await extractVideoInsights({ videoUrl: topic.video_url });
+            
+            if (insights.summary) {
+                handleTopicChange(chapterId, topicId, 'summary', insights.summary);
                 toast({
-                    title: 'AI Quiz Generated & Saved!',
-                    description: `A new quiz for "${topic.title}" has been created and saved to the database.`,
+                    title: 'AI Video Summary Generated!',
+                    description: `A summary for "${topic.title}" has been created.`,
                 });
             } else {
-                 throw new Error(result.error || 'The AI failed to generate a quiz.');
+                 throw new Error('The AI failed to generate a summary.');
             }
+
+            if (insights.questions && insights.questions.length > 0) {
+                 const saveResult = await createQuizForTopic(topic.id, insights);
+                 if (saveResult.success) {
+                    toast({
+                        title: 'AI Quiz Generated & Saved!',
+                        description: `A new quiz for "${topic.title}" has been saved to the database.`,
+                    });
+                 } else {
+                     throw new Error(saveResult.error || 'Failed to save the generated quiz.');
+                 }
+            } else {
+                 throw new Error('The AI failed to generate quiz questions.');
+            }
+
         } catch (error: any) {
-            console.error('AI quiz generation failed:', error);
+            console.error('AI video analysis failed:', error);
             toast({
                 variant: 'destructive',
-                title: 'AI Quiz Generation Failed',
-                description: error.message || 'Could not generate a quiz. Please try again.',
+                title: 'AI Video Analysis Failed',
+                description: error.message || 'Could not analyze the video. Please try again.',
             });
         } finally {
-            handleTopicChange(chapterId, topicId, 'isGeneratingQuiz', false);
+            handleTopicChange(chapterId, topicId, 'isAnalyzingVideo', false);
         }
     };
     
-    const handleAiAction = (action: string) => {
-        toast({
-            title: `🤖 ${action} Initiated`,
-            description: `The AI is starting to work. This feature is coming soon!`,
-        });
-    }
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -375,6 +382,7 @@ export default function EditCoursePage() {
                     is_free: topic.is_free,
                     video_url: topic.video_url,
                     content: topic.content,
+                    summary: topic.summary,
                     order: topicIndex + 1,
                 }))
             }))
@@ -564,9 +572,24 @@ export default function EditCoursePage() {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
+
+                                                <div className="pt-2 px-4 flex flex-col gap-2">
+                                                    <Label className="text-sm font-medium">Video Summary</Label>
+                                                     <Textarea 
+                                                        value={topic.summary || ''}
+                                                        onChange={e => handleTopicChange(chapter.id!, topic.id!, 'summary', e.target.value)}
+                                                        placeholder="AI-Generated video summary will appear here."
+                                                        className="mt-2 min-h-[120px]"
+                                                        rows={4}
+                                                    />
+                                                </div>
+
+                                                <div className="border-t border-dashed -mx-4 mt-2"></div>
+
                                                  <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">Topic Content (AI Task)</Label>
+                                                    <Label className="text-sm font-medium">Coding Challenge</Label>
                                                      <Textarea 
                                                         value={topic.content || ''}
                                                         onChange={e => handleTopicChange(chapter.id!, topic.id!, 'content', e.target.value)}
@@ -575,13 +598,11 @@ export default function EditCoursePage() {
                                                         rows={6}
                                                     />
                                                 </div>
-                                                <div className="pt-2 px-4 flex items-center justify-between">
-                                                    <Label className="text-sm font-medium">AI Tools</Label>
+                                                <div className="pt-2 px-4 flex items-center justify-end">
                                                     <div className="flex gap-2">
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Video Analysis")}><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateQuiz(chapter.id!, topic.id!)} disabled={topic.isGeneratingQuiz}>
-                                                            <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingQuiz ? 'animate-spin' : ''}`} />
-                                                            {topic.isGeneratingQuiz ? 'Generating...' : 'Generate Quiz'}
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAnalyzeVideo(chapter.id!, topic.id!)} disabled={topic.isAnalyzingVideo}>
+                                                            <Video className={`mr-2 h-4 w-4 ${topic.isAnalyzingVideo ? 'animate-spin' : ''}`} />
+                                                            {topic.isAnalyzingVideo ? 'Analyzing...' : 'Analyze Video & Gen Quiz'}
                                                         </Button>
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapter.id!, topic.id!)} disabled={topic.isGeneratingTask}>
                                                             <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingTask ? 'animate-spin' : ''}`} />
