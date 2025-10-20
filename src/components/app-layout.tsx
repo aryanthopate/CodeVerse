@@ -15,6 +15,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarInset,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { LayoutDashboard, BookOpen, Compass, Share2 } from 'lucide-react';
@@ -96,6 +97,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarHeader>
             <Logo />
           </SidebarHeader>
+          <SidebarSeparator className="my-2" />
           <SidebarContent>
               <SidebarGroup>
                   <SidebarGroupLabel>MAIN</SidebarGroupLabel>
@@ -152,9 +154,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="bg-muted/30 p-0">
-           <div className="flex flex-col flex-1 w-full bg-card rounded-xl border border-border overflow-hidden">
-                <AppHeader profile={profile} onLogout={handleLogout} />
-                <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+           <div className="flex flex-col w-full gap-2">
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                    <AppHeader profile={profile} onLogout={handleLogout} />
+                </div>
+                <main className="flex-1 p-4 md:p-6 lg:p-8 bg-card rounded-xl border border-border">
                     {children}
                 </main>
            </div>
