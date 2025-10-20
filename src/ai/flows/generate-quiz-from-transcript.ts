@@ -12,9 +12,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { YoutubeTranscript } from 'youtube-transcript';
+import { createQuizForTopic } from '@/lib/supabase/actions';
 
 const GenerateQuizInputSchema = z.object({
   videoUrl: z.string().url().describe('The URL of the YouTube video.'),
+  topicId: z.string().uuid().describe('The ID of the topic to associate the quiz with.'),
 });
 export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
@@ -71,27 +73,30 @@ export const generateQuizFromTranscriptFlow = ai.defineFlow(
   {
     name: 'generateQuizFromTranscriptFlow',
     inputSchema: GenerateQuizInputSchema,
-    outputSchema: GenerateQuizOutputSchema,
+    outputSchema: z.object({ success: z.boolean(), quizId: z.string().optional(), error: z.string().optional() }),
   },
-  async ({ videoUrl }) => {
+  async ({ videoUrl, topicId }) => {
 
     const transcriptResponse = await getYouTubeTranscriptTool({ videoUrl });
     
     if (!transcriptResponse) {
-        throw new Error('Failed to get transcript');
+        return { success: false, error: 'Failed to get transcript.' };
     }
 
     const { output } = await quizGenerationPrompt({ transcript: transcriptResponse });
     
     if (!output) {
-        throw new Error('Quiz generation failed.');
+        return { success: false, error: 'Quiz generation failed.' };
     }
 
-    return output;
+    // Save the generated quiz to the database
+    const saveResult = await createQuizForTopic(topicId, output);
+    
+    return saveResult;
   }
 );
 
 
-export async function generateQuizFromTranscript(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
+export async function generateQuizFromTranscript(input: GenerateQuizInput): Promise<{ success: boolean, quizId?: string, error?: string }> {
     return generateQuizFromTranscriptFlow(input);
 }

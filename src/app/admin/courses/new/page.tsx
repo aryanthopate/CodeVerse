@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/client';
 import { generateQuizFromTranscript } from '@/ai/flows/generate-quiz-from-transcript';
 
 interface TopicState {
+    id: string; // Use a temporary client-side ID
     title: string;
     slug: string;
     is_free: boolean;
@@ -32,6 +33,7 @@ interface TopicState {
 }
 
 interface ChapterState {
+    id: string; // Use a temporary client-side ID
     title: string;
     topics: TopicState[];
 }
@@ -53,49 +55,65 @@ export default function NewCoursePage() {
 
 
     const [chapters, setChapters] = useState<ChapterState[]>([
-        { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '', uploadProgress: undefined, isGeneratingTask: false, isGeneratingQuiz: false }] }
+        { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', uploadProgress: undefined, isGeneratingTask: false, isGeneratingQuiz: false }] }
     ]);
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { title: '', topics: [{ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] }]);
+        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] }]);
     };
 
-    const handleRemoveChapter = (index: number) => {
-        const newChapters = chapters.filter((_, i) => i !== index);
+    const handleRemoveChapter = (chapterId: string) => {
+        const newChapters = chapters.filter(c => c.id !== chapterId);
         setChapters(newChapters);
     };
 
-    const handleChapterChange = (index: number, value: string) => {
-        const newChapters = [...chapters];
-        newChapters[index].title = value;
+    const handleChapterChange = (chapterId: string, value: string) => {
+        const newChapters = chapters.map(c => c.id === chapterId ? { ...c, title: value } : c);
         setChapters(newChapters);
     };
 
-    const handleAddTopic = (chapterIndex: number) => {
-        const newChapters = [...chapters];
-        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false });
+    const handleAddTopic = (chapterId: string) => {
+        const newChapters = chapters.map(c => {
+            if (c.id === chapterId) {
+                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', isGeneratingTask: false, isGeneratingQuiz: false }] };
+            }
+            return c;
+        });
         setChapters(newChapters);
     };
 
-    const handleRemoveTopic = (chapterIndex: number, topicIndex: number) => {
-        const newChapters = [...chapters];
-        newChapters[chapterIndex].topics = newChapters[chapterIndex].topics.filter((_, i) => i !== topicIndex);
+    const handleRemoveTopic = (chapterId: string, topicId: string) => {
+        const newChapters = chapters.map(c => {
+            if (c.id === chapterId) {
+                return { ...c, topics: c.topics.filter(t => t.id !== topicId) };
+            }
+            return c;
+        });
         setChapters(newChapters);
     };
 
-    const handleTopicChange = (chapterIndex: number, topicIndex: number, field: keyof TopicState, value: string | boolean | number | undefined) => {
-        const newChapters = [...chapters];
-        const topic = newChapters[chapterIndex].topics[topicIndex] as any;
-        topic[field] = value;
-        
-        if(field === 'title' && typeof value === 'string') {
-             topic.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        }
-
-        setChapters(newChapters);
+    const handleTopicChange = (chapterId: string, topicId: string, field: keyof TopicState, value: any) => {
+        setChapters(prev => prev.map(c => {
+            if (c.id === chapterId) {
+                return {
+                    ...c,
+                    topics: c.topics.map(t => {
+                        if (t.id === topicId) {
+                            const updatedTopic = { ...t, [field]: value };
+                            if (field === 'title' && typeof value === 'string') {
+                                updatedTopic.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                            }
+                            return updatedTopic;
+                        }
+                        return t;
+                    })
+                };
+            }
+            return c;
+        }));
     };
     
-    const handleVideoFileChange = async (chapterIndex: number, topicIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleVideoFileChange = async (chapterId: string, topicId: string, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -153,9 +171,11 @@ export default function NewCoursePage() {
         }
     };
 
-    const handleGenerateCodeTask = async (chapterIndex: number, topicIndex: number) => {
-        const topic = chapters[chapterIndex].topics[topicIndex];
-        if (!topic.title || !courseName) {
+    const handleGenerateCodeTask = async (chapterId: string, topicId: string) => {
+        const chapter = chapters.find(c => c.id === chapterId);
+        const topic = chapter?.topics.find(t => t.id === topicId);
+
+        if (!topic?.title || !courseName) {
             toast({
                 variant: 'destructive',
                 title: 'Topic and Course Name are required',
@@ -164,12 +184,12 @@ export default function NewCoursePage() {
             return;
         }
 
-        handleTopicChange(chapterIndex, topicIndex, 'isGeneratingTask', true);
+        handleTopicChange(chapterId, topicId, 'isGeneratingTask', true);
 
         try {
             const language = courseName.split(' ')[0]; // Simple logic to get language from course name
             const result = await generateCodeTask({ topicTitle: topic.title, programmingLanguage: language });
-            handleTopicChange(chapterIndex, topicIndex, 'content', result.task);
+            handleTopicChange(chapterId, topicId, 'content', result.task);
             toast({
                 title: 'AI Code Task Generated!',
                 description: `A new code task for "${topic.title}" has been created.`,
@@ -182,40 +202,16 @@ export default function NewCoursePage() {
                 description: 'Could not generate a code task. Please try again.',
             });
         } finally {
-            handleTopicChange(chapterIndex, topicIndex, 'isGeneratingTask', false);
+            handleTopicChange(chapterId, topicId, 'isGeneratingTask', false);
         }
     };
 
-    const handleGenerateQuiz = async (chapterIndex: number, topicIndex: number) => {
-        const topic = chapters[chapterIndex].topics[topicIndex];
-        if (!topic.video_url || !topic.video_url.includes('youtube.com')) {
-            toast({
-                variant: 'destructive',
-                title: 'YouTube Video URL is required',
-                description: 'Please provide a valid YouTube video URL to generate a quiz.',
-            });
-            return;
-        }
-
-        handleTopicChange(chapterIndex, topicIndex, 'isGeneratingQuiz', true);
-
-        try {
-            const result = await generateQuizFromTranscript({ videoUrl: topic.video_url });
-            console.log('Generated Quiz:', result);
-            toast({
-                title: 'AI Quiz Generated!',
-                description: `A new quiz for "${topic.title}" has been created. Check the console for the output.`,
-            });
-        } catch (error: any) {
-            console.error('AI quiz generation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'AI Quiz Generation Failed',
-                description: error.message || 'Could not generate a quiz. Please try again.',
-            });
-        } finally {
-            handleTopicChange(chapterIndex, topicIndex, 'isGeneratingQuiz', false);
-        }
+    const handleGenerateQuiz = async (chapterId: string, topicId: string) => {
+        toast({
+            variant: 'destructive',
+            title: 'Create the course first',
+            description: 'Quizzes can only be generated for saved topics. Please save the course, then edit it to generate quizzes.',
+        });
     };
 
     const handleAiAction = (action: string) => {
@@ -237,9 +233,11 @@ export default function NewCoursePage() {
             is_paid: isPaid,
             price: Number(price),
             chapters: chapters.map((chapter, chapterIndex) => ({
+                // Don't send client-side temporary id
                 title: chapter.title,
                 order: chapterIndex + 1,
                 topics: chapter.topics.map((topic, topicIndex) => ({
+                    // Don't send client-side temporary id
                     title: topic.title,
                     slug: topic.slug,
                     is_free: topic.is_free,
@@ -255,7 +253,7 @@ export default function NewCoursePage() {
             if (result.success) {
                 toast({
                     title: "Course Created!",
-                    description: `${courseName} has been successfully added. You can now edit the course to upload videos.`,
+                    description: `${courseName} has been successfully added. You can now edit the course to upload videos and generate quizzes.`,
                 });
                 router.push('/admin/courses');
             } else {
@@ -367,47 +365,47 @@ export default function NewCoursePage() {
                         {/* Chapters and Topics Column */}
                         <div className="lg:col-span-2 space-y-6">
                             {chapters.map((chapter, chapterIndex) => (
-                                <Card key={chapterIndex} className="bg-muted/30">
+                                <Card key={chapter.id} className="bg-muted/30">
                                     <CardHeader className="flex flex-row items-center justify-between">
                                         <div className="space-y-1.5 flex-grow mr-4">
                                             <CardTitle className="flex items-center gap-2"><Book className="text-primary"/> Chapter {chapterIndex + 1}</CardTitle>
-                                            <Input placeholder="Chapter Title, e.g., 'Getting Started'" value={chapter.title} onChange={e => handleChapterChange(chapterIndex, e.target.value)} required className="text-lg font-semibold p-0 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"/>
+                                            <Input placeholder="Chapter Title, e.g., 'Getting Started'" value={chapter.title} onChange={e => handleChapterChange(chapter.id, e.target.value)} required className="text-lg font-semibold p-0 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"/>
                                         </div>
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveChapter(chapterIndex)} disabled={chapters.length === 1}>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveChapter(chapter.id)} disabled={chapters.length === 1}>
                                             <X className="text-destructive"/>
                                         </Button>
                                     </CardHeader>
                                     <CardContent className="space-y-4 pl-10">
                                         {chapter.topics.map((topic, topicIndex) => (
-                                            <div key={topicIndex} className="p-4 rounded-lg bg-background border flex flex-col gap-4 relative">
+                                            <div key={topic.id} className="p-4 rounded-lg bg-background border flex flex-col gap-4 relative">
                                                 <div className="flex items-start gap-4">
                                                     <FileText className="mt-2.5 text-accent-foreground/50"/>
                                                     <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <div className="space-y-2">
-                                                            <Label htmlFor={`topic-title-${chapterIndex}-${topicIndex}`}>Topic Title</Label>
-                                                            <Input id={`topic-title-${chapterIndex}-${topicIndex}`} value={topic.title} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'title', e.target.value)} placeholder="e.g., 'Variables'" required />
+                                                            <Label htmlFor={`topic-title-${chapter.id}-${topic.id}`}>Topic Title</Label>
+                                                            <Input id={`topic-title-${chapter.id}-${topic.id}`} value={topic.title} onChange={e => handleTopicChange(chapter.id, topic.id, 'title', e.target.value)} placeholder="e.g., 'Variables'" required />
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <Label htmlFor={`topic-slug-${chapterIndex}-${topicIndex}`}>Topic Slug</Label>
-                                                            <Input id={`topic-slug-${chapterIndex}-${topicIndex}`} value={topic.slug} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
+                                                            <Label htmlFor={`topic-slug-${chapter.id}-${topic.id}`}>Topic Slug</Label>
+                                                            <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id, topic.id, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                         </div>
                                                          <div className="space-y-2 sm:col-span-2">
-                                                            <Label htmlFor={`topic-video-${chapterIndex}-${topicIndex}`}>Topic Video</Label>
+                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video</Label>
                                                             <div className="flex items-center gap-2">
                                                                 <Input 
-                                                                    id={`topic-video-${chapterIndex}-${topicIndex}`} 
+                                                                    id={`topic-video-${chapter.id}-${topic.id}`} 
                                                                     value={topic.video_url} 
-                                                                    onChange={e => handleTopicChange(chapterIndex, topicIndex, 'video_url', e.target.value)} 
+                                                                    onChange={e => handleTopicChange(chapter.id, topic.id, 'video_url', e.target.value)} 
                                                                     placeholder="Paste video link (e.g., YouTube) or upload"
                                                                     className="flex-grow"
                                                                 />
                                                                 <Button type="button" variant="outline" size="icon" asChild>
-                                                                    <Label htmlFor={`video-upload-${chapterIndex}-${topicIndex}`} className="cursor-pointer">
+                                                                    <Label htmlFor={`video-upload-${chapter.id}-${topic.id}`} className="cursor-pointer">
                                                                         <Upload className="h-4 w-4" />
                                                                         <span className="sr-only">Upload Video</span>
                                                                     </Label>
                                                                 </Button>
-                                                                <Input id={`video-upload-${chapterIndex}-${topicIndex}`} type="file" className="sr-only" accept="video/*" onChange={(e) => handleVideoFileChange(chapterIndex, topicIndex, e)} />
+                                                                <Input id={`video-upload-${chapter.id}-${topic.id}`} type="file" className="sr-only" accept="video/*" onChange={(e) => handleVideoFileChange(chapter.id, topic.id, e)} />
                                                             </div>
                                                             {topic.uploadProgress !== undefined && (
                                                                 <div className="mt-2 space-y-1">
@@ -418,11 +416,11 @@ export default function NewCoursePage() {
                                                         </div>
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                             <Switch
-                                                              id={`is-free-${chapterIndex}-${topicIndex}`}
+                                                              id={`is-free-${chapter.id}-${topic.id}`}
                                                               checked={topic.is_free}
-                                                              onCheckedChange={checked => handleTopicChange(chapterIndex, topicIndex, 'is_free', checked)}
+                                                              onCheckedChange={checked => handleTopicChange(chapter.id, topic.id, 'is_free', checked)}
                                                             />
-                                                            <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is a free preview</Label>
+                                                            <Label htmlFor={`is-free-${chapter.id}-${topic.id}`} className="text-sm font-medium">This topic is a free preview</Label>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -431,7 +429,7 @@ export default function NewCoursePage() {
                                                     <Label className="text-sm font-medium">Topic Content (AI Task)</Label>
                                                      <Textarea 
                                                         value={topic.content || ''}
-                                                        onChange={e => handleTopicChange(chapterIndex, topicIndex, 'content', e.target.value)}
+                                                        onChange={e => handleTopicChange(chapter.id, topic.id, 'content', e.target.value)}
                                                         placeholder="AI-Generated code task will appear here."
                                                         className="mt-2 min-h-[120px] font-mono"
                                                         rows={6}
@@ -441,22 +439,22 @@ export default function NewCoursePage() {
                                                     <Label className="text-sm font-medium">AI Tools</Label>
                                                     <div className="flex gap-2">
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Video Analysis")}><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateQuiz(chapterIndex, topicIndex)} disabled={topic.isGeneratingQuiz}>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateQuiz(chapter.id, topic.id)} disabled={topic.isGeneratingQuiz}>
                                                             <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingQuiz ? 'animate-spin' : ''}`} />
                                                             {topic.isGeneratingQuiz ? 'Generating...' : 'Generate Quiz'}
                                                         </Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapterIndex, topicIndex)} disabled={topic.isGeneratingTask}>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapter.id, topic.id)} disabled={topic.isGeneratingTask}>
                                                             <Bot className={`mr-2 h-4 w-4 ${topic.isGeneratingTask ? 'animate-spin' : ''}`} />
                                                              {topic.isGeneratingTask ? 'Generating...' : 'Generate Code Task'}
                                                         </Button>
                                                     </div>
                                                 </div>
-                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapterIndex, topicIndex)} disabled={chapter.topics.length === 1}>
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapter.id, topic.id)} disabled={chapter.topics.length === 1}>
                                                     <X className="w-4 h-4 text-muted-foreground"/>
                                                 </Button>
                                             </div>
                                         ))}
-                                        <Button type="button" variant="outline" onClick={() => handleAddTopic(chapterIndex)}>
+                                        <Button type="button" variant="outline" onClick={() => handleAddTopic(chapter.id)}>
                                             <Plus className="mr-2"/> Add Topic
                                         </Button>
                                     </CardContent>

@@ -3,6 +3,7 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
+import { type GenerateQuizOutput } from '@/ai/flows/generate-quiz-from-transcript';
 
 interface TopicData {
     id?: string; // id is present when updating
@@ -239,4 +240,64 @@ export async function deleteCourse(courseId: string) {
     revalidatePath('/courses');
 
     return { success: true };
+}
+
+
+export async function createQuizForTopic(topicId: string, quizData: GenerateQuizOutput) {
+    const supabase = createClient();
+
+    // Delete existing quiz for the topic, if any.
+    // This simplifies logic by ensuring a fresh start.
+    const { data: existingQuiz, error: fetchError } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
+    if (existingQuiz) {
+        await supabase.from('quizzes').delete().eq('id', existingQuiz.id);
+    }
+
+
+    // 1. Create the quiz entry
+    const { data: quiz, error: quizError } = await supabase
+        .from('quizzes')
+        .insert({ topic_id: topicId })
+        .select()
+        .single();
+
+    if (quizError) {
+        console.error('Error creating quiz:', quizError);
+        return { success: false, error: quizError.message };
+    }
+
+    // 2. Create the questions and their options
+    for (const [qIndex, questionData] of quizData.questions.entries()) {
+        const { data: question, error: questionError } = await supabase
+            .from('questions')
+            .insert({
+                quiz_id: quiz.id,
+                question_text: questionData.question,
+                order: qIndex + 1,
+            })
+            .select()
+            .single();
+
+        if (questionError) {
+            console.error('Error creating question:', questionError);
+            // In a real app, you might want to roll back the transaction here
+            return { success: false, error: questionError.message };
+        }
+
+        // 3. Create options for the question
+        const optionsToInsert = questionData.options.map(optionText => ({
+            question_id: question.id,
+            option_text: optionText,
+            is_correct: optionText === questionData.correctAnswer,
+        }));
+
+        const { error: optionsError } = await supabase.from('question_options').insert(optionsToInsert);
+
+        if (optionsError) {
+            console.error('Error creating options:', optionsError);
+            return { success: false, error: optionsError.message };
+        }
+    }
+    
+    return { success: true, quizId: quiz.id };
 }
