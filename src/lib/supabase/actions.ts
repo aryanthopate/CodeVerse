@@ -86,21 +86,24 @@ export async function createCourse(courseData: CourseData) {
             }
             
             if (quizzes && quizzes.length > 0) {
-                const quizData = quizzes[0]; // Assuming one quiz per topic
-                
-                // Sanitize IDs before upserting
-                const sanitizedQuestions = quizData.questions.map(q => ({
-                    ...q,
-                    id: q.id?.startsWith('q-') ? undefined : q.id,
-                    question_options: q.question_options.map(o => ({
-                        ...o,
-                        id: o.id?.startsWith('opt-') ? undefined : o.id,
-                    }))
-                }));
+                 try {
+                    const quizData = quizzes[0];
+                    // Sanitize IDs before upserting
+                    const sanitizedQuestions = quizData.questions.map(q => ({
+                        ...q,
+                        id: undefined, // Always new on create
+                        question_options: q.question_options.map(o => ({
+                            ...o,
+                            id: undefined, // Always new on create
+                        }))
+                    }));
 
-                const sanitizedQuizData = { ...quizData, questions: sanitizedQuestions };
-                
-                await upsertQuiz(sanitizedQuizData, topic.id);
+                    const sanitizedQuizData = { ...quizData, id: undefined, questions: sanitizedQuestions };
+                    await upsertQuiz(sanitizedQuizData, topic.id);
+
+                } catch(error: any) {
+                     return { success: false, error: error.message };
+                }
             }
         }
     }
@@ -420,3 +423,5 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
 
   return { success: true, quizId: quiz.id };
 }
+
+    
