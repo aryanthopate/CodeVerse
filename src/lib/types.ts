@@ -1,5 +1,4 @@
 
-
 import type { Database } from './supabase/database.types';
 
 export interface UserProfile {
@@ -19,7 +18,10 @@ export type Chapter = Database['public']['Tables']['chapters']['Row'];
 export type Topic = Database['public']['Tables']['topics']['Row'];
 export type Quiz = Database['public']['Tables']['quizzes']['Row'];
 export type Question = Database['public']['Tables']['questions']['Row'];
-export type QuestionOption = Database['public']['Tables']['question_options']['Row'];
+export type QuestionOption = Database['public']['Tables']['question_options']['Row'] & {
+    explanation?: string | null;
+};
+
 
 // Custom combined types for nested data fetching
 export type QuestionWithOptions = Question & {
@@ -30,6 +32,7 @@ export type QuizWithQuestions = Quiz & {
 }
 export type TopicWithContent = Topic & {
     quizzes: QuizWithQuestions[] | null; // A topic can have one quiz, represented as an array of 1
+    explanation?: string | null;
 }
 export type ChapterWithTopics = Chapter & {
   topics: TopicWithContent[];

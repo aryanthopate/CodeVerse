@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { AdminLayout } from '@/components/admin-layout';
@@ -29,6 +28,7 @@ interface OptionState extends Partial<QuestionOption> {
     id: string;
     option_text: string;
     is_correct: boolean;
+    explanation?: string;
 }
 
 interface QuestionState extends Partial<QuestionWithOptions> {
@@ -52,6 +52,7 @@ interface TopicState {
     video_url: string;
     content?: string;
     summary?: string;
+    explanation?: string;
     uploadProgress?: number;
     quizzes?: QuizState[];
 }
@@ -108,7 +109,7 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
 
     const handleAddOption = (questionId: string) => {
         if (!quiz) return;
-        const newOption: OptionState = { id: `opt-${Date.now()}`, option_text: '', is_correct: false };
+        const newOption: OptionState = { id: `opt-${Date.now()}`, option_text: '', is_correct: false, explanation: '' };
         const updatedQuestions = quiz.questions.map(q => {
             if (q.id === questionId) {
                 return { ...q, question_options: [...q.question_options, newOption] };
@@ -131,7 +132,7 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
         onTopicChange(chapterId, topicId, 'quizzes', [updatedQuiz]);
     };
 
-    const handleOptionChange = (questionId: string, optionId: string, field: 'option_text' | 'is_correct', value: any) => {
+    const handleOptionChange = (questionId: string, optionId: string, field: 'option_text' | 'is_correct' | 'explanation', value: any) => {
          if (!quiz) return;
          const updatedQuestions = quiz.questions.map(q => {
             if (q.id === questionId) {
@@ -201,7 +202,8 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                             <div className='space-y-2'>
                                 <Label className="text-xs">Options</Label>
                                 {q.question_options.map(opt => (
-                                    <div key={opt.id} className="flex items-center gap-2">
+                                    <div key={opt.id} className="flex items-start gap-2">
+                                        <div className='pt-2.5'>
                                         {q.question_type === 'single' ? (
                                             <RadioGroup
                                                 value={q.question_options.find(o => o.is_correct)?.id}
@@ -216,13 +218,22 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                                                 onCheckedChange={checked => handleOptionChange(q.id, opt.id, 'is_correct', checked)}
                                             />
                                         )}
-                                        <Input 
-                                            value={opt.option_text}
-                                            onChange={(e) => handleOptionChange(q.id, opt.id, 'option_text', e.target.value)}
-                                            className="h-9"
-                                            placeholder="Option text..."
-                                        />
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveOption(q.id, opt.id)}><X className="h-4 w-4"/></Button>
+                                        </div>
+                                        <div className='flex-grow space-y-2'>
+                                            <Input 
+                                                value={opt.option_text}
+                                                onChange={(e) => handleOptionChange(q.id, opt.id, 'option_text', e.target.value)}
+                                                className="h-9"
+                                                placeholder="Option text..."
+                                            />
+                                            <Textarea 
+                                                value={opt.explanation || ''}
+                                                onChange={(e) => handleOptionChange(q.id, opt.id, 'explanation', e.target.value)}
+                                                className="min-h-[60px] text-xs"
+                                                placeholder="Explanation for this option..."
+                                            />
+                                        </div>
+                                        <Button variant="ghost" size="icon" className='mt-1' onClick={() => handleRemoveOption(q.id, opt.id)}><X className="h-4 w-4"/></Button>
                                     </div>
                                 ))}
                                 <Button variant="outline" size="sm" onClick={() => handleAddOption(q.id)}><Plus className="mr-2 h-4 w-4"/>Add Option</Button>
@@ -309,6 +320,7 @@ export default function EditCoursePage() {
                         video_url: t.video_url || '',
                         content: t.content || '',
                         summary: t.summary || '',
+                        explanation: t.explanation || '',
                         uploadProgress: undefined,
                         quizzes: t.quizzes ? (Array.isArray(t.quizzes) ? t.quizzes : [t.quizzes]).map(q => ({
                             ...q,
@@ -362,7 +374,7 @@ export default function EditCoursePage() {
     const handleAddTopic = (chapterId: string) => {
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
-                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '' }] };
+                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', explanation: '' }] };
             }
             return c;
         });
@@ -469,6 +481,7 @@ export default function EditCoursePage() {
                     video_url: topic.video_url,
                     content: topic.content,
                     summary: topic.summary,
+                    explanation: topic.explanation,
                     order: topicIndex + 1,
                     quizzes: topic.quizzes?.map(quiz => ({
                         ...quiz,
@@ -699,6 +712,19 @@ export default function EditCoursePage() {
                                                                     rows={6}
                                                                 />
                                                             </div>
+                                                            
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
+                                                            
+                                                            <div className="pt-2 px-4 flex flex-col gap-2">
+                                                                <Label className="text-sm font-medium">Code Challenge Explanation</Label>
+                                                                <Textarea 
+                                                                    value={topic.explanation || ''}
+                                                                    onChange={e => handleTopicChange(chapter.id!, topic.id!, 'explanation', e.target.value)}
+                                                                    placeholder="Explain the solution to the code challenge."
+                                                                    className="mt-2 min-h-[120px]"
+                                                                    rows={4}
+                                                                />
+                                                            </div>
 
                                                             <div className="border-t border-dashed -mx-4 mt-2"></div>
                                                             
@@ -733,5 +759,3 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
-
-    

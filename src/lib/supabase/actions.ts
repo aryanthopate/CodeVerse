@@ -3,38 +3,26 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import type { QuizWithQuestions, QuestionWithOptions, QuestionOption } from '@/lib/types';
+import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course } from '@/lib/types';
 
 
-interface TopicData {
+interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order'> {
     id?: string; // id is present when updating
-    title: string;
-    slug: string;
-    is_free: boolean;
     order: number;
-    video_url?: string;
-    youtube_url?: string;
-    content?: string;
-    summary?: string;
     quizzes?: QuizWithQuestions[];
+    explanation?: string | null;
 }
 
-interface ChapterData {
+interface ChapterData extends Omit<Chapter, 'id' | 'created_at' | 'course_id' | 'order'> {
     id?: string; // id is present when updating
-    title: string;
     order: number;
     topics: TopicData[];
 }
 
-interface CourseData {
-    name: string;
-    slug: string;
-    description: string;
-    image_url: string;
-    is_paid: boolean;
-    price: number;
+interface CourseData extends Omit<Course, 'id' | 'created_at'> {
     chapters: ChapterData[];
 }
+
 
 export async function createCourse(courseData: CourseData) {
     const supabase = createClient();
@@ -83,17 +71,11 @@ export async function createCourse(courseData: CourseData) {
         if (!createdChapter) continue;
 
         for (const topicData of chapterData.topics) {
+             const { quizzes, ...topicDetails } = topicData;
              const { data: topic, error: topicError } = await supabase
                 .from('topics')
                 .insert({
-                    title: topicData.title,
-                    slug: topicData.slug,
-                    is_free: topicData.is_free,
-                    order: topicData.order,
-                    video_url: topicData.video_url,
-                    youtube_url: topicData.youtube_url,
-                    content: topicData.content,
-                    summary: topicData.summary,
+                    ...topicDetails,
                     chapter_id: createdChapter.id,
                 })
                 .select().single();
@@ -103,8 +85,8 @@ export async function createCourse(courseData: CourseData) {
                  continue; // Or handle more gracefully
             }
             
-            if (topicData.quizzes && topicData.quizzes.length > 0) {
-                const quizData = topicData.quizzes[0]; // Assuming one quiz per topic
+            if (quizzes && quizzes.length > 0) {
+                const quizData = quizzes[0]; // Assuming one quiz per topic
                 await upsertQuiz(quizData, topic.id);
             }
         }
@@ -140,11 +122,23 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
         .upsert({ id: quizId, topic_id: topicId })
         .select()
         .single();
-    if (quizError) throw new Error(`Quiz upsert failed: ${quizError.message}`);
+    if (quizError) {
+        // If it's a unique constraint violation, it means a quiz was created by another process, let's fetch it.
+        if (quizError.code === '23505') {
+            const { data: existingQuizAgain, error: fetchError } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
+            if (fetchError || !existingQuizAgain) {
+                 throw new Error(`Quiz upsert failed: ${quizError.message}`);
+            }
+            quiz.id = existingQuizAgain.id;
+        } else {
+            throw new Error(`Quiz upsert failed: ${quizError.message}`);
+        }
+    }
+
 
     // Get existing questions to find which ones to delete
     const { data: existingQuestions } = await supabase.from('questions').select('id').eq('quiz_id', quiz.id);
-    const incomingQuestionIds = quizData.questions.map(q => q.id).filter(id => !id?.startsWith('q-'));
+    const incomingQuestionIds = quizData.questions.map(q => q.id).filter(id => id && !id.startsWith('q-'));
     const questionsToDelete = existingQuestions?.filter(q => !incomingQuestionIds.includes(q.id)).map(q => q.id) || [];
     
     if (questionsToDelete.length > 0) {
@@ -170,7 +164,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
         
         // Get existing options to find which ones to delete
         const { data: existingOptions } = await supabase.from('question_options').select('id').eq('question_id', question.id);
-        const incomingOptionIds = questionData.question_options.map(o => o.id).filter(id => !id?.startsWith('opt-'));
+        const incomingOptionIds = questionData.question_options.map(o => o.id).filter(id => id && !id.startsWith('opt-'));
         const optionsToDelete = existingOptions?.filter(o => !incomingOptionIds.includes(o.id)).map(o => o.id) || [];
         
         if (optionsToDelete.length > 0) {
@@ -183,6 +177,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
             question_id: question.id,
             option_text: opt.option_text,
             is_correct: opt.is_correct,
+            explanation: opt.explanation,
         }));
         
         if (optionsToUpsert.length > 0) {
@@ -352,7 +347,7 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
   const questionsToInsert = quizData.questions.map((q, index) => ({
     quiz_id: quiz.id,
     question_text: q.question_text,
-    question_type: 'single', // For now, defaulting to single
+    question_type: q.question_type || 'single',
     order: index + 1,
   }));
   
@@ -380,6 +375,7 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
           question_id: savedQuestion.id,
           option_text: option.option_text,
           is_correct: option.is_correct,
+          explanation: option.explanation,
         });
       }
     }
@@ -388,7 +384,7 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
   if (optionsToInsert.length > 0) {
     const { error: optionsError } = await supabase
         .from('question_options')
-        .insert(optionsToInsert);
+        .insert(optionsToInsert as any);
 
     if (optionsError) {
         console.error('Error creating options:', optionsError);
@@ -399,6 +395,3 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
 
   return { success: true, quizId: quiz.id };
 }
-
-
-    
