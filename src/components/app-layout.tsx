@@ -102,13 +102,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-muted/30 flex">
-        <div className="fixed top-0 left-0 h-full p-2 flex flex-col">
+        <div className="fixed top-0 left-0 h-screen p-2 flex flex-col">
             <Sidebar className="p-0 m-0 h-full w-[14rem] shrink-0 rounded-xl bg-card border flex flex-col">
                 <SidebarHeader>
                     <Logo />
                 </SidebarHeader>
                 <SidebarSeparator />
-                <ScrollArea className="flex-grow">
+                <ScrollArea className="flex-grow my-2">
                 <SidebarContent className="flex-col">
                     <SidebarGroup>
                     <SidebarGroupLabel>MAIN</SidebarGroupLabel>
