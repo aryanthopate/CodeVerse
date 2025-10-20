@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Upload } from 'lucide-react';
+import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Video, Bot, Upload, IndianRupee } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
@@ -17,6 +17,7 @@ import Image from 'next/image';
 import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 
 
 interface TopicState {
@@ -25,6 +26,7 @@ interface TopicState {
     slug: string;
     is_free: boolean;
     video_url: string;
+    content?: string;
     uploadProgress?: number;
 }
 
@@ -49,6 +51,8 @@ export default function EditCoursePage() {
     const [courseDescription, setCourseDescription] = useState('');
     const [courseImageUrl, setCourseImageUrl] = useState('');
     const [imagePreview, setImagePreview] = useState('');
+    const [isPaid, setIsPaid] = useState(false);
+    const [price, setPrice] = useState<number | string>(0);
 
     const [chapters, setChapters] = useState<ChapterState[]>([]);
 
@@ -70,6 +74,8 @@ export default function EditCoursePage() {
                 setCourseDescription(course.description || '');
                 setCourseImageUrl(course.image_url || '');
                 setImagePreview(course.image_url || '');
+                setIsPaid(course.is_paid || false);
+                setPrice(course.price || 0);
                 setChapters(course.chapters.map(c => ({
                     id: c.id,
                     title: c.title,
@@ -79,6 +85,7 @@ export default function EditCoursePage() {
                         slug: t.slug,
                         is_free: t.is_free,
                         video_url: t.video_url || '',
+                        content: t.content || '',
                         uploadProgress: undefined,
                     }))
                 })));
@@ -115,7 +122,7 @@ export default function EditCoursePage() {
 
     const handleAddTopic = (chapterIndex: number) => {
         const newChapters = [...chapters];
-        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '' });
+        newChapters[chapterIndex].topics.push({ title: '', slug: '', is_free: false, video_url: '', content: '' });
         setChapters(newChapters as any);
     };
 
@@ -214,10 +221,10 @@ export default function EditCoursePage() {
             reader.onloadend = () => {
                 const result = reader.result as string;
                 setImagePreview(result);
-                setCourseImageUrl(result); // This is now set to the base64 data URL
-                 toast({
-                    title: "Image Preview Ready",
-                    description: "Note: The image is locally previewed. Backend storage is not yet implemented.",
+                setCourseImageUrl(result);
+                toast({
+                    title: "Image Preview Updated",
+                    description: "The image preview has been updated. The new image will be saved when you save the course. Note: Backend storage is not yet implemented.",
                 });
             };
             reader.readAsDataURL(file);
@@ -239,7 +246,9 @@ export default function EditCoursePage() {
             name: courseName,
             slug: courseSlug,
             description: courseDescription,
-            image_url: courseImageUrl || `https://picsum.photos/seed/${courseSlug}/600/400`,
+            image_url: courseImageUrl,
+            is_paid: isPaid,
+            price: Number(price),
             chapters: chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id,
                 title: chapter.title,
@@ -250,6 +259,7 @@ export default function EditCoursePage() {
                     slug: topic.slug,
                     is_free: topic.is_free,
                     video_url: topic.video_url,
+                    content: topic.content,
                     order: topicIndex + 1,
                 }))
             }))
@@ -341,6 +351,35 @@ export default function EditCoursePage() {
                                             </CardContent>
                                         </Card>
                                     </div>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                          <Label>Paid Course</Label>
+                                          <CardDescription>Is this a premium course?</CardDescription>
+                                        </div>
+                                        <Switch
+                                          checked={isPaid}
+                                          onCheckedChange={setIsPaid}
+                                        />
+                                      </div>
+                                    </div>
+                                     {isPaid && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="course-price">Price (₹)</Label>
+                                            <div className="relative">
+                                                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    id="course-price"
+                                                    type="number"
+                                                    value={price}
+                                                    onChange={e => setPrice(e.target.value)}
+                                                    placeholder="e.g., 499"
+                                                    className="pl-8"
+                                                    min="0"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                              <Button type="submit" size="lg" className="w-full" disabled={loading}>
@@ -402,16 +441,27 @@ export default function EditCoursePage() {
                                                         </div>
                                                         <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                             <input type="checkbox" id={`is-free-${chapterIndex}-${topicIndex}`} checked={topic.is_free} onChange={e => handleTopicChange(chapterIndex, topicIndex, 'is_free', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
-                                                            <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is free for everyone</Label>
+                                                            <Label htmlFor={`is-free-${chapterIndex}-${topicIndex}`} className="text-sm font-medium">This topic is a free preview</Label>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
                                                 <div className="pt-2 px-4 flex items-center justify-between">
                                                     <Label className="text-sm font-medium">Topic Content</Label>
+                                                     <Textarea 
+                                                        value={topic.content || ''}
+                                                        onChange={e => handleTopicChange(chapterIndex, topicIndex, 'content', e.target.value)}
+                                                        placeholder="AI-Generated code task will appear here."
+                                                        className="mt-2"
+                                                        rows={3}
+                                                    />
+                                                </div>
+                                                <div className="pt-2 px-4 flex items-center justify-between">
+                                                    <Label className="text-sm font-medium">AI Tools</Label>
                                                     <div className="flex gap-2">
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Video Analysis")}><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
                                                         <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Quiz Generation")}><Bot className="mr-2 h-4 w-4" /> Generate Quiz</Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Code Task Generation")}><Bot className="mr-2 h-4 w-4" /> Generate Code Task</Button>
                                                     </div>
                                                 </div>
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapterIndex, topicIndex)}>
@@ -435,5 +485,3 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
-
-    

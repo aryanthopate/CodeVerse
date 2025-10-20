@@ -11,6 +11,7 @@ interface TopicData {
     is_free: boolean;
     order: number;
     video_url?: string;
+    content?: string;
 }
 
 interface ChapterData {
@@ -25,6 +26,8 @@ interface CourseData {
     slug: string;
     description: string;
     image_url: string;
+    is_paid: boolean;
+    price: number;
     chapters: ChapterData[];
 }
 
@@ -39,6 +42,8 @@ export async function createCourse(courseData: CourseData) {
             slug: courseData.slug,
             description: courseData.description,
             image_url: courseData.image_url,
+            is_paid: courseData.is_paid,
+            price: courseData.price,
         })
         .select()
         .single();
@@ -73,7 +78,12 @@ export async function createCourse(courseData: CourseData) {
         const createdChapter = chapters.find(c => c.order === chapterData.order);
         if (!createdChapter) return [];
         return chapterData.topics.map(topic => ({
-            ...topic,
+            title: topic.title,
+            slug: topic.slug,
+            is_free: topic.is_free,
+            order: topic.order,
+            video_url: topic.video_url,
+            content: topic.content,
             chapter_id: createdChapter.id,
         }));
     });
@@ -111,6 +121,8 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             slug: courseData.slug,
             description: courseData.description,
             image_url: courseData.image_url,
+            is_paid: courseData.is_paid,
+            price: courseData.price,
         })
         .eq('id', courseId);
 
@@ -183,6 +195,7 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             order: topic.order,
             video_url: topic.video_url,
             is_free: topic.is_free,
+            content: topic.content,
             chapter_id: upsertedChapter.id
         }));
     });
