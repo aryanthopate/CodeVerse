@@ -137,25 +137,34 @@ export default function EditCoursePage() {
         setChapters(newChapters as any);
     };
     
-    const simulateUpload = (chapterIndex: number, topicIndex: number, file: File) => {
+     const simulateUpload = (chapterIndex: number, topicIndex: number, file: File) => {
         handleTopicChange(chapterIndex, topicIndex, 'uploadProgress', 0);
+        let progress = 0;
+        
         const interval = setInterval(() => {
+            progress = Math.min(progress + 10, 100);
             setChapters(prevChapters => {
                 const newChapters = [...prevChapters];
-                const currentProgress = newChapters[chapterIndex].topics[topicIndex].uploadProgress || 0;
-                const nextProgress = Math.min(currentProgress + 10, 100);
-                newChapters[chapterIndex].topics[topicIndex].uploadProgress = nextProgress;
-                
-                if (nextProgress === 100) {
-                    clearInterval(interval);
-                    newChapters[chapterIndex].topics[topicIndex].video_url = `https://example.com/videos/${file.name}`;
-                     toast({
-                        title: "Simulated Upload Complete",
-                        description: `${file.name} is ready. This is a placeholder URL.`,
-                    });
+                if (newChapters[chapterIndex] && newChapters[chapterIndex].topics[topicIndex]) {
+                    newChapters[chapterIndex].topics[topicIndex].uploadProgress = progress;
                 }
                 return newChapters;
             });
+            
+            if (progress === 100) {
+                clearInterval(interval);
+                 setChapters(prevChapters => {
+                    const newChapters = [...prevChapters];
+                    if (newChapters[chapterIndex] && newChapters[chapterIndex].topics[topicIndex]) {
+                        newChapters[chapterIndex].topics[topicIndex].video_url = `https://example.com/videos/${file.name}`;
+                    }
+                    return newChapters;
+                });
+                toast({
+                    title: "Simulated Upload Complete",
+                    description: `${file.name} is ready. This is a placeholder URL.`,
+                });
+            }
         }, 200);
     };
 
@@ -214,6 +223,13 @@ export default function EditCoursePage() {
             reader.readAsDataURL(file);
         }
     };
+
+    const handleAiAction = (action: string) => {
+        toast({
+            title: `🤖 ${action} Initiated`,
+            description: `The AI is starting to work. This is a placeholder for the real process.`,
+        });
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -394,8 +410,8 @@ export default function EditCoursePage() {
                                                 <div className="pt-2 px-4 flex items-center justify-between">
                                                     <Label className="text-sm font-medium">Topic Content</Label>
                                                     <div className="flex gap-2">
-                                                        <Button type="button" variant="outline" size="sm" disabled><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
-                                                        <Button type="button" variant="outline" size="sm" disabled><Bot className="mr-2 h-4 w-4" /> Generate Quiz</Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Video Analysis")}><Video className="mr-2 h-4 w-4" /> Analyze Video</Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleAiAction("Quiz Generation")}><Bot className="mr-2 h-4 w-4" /> Generate Quiz</Button>
                                                     </div>
                                                 </div>
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapterIndex, topicIndex)}>
