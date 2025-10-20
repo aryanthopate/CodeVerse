@@ -223,8 +223,8 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
     const existingChapters = existingCourse.chapters;
     const existingTopics = existingCourse.chapters.flatMap(c => c.topics);
 
-    const incomingChapterIds = courseData.chapters.map(c => c.id).filter(Boolean);
-    const incomingTopicIds = courseData.chapters.flatMap(c => c.topics).map(t => t.id).filter(Boolean);
+    const incomingChapterIds = courseData.chapters.map(c => c.id).filter(id => id && !id.startsWith('ch-'));
+    const incomingTopicIds = courseData.chapters.flatMap(c => c.topics).map(t => t.id).filter(id => id && !id.startsWith('t-'));
 
     // 3. Delete chapters and topics that are no longer present
     const chaptersToDelete = existingChapters.filter(c => !incomingChapterIds.includes(c.id));
@@ -272,7 +272,6 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
                     ...topicDetails,
                     id: topicDetails.id?.startsWith('t-') ? undefined : topicDetails.id,
                     chapter_id: upsertedChapter.id,
-                    explanation: topicData.explanation,
                 })
                 .select()
                 .single();
