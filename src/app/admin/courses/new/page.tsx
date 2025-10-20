@@ -383,7 +383,7 @@ export default function NewCoursePage() {
                                                             <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id, topic.id, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                         </div>
                                                          <div className="space-y-2 sm:col-span-2">
-                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File</Label>
+                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File or URL</Label>
                                                             <div className="flex items-center gap-2">
                                                                 <Input 
                                                                     id={`topic-video-${chapter.id}-${topic.id}`} 
@@ -434,11 +434,11 @@ export default function NewCoursePage() {
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
                                                 
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">AI-Generated Video Summary</Label>
+                                                    <Label className="text-sm font-medium">Video Summary</Label>
                                                      <Textarea 
                                                         value={topic.summary || ''}
                                                         onChange={e => handleTopicChange(chapter.id, topic.id, 'summary', e.target.value)}
-                                                        placeholder="The AI-generated video summary will appear here after analysis."
+                                                        placeholder="Enter a manual summary or generate one using the AI analysis button below."
                                                         className="mt-2 min-h-[120px]"
                                                         rows={4}
                                                     />
@@ -447,11 +447,11 @@ export default function NewCoursePage() {
                                                 <div className="border-t border-dashed -mx-4 mt-2"></div>
 
                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <Label className="text-sm font-medium">AI-Generated Coding Challenge</Label>
+                                                    <Label className="text-sm font-medium">Coding Challenge (Markdown)</Label>
                                                      <Textarea 
                                                         value={topic.content || ''}
                                                         onChange={e => handleTopicChange(chapter.id, topic.id, 'content', e.target.value)}
-                                                        placeholder="The AI-generated code task will appear here."
+                                                        placeholder="Manually enter a coding challenge or generate one with AI."
                                                         className="mt-2 min-h-[120px] font-mono"
                                                         rows={6}
                                                     />
