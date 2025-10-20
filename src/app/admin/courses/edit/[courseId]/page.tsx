@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
+import { getCourseBySlug } from '@/lib/supabase/queries';
 import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -470,7 +471,7 @@ export default function EditCoursePage() {
             });
             setSaveStatus('unsaved');
         }
-    }, [courseId, toast, getCourseBySlug]);
+    }, [courseId, toast]);
 
 
     const debouncedSave = useDebouncedCallback(() => {
