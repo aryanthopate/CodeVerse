@@ -101,87 +101,80 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-muted/30 p-2 flex flex-col gap-2">
-        <div className="flex gap-2">
-            {/* Combined Sidebar Header */}
-            <div className="bg-card border rounded-xl flex flex-col justify-center w-[14rem] shrink-0 h-16">
-                 <SidebarHeader>
-                    <Logo />
-                </SidebarHeader>
-                <SidebarSeparator className="mt-auto" />
-            </div>
-            
-            {/* App Header */}
-            <AppHeader profile={profile} onLogout={handleLogout} />
-        </div>
-        <div className="flex gap-2 flex-1">
-            {/* Sidebar Content */}
-            <Sidebar className="p-0 m-0 h-auto w-[14rem] shrink-0 rounded-xl">
-              <ScrollArea className="h-full">
-                <SidebarContent>
-                  <SidebarGroup>
-                    <SidebarGroupLabel>MAIN</SidebarGroupLabel>
-                    <SidebarMenu>
-                      {mainNav.map((item) => (
-                        <SidebarMenuItem key={item.href}>
-                          <SidebarMenuButton
-                            asChild
-                            isActive={pathname === item.href}
-                            tooltip={{ children: item.label }}
-                          >
-                            <Link href={item.href}>
-                              {item.icon}
-                              <span>{item.label}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroup>
-                  <SidebarGroup>
-                    <SidebarGroupLabel>COURSES</SidebarGroupLabel>
-                    <SidebarMenu>
-                      {coursesNav.map((item) => (
-                        <SidebarMenuItem key={item.href}>
-                          <SidebarMenuButton
-                            asChild
-                            isActive={pathname.startsWith(item.href)}
-                            tooltip={{ children: item.label }}
-                          >
-                            <Link href={item.href}>
-                              {item.icon}
-                              <span>{item.label}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroup>
-                </SidebarContent>
-                <SidebarFooter>
-                  <Card className="bg-sidebar-accent/50 text-center p-4 m-2">
-                    <CardHeader className="p-2">
-                      <div className="mx-auto bg-background rounded-full p-2 w-fit">
-                        <Share2 className="text-primary" />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <CardTitle className="text-base">Invite a Friend</CardTitle>
-                      <CardDescription className="text-xs mt-1 mb-3">
-                        Share the learning adventure!
-                      </CardDescription>
-                      <Button size="sm" className="w-full">
-                        Invite
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </SidebarFooter>
-              </ScrollArea>
-            </Sidebar>
+      <div className="min-h-screen bg-muted/30 p-2 flex gap-2">
+        <Sidebar className="p-0 m-0 h-auto w-[14rem] shrink-0 rounded-xl bg-card border flex flex-col">
+            <SidebarHeader>
+                <Logo />
+            </SidebarHeader>
+            <SidebarSeparator />
+            <ScrollArea className="h-full">
+            <SidebarContent>
+                <SidebarGroup>
+                <SidebarGroupLabel>MAIN</SidebarGroupLabel>
+                <SidebarMenu>
+                    {mainNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.href}
+                        tooltip={{ children: item.label }}
+                        >
+                        <Link href={item.href}>
+                            {item.icon}
+                            <span>{item.label}</span>
+                        </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    ))}
+                </SidebarMenu>
+                </SidebarGroup>
+                <SidebarGroup>
+                <SidebarGroupLabel>COURSES</SidebarGroupLabel>
+                <SidebarMenu>
+                    {coursesNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
+                        tooltip={{ children: item.label }}
+                        >
+                        <Link href={item.href}>
+                            {item.icon}
+                            <span>{item.label}</span>
+                        </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    ))}
+                </SidebarMenu>
+                </SidebarGroup>
+            </SidebarContent>
+            <SidebarFooter>
+                <Card className="bg-sidebar-accent/50 text-center p-4 m-2">
+                <CardHeader className="p-2">
+                    <div className="mx-auto bg-background rounded-full p-2 w-fit">
+                    <Share2 className="text-primary" />
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <CardTitle className="text-base">Invite a Friend</CardTitle>
+                    <CardDescription className="text-xs mt-1 mb-3">
+                    Share the learning adventure!
+                    </CardDescription>
+                    <Button size="sm" className="w-full">
+                    Invite
+                    </Button>
+                </CardContent>
+                </Card>
+            </SidebarFooter>
+            </ScrollArea>
+        </Sidebar>
 
-            {/* Main Page Content */}
+        <div className="flex-1 flex flex-col gap-2">
+            <div className="bg-card border rounded-xl flex flex-col">
+                <AppHeader profile={profile} onLogout={handleLogout} />
+            </div>
             <div className="flex-1 bg-card border rounded-xl p-4 md:p-6 lg:p-8 overflow-y-auto">
-              {children}
+                {children}
             </div>
             <FloatingAIButton />
         </div>

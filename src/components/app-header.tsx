@@ -60,7 +60,7 @@ export function AppHeader({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 bg-card border rounded-xl px-4 sm:px-6">
+    <header className="flex h-16 items-center gap-4 border-b px-4 sm:px-6">
       <div className="flex items-center gap-2">
         {isMobile && <SidebarTrigger />}
         <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
