@@ -75,6 +75,7 @@ export async function createCourse(courseData: CourseData) {
                 .from('topics')
                 .insert({
                     ...topicDetails,
+                    id: undefined, // ensure new topic gets a new ID
                     chapter_id: createdChapter.id,
                 })
                 .select().single();
@@ -87,6 +88,14 @@ export async function createCourse(courseData: CourseData) {
             if (quizzes && quizzes.length > 0) {
                  try {
                     const quizData = quizzes[0];
+                    // Sanitize IDs before upserting
+                    quizData.questions.forEach(q => {
+                        q.id = q.id?.startsWith('q-') ? undefined : q.id;
+                        q.question_options.forEach(o => {
+                            o.id = o.id?.startsWith('opt-') ? crypto.randomUUID() : o.id;
+                        });
+                    });
+
                     await upsertQuiz(quizData, topic.id);
                 } catch(error: any) {
                      return { success: false, error: error.message };
@@ -401,5 +410,7 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
 
   return { success: true, quizId: quiz.id };
 }
+
+    
 
     
