@@ -12,9 +12,6 @@ import { updateCourse } from '@/lib/supabase/actions';
 import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Upload, IndianRupee, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
-import { generateCourseDescription } from '@/ai/flows/generate-course-description';
-import { generateCodeTask } from '@/ai/flows/generate-code-task';
-import { extractVideoInsights } from '@/ai/flows/extract-video-insights';
 import Image from 'next/image';
 import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
@@ -23,6 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 type QuestionType = 'single' | 'multiple';
 
@@ -51,7 +49,6 @@ interface TopicState {
     slug: string;
     is_free: boolean;
     video_url: string;
-    youtube_url?: string;
     content?: string;
     summary?: string;
     uploadProgress?: number;
@@ -244,10 +241,6 @@ export default function EditCoursePage() {
     const { toast } = useToast();
     const supabase = createClient();
     const [loading, setLoading] = useState(false);
-    const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
-    const [generatingCodeTaskId, setGeneratingCodeTaskId] = useState<string | null>(null);
-    const [generatingSummaryId, setGeneratingSummaryId] = useState<string | null>(null);
-    const [generatingQuizId, setGeneratingQuizId] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState(true);
 
     const [courseName, setCourseName] = useState('');
@@ -304,8 +297,6 @@ export default function EditCoursePage() {
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
 
-                // This deep mapping is complex and can be error-prone.
-                // We ensure all nested arrays are properly initialized to prevent runtime errors.
                 setChapters(course.chapters.map(c => ({
                     id: c.id,
                     title: c.title,
@@ -315,7 +306,6 @@ export default function EditCoursePage() {
                         slug: t.slug,
                         is_free: t.is_free,
                         video_url: t.video_url || '',
-                        youtube_url: (t as any).youtube_url || '',
                         content: t.content || '',
                         summary: t.summary || '',
                         uploadProgress: undefined,
@@ -443,140 +433,6 @@ export default function EditCoursePage() {
         setCourseSlug(name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
     }
 
-    const handleGenerateDescription = async () => {
-        if (!courseName) {
-            toast({
-                variant: 'destructive',
-                title: 'Course Name is required',
-                description: 'Please enter a course name to generate a description.'
-            });
-            return;
-        }
-        setIsGeneratingDesc(true);
-        try {
-            const result = await generateCourseDescription({ courseTitle: courseName });
-            setCourseDescription(result.description);
-        } catch (error) {
-            console.error('AI description generation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'AI Failed',
-                description: 'Could not generate a description. Please try again.'
-            });
-        } finally {
-            setIsGeneratingDesc(false);
-        }
-    };
-    
-    const handleGenerateCodeTask = async (chapterId: string, topicId: string, topicTitle: string) => {
-        if (!topicTitle) {
-            toast({
-                variant: 'destructive',
-                title: 'Topic Title is required',
-                description: 'Please enter a topic title to generate a code task.'
-            });
-            return;
-        }
-        setGeneratingCodeTaskId(topicId);
-        try {
-            const programmingLanguage = courseName.toLowerCase().includes('python') ? 'python' : 
-                                       courseName.toLowerCase().includes('java') ? 'java' : 'javascript';
-                                       
-            const result = await generateCodeTask({ topicTitle, programmingLanguage });
-            handleTopicChange(chapterId, topicId, 'content', result.task);
-             toast({
-                title: 'Code Task Generated!',
-                description: `A new coding challenge for "${topicTitle}" has been created.`,
-            });
-        } catch (error: any) {
-             console.error('AI code task generation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'AI Failed',
-                description: error.message || 'Could not generate a code task. Please try again.'
-            });
-        } finally {
-            setGeneratingCodeTaskId(null);
-        }
-    };
-    
-    const handleGenerateSummary = async (chapterId: string, topicId: string, youtubeUrl: string) => {
-        if (!youtubeUrl) {
-            toast({
-                variant: 'destructive',
-                title: 'YouTube URL is required',
-                description: 'Please provide a YouTube URL for AI analysis.'
-            });
-            return;
-        }
-        setGeneratingSummaryId(topicId);
-        try {
-            const result = await extractVideoInsights({ videoUrl: youtubeUrl });
-            handleTopicChange(chapterId, topicId, 'summary', result.summary);
-            toast({
-                title: 'Video Summary Generated!',
-                description: 'The summary has been populated in the textarea below.',
-            });
-        } catch (error: any) {
-            console.error('AI summary generation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'AI Summary Failed',
-                description: error.message || 'Could not generate summary. Please check the URL and try again.',
-            });
-        } finally {
-            setGeneratingSummaryId(null);
-        }
-    };
-    
-    const handleGenerateQuiz = async (chapterId: string, topicId: string, youtubeUrl: string) => {
-        if (!youtubeUrl) {
-            toast({
-                variant: 'destructive',
-                title: 'YouTube URL is required',
-                description: 'Please provide a YouTube URL for AI analysis to generate a quiz.'
-            });
-            return;
-        }
-        setGeneratingQuizId(topicId);
-        try {
-            const result = await extractVideoInsights({ videoUrl: youtubeUrl });
-            
-            const newQuiz: QuizState = {
-                id: `quiz-${Date.now()}`,
-                questions: result.questions.map((q, index) => ({
-                    id: `q-${Date.now()}-${index}`,
-                    question_text: q.question,
-                    question_type: 'single', // Defaulting to single as AI doesn't specify
-                    order: index + 1,
-                    question_options: q.options.map((opt, optIndex) => ({
-                        id: `opt-${Date.now()}-${index}-${optIndex}`,
-                        option_text: opt,
-                        is_correct: opt === q.correctAnswer
-                    }))
-                }))
-            };
-            
-            handleTopicChange(chapterId, topicId, 'quizzes', [newQuiz]);
-            
-            toast({
-                title: 'AI Quiz Generated!',
-                description: 'A new quiz has been created and populated below. Please review and save the course.',
-            });
-
-        } catch (error: any) {
-            console.error('AI quiz generation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'AI Quiz Failed',
-                description: error.message || 'Could not generate quiz. Please check the URL and try again.',
-            });
-        } finally {
-            setGeneratingQuizId(null);
-        }
-    };
-
-
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -610,7 +466,6 @@ export default function EditCoursePage() {
                     slug: topic.slug,
                     is_free: topic.is_free,
                     video_url: topic.video_url,
-                    youtube_url: topic.youtube_url,
                     content: topic.content,
                     summary: topic.summary,
                     order: topicIndex + 1,
@@ -689,13 +544,7 @@ export default function EditCoursePage() {
                                         <Input id="course-slug" value={courseSlug} onChange={e => setCourseSlug(e.target.value)} placeholder="e.g., python-intro" required />
                                     </div>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <Label htmlFor="course-description">Description</Label>
-                                            <Button type="button" variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGeneratingDesc}>
-                                                <Sparkles className={`mr-2 h-4 w-4 ${isGeneratingDesc ? 'animate-spin' : ''}`} />
-                                                {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
-                                            </Button>
-                                        </div>
+                                        <Label htmlFor="course-description">Description</Label>
                                         <Textarea id="course-description" value={courseDescription} onChange={e => setCourseDescription(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
                                     </div>
                                     <div className="space-y-2">
@@ -767,124 +616,104 @@ export default function EditCoursePage() {
                                         </Button>
                                     </CardHeader>
                                     <CardContent className="space-y-4 pl-10">
-                                        {chapter.topics.map((topic, topicIndex) => (
-                                              <div key={topic.id} className="p-4 rounded-lg bg-background border flex flex-col gap-4 relative">
-                                                <div className="flex items-start gap-4">
-                                                    <FileText className="mt-2.5 text-accent-foreground/50"/>
-                                                    <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor={`topic-title-${chapter.id}-${topic.id}`}>Topic Title</Label>
-                                                            <Input id={`topic-title-${chapter.id}-${topic.id}`} value={topic.title} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'title', e.target.value)} placeholder="e.g., 'Variables'" required />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor={`topic-slug-${chapter.id}-${topic.id}`}>Topic Slug</Label>
-                                                            <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
-                                                        </div>
-                                                         <div className="space-y-2 sm:col-span-2">
-                                                            <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File (for playback)</Label>
-                                                            <div className="flex items-center gap-2">
-                                                                <Input 
-                                                                    id={`topic-video-${chapter.id}-${topic.id}`} 
-                                                                    value={topic.video_url} 
-                                                                    onChange={e => handleTopicChange(chapter.id!, topic.id!, 'video_url', e.target.value)} 
-                                                                    placeholder="Upload a video file or paste a direct video link"
-                                                                    className="flex-grow"
-                                                                />
-                                                                <Button type="button" variant="outline" size="icon" asChild>
-                                                                    <Label htmlFor={`video-upload-${chapter.id}-${topic.id}`} className="cursor-pointer">
-                                                                        <Upload className="h-4 w-4" />
-                                                                        <span className="sr-only">Upload Video</span>
-                                                                    </Label>
-                                                                </Button>
-                                                                <Input id={`video-upload-${chapter.id}-${topic.id}`} type="file" className="sr-only" accept="video/*" onChange={(e) => handleVideoFileChange(chapter.id!, topic.id!, e)} />
-                                                            </div>
-                                                            {topic.uploadProgress !== undefined && (
-                                                                <div className="mt-2 space-y-1">
-                                                                    <Progress value={topic.uploadProgress} className="h-2" />
-                                                                    <p className="text-xs text-muted-foreground text-center">{topic.uploadProgress === 100 ? "Upload complete!" : `Uploading... ${topic.uploadProgress}%`}</p>
+                                         <Accordion type="single" collapsible className="w-full">
+                                            {chapter.topics.map((topic, topicIndex) => (
+                                                <AccordionItem key={topic.id} value={topic.id!} className="bg-background border rounded-lg mb-4">
+                                                    <AccordionTrigger className="p-4 text-base font-semibold hover:no-underline">
+                                                        Topic {topicIndex + 1}: {topic.title || 'New Topic'}
+                                                    </AccordionTrigger>
+                                                    <AccordionContent className="p-4 pt-0">
+                                                         <div className="flex flex-col gap-4 relative">
+                                                            <div className="flex items-start gap-4">
+                                                                <FileText className="mt-2.5 text-accent-foreground/50"/>
+                                                                <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                    <div className="space-y-2">
+                                                                        <Label htmlFor={`topic-title-${chapter.id}-${topic.id}`}>Topic Title</Label>
+                                                                        <Input id={`topic-title-${chapter.id}-${topic.id}`} value={topic.title} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'title', e.target.value)} placeholder="e.g., 'Variables'" required />
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        <Label htmlFor={`topic-slug-${chapter.id}-${topic.id}`}>Topic Slug</Label>
+                                                                        <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
+                                                                    </div>
+                                                                    <div className="space-y-2 sm:col-span-2">
+                                                                        <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Video URL or Upload</Label>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Input 
+                                                                                id={`topic-video-${chapter.id}-${topic.id}`} 
+                                                                                value={topic.video_url} 
+                                                                                onChange={e => handleTopicChange(chapter.id!, topic.id!, 'video_url', e.target.value)} 
+                                                                                placeholder="Upload a file or paste a direct video link"
+                                                                                className="flex-grow"
+                                                                            />
+                                                                            <Button type="button" variant="outline" size="icon" asChild>
+                                                                                <Label htmlFor={`video-upload-${chapter.id}-${topic.id}`} className="cursor-pointer">
+                                                                                    <Upload className="h-4 w-4" />
+                                                                                    <span className="sr-only">Upload Video</span>
+                                                                                </Label>
+                                                                            </Button>
+                                                                            <Input id={`video-upload-${chapter.id}-${topic.id}`} type="file" className="sr-only" accept="video/*" onChange={(e) => handleVideoFileChange(chapter.id!, topic.id!, e)} />
+                                                                        </div>
+                                                                        {topic.uploadProgress !== undefined && (
+                                                                            <div className="mt-2 space-y-1">
+                                                                                <Progress value={topic.uploadProgress} className="h-2" />
+                                                                                <p className="text-xs text-muted-foreground text-center">{topic.uploadProgress === 100 ? "Upload complete!" : `Uploading... ${topic.uploadProgress}%`}</p>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
+                                                                        <Switch
+                                                                        id={`is-free-${chapter.id}-${topic.id}`}
+                                                                        checked={topic.is_free}
+                                                                        onCheckedChange={checked => handleTopicChange(chapter.id!, topic.id!, 'is_free', checked)}
+                                                                        />
+                                                                        <Label htmlFor={`is-free-${chapter.id}-${topic.id}`} className="text-sm font-medium">This topic is a free preview</Label>
+                                                                    </div>
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="space-y-2 sm:col-span-2">
-                                                          <Label htmlFor={`topic-yt-url-${chapter.id}-${topic.id}`}>YouTube URL for AI Analysis</Label>
-                                                          <Input 
-                                                              id={`topic-yt-url-${chapter.id}-${topic.id}`} 
-                                                              value={topic.youtube_url || ''} 
-                                                              onChange={e => handleTopicChange(chapter.id!, topic.id!, 'youtube_url', e.target.value)} 
-                                                              placeholder="e.g., https://www.youtube.com/watch?v=..."
-                                                          />
-                                                        </div>
+                                                            </div>
+                                                            
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
 
-                                                        <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
-                                                            <Switch
-                                                              id={`is-free-${chapter.id}-${topic.id}`}
-                                                              checked={topic.is_free}
-                                                              onCheckedChange={checked => handleTopicChange(chapter.id!, topic.id!, 'is_free', checked)}
+                                                            <div className="pt-2 px-4 flex flex-col gap-2">
+                                                                <Label className="text-sm font-medium">Video Summary</Label>
+                                                                <Textarea 
+                                                                    value={topic.summary || ''}
+                                                                    onChange={e => handleTopicChange(chapter.id!, topic.id!, 'summary', e.target.value)}
+                                                                    placeholder="Manually enter a summary for the video."
+                                                                    className="mt-2 min-h-[120px]"
+                                                                    rows={4}
+                                                                />
+                                                            </div>
+                                                            
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
+
+                                                            <div className="pt-2 px-4 flex flex-col gap-2">
+                                                                <Label className="text-sm font-medium">Coding Challenge (Markdown)</Label>
+                                                                <Textarea 
+                                                                    value={topic.content || ''}
+                                                                    onChange={e => handleTopicChange(chapter.id!, topic.id!, 'content', e.target.value)}
+                                                                    placeholder="Manually enter a coding challenge in Markdown format."
+                                                                    className="mt-2 min-h-[120px] font-mono"
+                                                                    rows={6}
+                                                                />
+                                                            </div>
+
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
+                                                            
+                                                            <ManualQuizEditor 
+                                                                topic={topic} 
+                                                                onTopicChange={handleTopicChange} 
+                                                                chapterId={chapter.id!} 
+                                                                topicId={topic.id!}
                                                             />
-                                                            <Label htmlFor={`is-free-${chapter.id}-${topic.id}`} className="text-sm font-medium">This topic is a free preview</Label>
+
+                                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapter.id!, topic.id!)}>
+                                                                <X className="w-4 h-4 text-muted-foreground"/>
+                                                            </Button>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="border-t border-dashed -mx-4 mt-2"></div>
-
-                                                <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label className="text-sm font-medium">Video Summary</Label>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateSummary(chapter.id!, topic.id!, topic.youtube_url || '')} disabled={generatingSummaryId === topic.id || !topic.youtube_url}>
-                                                            <Sparkles className={`mr-2 h-4 w-4 ${generatingSummaryId === topic.id ? 'animate-spin' : ''}`} />
-                                                            {generatingSummaryId === topic.id ? 'Generating...' : 'Generate with AI'}
-                                                        </Button>
-                                                    </div>
-                                                     <Textarea 
-                                                        value={topic.summary || ''}
-                                                        onChange={e => handleTopicChange(chapter.id!, topic.id!, 'summary', e.target.value)}
-                                                        placeholder="Manually enter a summary, or generate one with AI from a YouTube video."
-                                                        className="mt-2 min-h-[120px]"
-                                                        rows={4}
-                                                    />
-                                                </div>
-                                                
-                                                <div className="border-t border-dashed -mx-4 mt-2"></div>
-
-                                                 <div className="pt-2 px-4 flex flex-col gap-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label className="text-sm font-medium">Coding Challenge (Markdown)</Label>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateCodeTask(chapter.id!, topic.id!, topic.title)} disabled={generatingCodeTaskId === topic.id}>
-                                                            <Sparkles className={`mr-2 h-4 w-4 ${generatingCodeTaskId === topic.id ? 'animate-spin' : ''}`} />
-                                                            {generatingCodeTaskId === topic.id ? 'Generating...' : 'Generate with AI'}
-                                                        </Button>
-                                                    </div>
-                                                     <Textarea 
-                                                        value={topic.content || ''}
-                                                        onChange={e => handleTopicChange(chapter.id!, topic.id!, 'content', e.target.value)}
-                                                        placeholder="Manually enter a coding challenge, or generate one with AI."
-                                                        className="mt-2 min-h-[120px] font-mono"
-                                                        rows={6}
-                                                    />
-                                                </div>
-
-                                                <div className="border-t border-dashed -mx-4 mt-2"></div>
-                                                
-                                                <div className="pt-2 px-4">
-                                                    <Button type="button" variant="outline" size="sm" onClick={() => handleGenerateQuiz(chapter.id!, topic.id!, topic.youtube_url || '')} disabled={generatingQuizId === topic.id || !topic.youtube_url}>
-                                                        <Sparkles className={`mr-2 h-4 w-4 ${generatingQuizId === topic.id ? 'animate-spin' : ''}`} />
-                                                        {generatingQuizId === topic.id ? 'Generating Quiz...' : 'Generate Quiz with AI'}
-                                                    </Button>
-                                                </div>
-                                                
-                                                <ManualQuizEditor 
-                                                    topic={topic} 
-                                                    onTopicChange={handleTopicChange} 
-                                                    chapterId={chapter.id!} 
-                                                    topicId={topic.id!}
-                                                />
-
-                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapter.id!, topic.id!)}>
-                                                    <X className="w-4 h-4 text-muted-foreground"/>
-                                                </Button>
-                                            </div>
-                                        ))}
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            ))}
+                                        </Accordion>
                                         <Button type="button" variant="outline" onClick={() => handleAddTopic(chapter.id!)}>
                                             <Plus className="mr-2"/> Add Topic
                                         </Button>
@@ -901,3 +730,5 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
+
+    
