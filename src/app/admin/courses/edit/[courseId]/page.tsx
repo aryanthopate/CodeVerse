@@ -631,12 +631,7 @@ export default function EditCoursePage() {
                                             {chapter.topics.map((topic, topicIndex) => (
                                                 <AccordionItem key={topic.id} value={topic.id!} className="bg-background border rounded-lg mb-4">
                                                     <AccordionTrigger className="p-4 text-base font-semibold hover:no-underline">
-                                                        <div className="flex-grow flex items-center justify-between mr-4">
-                                                            <span>Topic {topicIndex + 1}: {topic.title || 'New Topic'}</span>
-                                                            <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); handleRemoveTopic(chapter.id!, topic.id!); }}>
-                                                                <Trash2 className="w-4 h-4"/>
-                                                            </Button>
-                                                        </div>
+                                                        <span>Topic {topicIndex + 1}: {topic.title || 'New Topic'}</span>
                                                     </AccordionTrigger>
                                                     <AccordionContent className="p-4 pt-0">
                                                          <div className="flex flex-col gap-4 relative">
@@ -734,6 +729,15 @@ export default function EditCoursePage() {
                                                                 chapterId={chapter.id!} 
                                                                 topicId={topic.id!}
                                                             />
+
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
+
+                                                            <div className="pt-4 px-4 flex justify-end">
+                                                                <Button type="button" variant="destructive" size="sm" onClick={() => handleRemoveTopic(chapter.id!, topic.id!)}>
+                                                                    <Trash2 className="w-4 h-4 mr-2"/>
+                                                                    Delete Topic
+                                                                </Button>
+                                                            </div>
                                                         </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
@@ -755,3 +759,5 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
+
+    

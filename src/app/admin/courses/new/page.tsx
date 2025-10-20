@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Sparkles, Image as ImageIcon, Upload, IndianRupee, Trash2 } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -500,7 +500,7 @@ export default function NewCoursePage() {
                                             {chapter.topics.map((topic, topicIndex) => (
                                                 <AccordionItem key={topic.id} value={topic.id} className="bg-background border rounded-lg mb-4">
                                                     <AccordionTrigger className="p-4 text-base font-semibold hover:no-underline">
-                                                        Topic {topicIndex + 1}: {topic.title || 'New Topic'}
+                                                        <span>Topic {topicIndex + 1}: {topic.title || 'New Topic'}</span>
                                                     </AccordionTrigger>
                                                     <AccordionContent className="p-4 pt-0">
                                                         <div className="flex flex-col gap-4 relative">
@@ -599,10 +599,16 @@ export default function NewCoursePage() {
                                                                 chapterId={chapter.id} 
                                                                 topicId={topic.id}
                                                             />
+                                                            
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
 
-                                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapter.id, topic.id)} disabled={chapter.topics.length === 1}>
-                                                                <X className="w-4 h-4 text-muted-foreground"/>
-                                                            </Button>
+                                                            <div className="pt-4 px-4 flex justify-end">
+                                                                <Button type="button" variant="destructive" size="sm" onClick={() => handleRemoveTopic(chapter.id, topic.id)} disabled={chapter.topics.length === 1}>
+                                                                    <Trash2 className="w-4 h-4 mr-2"/>
+                                                                    Delete Topic
+                                                                </Button>
+                                                            </div>
+
                                                         </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
@@ -624,3 +630,5 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
+
+    
