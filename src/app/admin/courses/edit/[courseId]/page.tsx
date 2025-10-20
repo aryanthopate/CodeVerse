@@ -580,5 +580,3 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
-
-    
