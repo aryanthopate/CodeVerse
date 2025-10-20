@@ -76,6 +76,7 @@ export async function createCourse(courseData: CourseData) {
                 .from('topics')
                 .insert({
                     ...topicDetails,
+                    explanation: topicData.explanation,
                     chapter_id: createdChapter.id,
                 })
                 .select().single();
@@ -122,6 +123,7 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
         .upsert({ id: quizId, topic_id: topicId })
         .select()
         .single();
+
     if (quizError) {
         // If it's a unique constraint violation, it means a quiz was created by another process, let's fetch it.
         if (quizError.code === '23505') {
@@ -269,7 +271,8 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
                 .upsert({
                     ...topicDetails,
                     id: topicDetails.id?.startsWith('t-') ? undefined : topicDetails.id,
-                    chapter_id: upsertedChapter.id
+                    chapter_id: upsertedChapter.id,
+                    explanation: topicData.explanation,
                 })
                 .select()
                 .single();

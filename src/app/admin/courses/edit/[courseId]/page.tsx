@@ -322,15 +322,7 @@ export default function EditCoursePage() {
                         summary: t.summary || '',
                         explanation: t.explanation || '',
                         uploadProgress: undefined,
-                        quizzes: t.quizzes ? (Array.isArray(t.quizzes) ? t.quizzes : [t.quizzes]).map(q => ({
-                            ...q,
-                            id: q.id || `quiz-${Date.now()}`,
-                            questions: (q.questions || []).map(qu => ({
-                                ...qu,
-                                id: qu.id || `q-${Date.now()}`,
-                                question_options: (qu.question_options || []).map(o => ({...o, id: o.id || `opt-${Date.now()}`}))
-                            }))
-                        })) : []
+                        quizzes: t.quizzes ? (Array.isArray(t.quizzes) ? t.quizzes : [t.quizzes]) : []
                     }))
                 })));
             } else {
@@ -484,14 +476,17 @@ export default function EditCoursePage() {
                     explanation: topic.explanation,
                     order: topicIndex + 1,
                     quizzes: topic.quizzes?.map(quiz => ({
-                        ...quiz,
                         id: quiz.id?.startsWith('quiz-') ? undefined : quiz.id,
                         questions: quiz.questions.map(q => ({
-                            ...q,
                             id: q.id?.startsWith('q-') ? undefined : q.id,
+                            question_text: q.question_text,
+                            question_type: q.question_type,
+                            order: q.order,
                             question_options: q.question_options.map(o => ({
-                                ...o,
                                 id: o.id?.startsWith('opt-') ? undefined : o.id,
+                                option_text: o.option_text,
+                                is_correct: o.is_correct,
+                                explanation: o.explanation,
                             }))
                         }))
                     }))
@@ -636,7 +631,12 @@ export default function EditCoursePage() {
                                             {chapter.topics.map((topic, topicIndex) => (
                                                 <AccordionItem key={topic.id} value={topic.id!} className="bg-background border rounded-lg mb-4">
                                                     <AccordionTrigger className="p-4 text-base font-semibold hover:no-underline">
-                                                        Topic {topicIndex + 1}: {topic.title || 'New Topic'}
+                                                        <div className="flex-grow flex items-center justify-between mr-4">
+                                                            <span>Topic {topicIndex + 1}: {topic.title || 'New Topic'}</span>
+                                                            <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); handleRemoveTopic(chapter.id!, topic.id!); }}>
+                                                                <Trash2 className="w-4 h-4"/>
+                                                            </Button>
+                                                        </div>
                                                     </AccordionTrigger>
                                                     <AccordionContent className="p-4 pt-0">
                                                          <div className="flex flex-col gap-4 relative">
@@ -734,10 +734,6 @@ export default function EditCoursePage() {
                                                                 chapterId={chapter.id!} 
                                                                 topicId={topic.id!}
                                                             />
-
-                                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => handleRemoveTopic(chapter.id!, topic.id!)}>
-                                                                <X className="w-4 h-4 text-muted-foreground"/>
-                                                            </Button>
                                                         </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
