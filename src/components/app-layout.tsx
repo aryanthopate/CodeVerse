@@ -98,8 +98,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-background">
-        <Sidebar>
+      <div className="flex min-h-screen bg-muted/30 p-2 gap-2">
+        <Sidebar className="bg-card border rounded-xl">
           <SidebarHeader>
             <Logo />
           </SidebarHeader>
@@ -164,9 +164,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex-1 flex flex-col border-l">
+        <div className="flex-1 flex flex-col gap-2">
           <AppHeader profile={profile} onLogout={handleLogout} />
-          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-muted/30">
+          <main className="flex-1 rounded-xl bg-card border p-4 md:p-6 lg:p-8 overflow-y-auto">
             {children}
           </main>
           <FloatingAIButton />
