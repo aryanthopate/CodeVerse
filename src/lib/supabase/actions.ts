@@ -26,16 +26,18 @@ interface CourseData extends Omit<Course, 'id' | 'created_at'> {
 export async function createCourse(courseData: CourseData) {
     const supabase = createClient();
     
+    const { chapters, ...restOfCourseData } = courseData;
+
     // First, insert the course
     const { data: course, error: courseError } = await supabase
         .from('courses')
         .insert({
-            name: courseData.name,
-            slug: courseData.slug,
-            description: courseData.description,
-            image_url: courseData.image_url,
-            is_paid: courseData.is_paid,
-            price: courseData.price,
+            name: restOfCourseData.name,
+            slug: restOfCourseData.slug,
+            description: restOfCourseData.description,
+            image_url: restOfCourseData.image_url,
+            is_paid: restOfCourseData.is_paid,
+            price: restOfCourseData.price,
         })
         .select()
         .single();
@@ -45,52 +47,47 @@ export async function createCourse(courseData: CourseData) {
         return { success: false, error: courseError.message };
     }
 
-    // Then, insert the chapters
-    const chaptersToInsert = courseData.chapters.map(chapter => ({
-        title: chapter.title,
-        order: chapter.order,
-        course_id: course.id,
-    }));
+    // Then, handle chapters, topics, quizzes etc.
+    for (const [chapterIndex, chapterData] of chapters.entries()) {
+        const { topics, ...restOfChapterData } = chapterData;
+        const { data: chapter, error: chapterError } = await supabase
+            .from('chapters')
+            .insert({
+                ...restOfChapterData,
+                course_id: course.id,
+                order: chapterIndex + 1,
+            })
+            .select()
+            .single();
 
-    const { data: chapters, error: chaptersError } = await supabase
-        .from('chapters')
-        .insert(chaptersToInsert)
-        .select();
+        if (chapterError) {
+            console.error('Error creating chapter:', chapterError.message);
+            // Continue to next chapter, or handle error more gracefully
+            continue;
+        }
 
-    if (chaptersError) {
-        console.error('Error creating chapters:', chaptersError);
-        // Optional: clean up the created course if chapters fail
-        await supabase.from('courses').delete().eq('id', course.id);
-        return { success: false, error: chaptersError.message };
-    }
-
-    // Finally, insert the topics (and their quizzes)
-    for (const chapterData of courseData.chapters) {
-        const createdChapter = chapters.find(c => c.order === chapterData.order);
-        if (!createdChapter) continue;
-
-        for (const topicData of chapterData.topics) {
-             const { quizzes, ...topicDetails } = topicData;
-             const { data: topic, error: topicError } = await supabase
+        for (const [topicIndex, topicData] of topics.entries()) {
+            const { quizzes, ...restOfTopicData } = topicData;
+            const { data: topic, error: topicError } = await supabase
                 .from('topics')
                 .insert({
-                    ...topicDetails,
-                    id: undefined, // ensure new topic gets a new ID
-                    chapter_id: createdChapter.id,
+                    ...restOfTopicData,
+                    chapter_id: chapter.id,
+                    order: topicIndex + 1,
                 })
-                .select().single();
+                .select()
+                .single();
 
             if (topicError) {
-                 console.error('Error creating topic:', topicError);
-                 continue; // Or handle more gracefully
+                console.error('Error creating topic:', topicError.message);
+                continue;
             }
-            
+
             if (quizzes && quizzes.length > 0) {
-                 try {
-                    const quizData = quizzes[0];
-                    await upsertQuiz(quizData, topic.id);
-                } catch(error: any) {
-                     return { success: false, error: error.message };
+                try {
+                    await upsertQuiz(quizzes[0], topic.id);
+                } catch (error: any) {
+                    return { success: false, error: error.message };
                 }
             }
         }
@@ -111,37 +108,18 @@ export async function createCourse(courseData: CourseData) {
 async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
     const supabase = createClient();
     
-    // Find existing quiz for the topic first
-    const { data: existingQuiz } = await supabase
-        .from('quizzes')
-        .select('id')
-        .eq('topic_id', topicId)
-        .single();
-    
-    let quizId = quizData.id;
-    if (quizId?.startsWith('quiz-')) {
-        quizId = existingQuiz?.id || undefined;
-    } else {
-        quizId = quizId || existingQuiz?.id;
-    }
-    
+    // Determine the quiz ID for upsert
+    const { data: existingQuiz } = await supabase.from('quizzes').select('id').eq('topic_id', topicId).single();
+    let quizIdForUpsert = quizData.id?.startsWith('quiz-') ? undefined : (quizData.id || existingQuiz?.id);
 
-    // 1. Upsert Quiz
     const { data: quiz, error: quizError } = await supabase
         .from('quizzes')
-        .upsert({ id: quizId, topic_id: topicId })
+        .upsert({ id: quizIdForUpsert, topic_id: topicId })
         .select()
         .single();
-
-    if (quizError && !quiz) {
-         throw new Error(`Quiz upsert failed: ${quizError.message}`);
-    }
     
-    const finalQuizId = quiz?.id || quizId;
-    if (!finalQuizId) {
-        throw new Error("Could not determine quiz ID for upsert.");
-    }
-
+    if (quizError) throw new Error(`Quiz upsert failed: ${quizError.message}`);
+    const finalQuizId = quiz.id;
 
     // Get existing questions to find which ones to delete
     const { data: existingQuestions } = await supabase.from('questions').select('id').eq('quiz_id', finalQuizId);
@@ -153,24 +131,24 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
         await supabase.from('questions').delete().in('id', questionsToDelete);
     }
 
-    // 2. Upsert Questions
+    // Upsert Questions and their Options
     for (const questionData of quizData.questions) {
-        const questionId = questionData.id?.startsWith('q-') ? undefined : questionData.id;
-        const { data: question, error: questionError } = await supabase
-            .from('questions')
-            .upsert({
-                id: questionId,
-                quiz_id: finalQuizId,
-                question_text: questionData.question_text,
-                question_type: questionData.question_type,
-                order: questionData.order
-            })
-            .select()
-            .single();
-        if (questionError) throw new Error(`Question upsert failed: ${questionError.message}`);
+        const questionIdForUpsert = questionData.id?.startsWith('q-') ? undefined : questionData.id;
         
-        // Get existing options to find which ones to delete
-        const { data: existingOptions } = await supabase.from('question_options').select('id').eq('question_id', question.id);
+        const questionToUpsert = {
+            id: questionIdForUpsert,
+            quiz_id: finalQuizId,
+            question_text: questionData.question_text,
+            question_type: questionData.question_type,
+            order: questionData.order,
+        };
+
+        const { data: question, error: questionError } = await supabase.from('questions').upsert(questionToUpsert).select().single();
+        if (questionError) throw new Error(`Question upsert failed: ${questionError.message}`);
+        const finalQuestionId = question.id;
+
+        // Delete options that are no longer present for this question
+        const { data: existingOptions } = await supabase.from('question_options').select('id').eq('question_id', finalQuestionId);
         const incomingOptionIds = questionData.question_options.map(o => o.id).filter(id => id && !id.startsWith('opt-'));
         const optionsToDelete = existingOptions?.filter(o => !incomingOptionIds.includes(o.id)).map(o => o.id) || [];
         
@@ -178,14 +156,20 @@ async function upsertQuiz(quizData: QuizWithQuestions, topicId: string) {
             await supabase.from('question_options').delete().in('id', optionsToDelete);
         }
 
-        // 3. Upsert Options
-        const optionsToUpsert = questionData.question_options.map(opt => ({
-            id: opt.id?.startsWith('opt-') ? undefined : opt.id,
-            question_id: question.id,
-            option_text: opt.option_text,
-            is_correct: opt.is_correct,
-            explanation: opt.explanation,
-        }));
+        // Prepare and upsert options
+        const optionsToUpsert = questionData.question_options.map(opt => {
+            const isNew = opt.id?.startsWith('opt-');
+            const optionPayload: Partial<QuestionOption> & { question_id: string } = {
+                question_id: finalQuestionId,
+                option_text: opt.option_text,
+                is_correct: opt.is_correct,
+                explanation: opt.explanation,
+            };
+            if (!isNew) {
+                optionPayload.id = opt.id;
+            }
+            return optionPayload;
+        });
         
         if (optionsToUpsert.length > 0) {
             const { error: optionsError } = await supabase.from('question_options').upsert(optionsToUpsert);
@@ -225,68 +209,45 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
     
     if(!existingCourse) return { success: false, error: 'Course not found' };
 
-    const existingChapters = existingCourse.chapters;
-    const existingTopics = existingCourse.chapters.flatMap(c => c.topics);
-
+    const existingChapterIds = existingCourse.chapters.map(c => c.id);
+    const existingTopicIds = existingCourse.chapters.flatMap(c => c.topics.map(t => t.id));
+    
     const incomingChapterIds = courseData.chapters.map(c => c.id).filter(id => id && !id.startsWith('ch-'));
     const incomingTopicIds = courseData.chapters.flatMap(c => c.topics).map(t => t.id).filter(id => id && !id.startsWith('t-'));
 
     // 3. Delete chapters and topics that are no longer present
-    const chaptersToDelete = existingChapters.filter(c => !incomingChapterIds.includes(c.id));
+    const chaptersToDelete = existingChapterIds.filter(id => !incomingChapterIds.includes(id));
     if (chaptersToDelete.length > 0) {
-        const { error: deleteChapterError } = await supabase
-            .from('chapters')
-            .delete()
-            .in('id', chaptersToDelete.map(c => c.id));
-        if (deleteChapterError) return { success: false, error: `Failed to delete chapters: ${deleteChapterError.message}` };
+        await supabase.from('chapters').delete().in('id', chaptersToDelete);
     }
     
-    const topicsToDelete = existingTopics.filter(t => !incomingTopicIds.includes(t.id));
-     if (topicsToDelete.length > 0) {
-        const { error: deleteTopicError } = await supabase
-            .from('topics')
-            .delete()
-            .in('id', topicsToDelete.map(t => t.id));
-        if (deleteTopicError) return { success: false, error: `Failed to delete topics: ${deleteTopicError.message}` };
+    const topicsToDelete = existingTopicIds.filter(id => !incomingTopicIds.includes(id));
+    if (topicsToDelete.length > 0) {
+        await supabase.from('topics').delete().in('id', topicsToDelete);
     }
 
-    // 4. Upsert chapters
+    // 4. Upsert chapters, topics, and quizzes
     for (const chapterData of courseData.chapters) {
+        const chapterIdForUpsert = chapterData.id?.startsWith('ch-') ? undefined : chapterData.id;
         const { data: upsertedChapter, error: chapterUpsertError } = await supabase
             .from('chapters')
-            .upsert({
-                id: chapterData.id?.startsWith('ch-') ? undefined : chapterData.id,
-                title: chapterData.title,
-                order: chapterData.order,
-                course_id: courseId,
-            })
+            .upsert({ id: chapterIdForUpsert, title: chapterData.title, order: chapterData.order, course_id: courseId })
             .select()
             .single();
     
-        if (chapterUpsertError) {
-            console.error('Error upserting chapter:', chapterUpsertError);
-            return { success: false, error: chapterUpsertError.message };
-        }
+        if (chapterUpsertError) return { success: false, error: `Chapter upsert failed: ${chapterUpsertError.message}` };
         
-        // 5. Upsert topics for this chapter
         for (const topicData of chapterData.topics) {
             const { quizzes, ...topicDetails } = topicData;
+            const topicIdForUpsert = topicDetails.id?.startsWith('t-') ? undefined : topicDetails.id;
+            
             const { data: upsertedTopic, error: topicUpsertError } = await supabase
                 .from('topics')
-                .upsert({
-                    ...topicDetails,
-                    id: topicDetails.id?.startsWith('t-') ? undefined : topicDetails.id,
-                    chapter_id: upsertedChapter.id,
-                })
-                .select()
-                .single();
+                .upsert({ ...topicDetails, id: topicIdForUpsert, chapter_id: upsertedChapter.id })
+                .select().single();
             
-            if (topicUpsertError) {
-                console.error('Error upserting topic:', topicUpsertError);
-                return { success: false, error: topicUpsertError.message };
-            }
+            if (topicUpsertError) return { success: false, error: `Topic upsert failed: ${topicUpsertError.message}` };
 
-            // 6. Upsert quiz for this topic
             if (quizzes && quizzes.length > 0) {
                 try {
                      await upsertQuiz(quizzes[0], upsertedTopic.id);
@@ -294,7 +255,6 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
                      return { success: false, error: error.message };
                 }
             } else {
-                 // If there's no quiz data, delete any existing quiz for this topic
                  const { data: existingQuiz } = await supabase.from('quizzes').select('id').eq('topic_id', upsertedTopic.id).single();
                  if (existingQuiz) {
                      await supabase.from('quizzes').delete().eq('id', existingQuiz.id);
@@ -317,8 +277,6 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
 export async function deleteCourse(courseId: string) {
     const supabase = createClient();
 
-    // The database is set up with cascading deletes, so deleting the course
-    // will also delete its chapters and topics.
     const { error } = await supabase.from('courses').delete().eq('id', courseId);
 
     if (error) {
@@ -395,14 +353,9 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
 
     if (optionsError) {
         console.error('Error creating options:', optionsError);
-        // More complex cleanup could be done here, but for now we'll just report the error
         return { success: false, error: 'Failed to save quiz options.' };
     }
   }
 
   return { success: true, quizId: quiz.id };
 }
-
-    
-
-    
