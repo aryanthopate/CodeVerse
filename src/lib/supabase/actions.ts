@@ -169,26 +169,34 @@ async function upsertQuiz(quizData: QuizState, topicId: string) {
             await supabase.from('question_options').delete().in('id', optionsToDelete);
         }
 
-        if (questionData.question_options.length > 0) {
-            const optionsToUpsert = questionData.question_options.map(opt => {
-                const isNewOption = typeof opt.id === 'string' && opt.id.startsWith('opt-');
-                
-                const optionPayload: any = {
-                    question_id: finalQuestionId,
-                    option_text: opt.option_text,
-                    is_correct: opt.is_correct,
-                    explanation: opt.explanation,
-                };
+        const optionsToUpdate = questionData.question_options
+            .filter(opt => typeof opt.id === 'string' && !opt.id.startsWith('opt-'))
+            .map(opt => ({
+                id: opt.id,
+                question_id: finalQuestionId,
+                option_text: opt.option_text,
+                is_correct: opt.is_correct,
+                explanation: opt.explanation,
+            }));
 
-                if (!isNewOption) {
-                    optionPayload.id = opt.id;
-                }
-                
-                return optionPayload;
-            });
+        const optionsToInsert = questionData.question_options
+            .filter(opt => typeof opt.id === 'string' && opt.id.startsWith('opt-'))
+            .map(opt => ({
+                // No ID here, let the database generate it
+                question_id: finalQuestionId,
+                option_text: opt.option_text,
+                is_correct: opt.is_correct,
+                explanation: opt.explanation,
+            }));
 
-            const { error: optionsError } = await supabase.from('question_options').upsert(optionsToUpsert);
-            if (optionsError) throw new Error(`Options upsert failed: ${optionsError.message}`);
+        if (optionsToUpdate.length > 0) {
+            const { error: updateError } = await supabase.from('question_options').upsert(optionsToUpdate);
+            if (updateError) throw new Error(`Options update failed: ${updateError.message}`);
+        }
+        
+        if (optionsToInsert.length > 0) {
+            const { error: insertError } = await supabase.from('question_options').insert(optionsToInsert);
+            if (insertError) throw new Error(`Options insert failed: ${insertError.message}`);
         }
     }
 }
