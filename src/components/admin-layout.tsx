@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -49,7 +50,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
         if (profileData) {
           setProfile(profileData);
-          // Redundant check since middleware handles it, but good for client-side safety
           if (profileData.role !== 'admin') {
             router.push('/404');
           }
@@ -134,7 +134,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </Sidebar>
         </div>
         
-        <main className="flex-1 flex flex-col gap-2 p-2 pl-[calc(14rem+1rem)] h-screen">
+        <main className="flex-1 flex flex-col gap-2 p-2 pl-[calc(14rem+0.5rem)]">
           <div className="bg-card border rounded-xl flex flex-col">
             <AppHeader profile={profile} onLogout={handleLogout} />
           </div>

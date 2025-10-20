@@ -3,7 +3,7 @@ import { AppLayout } from '@/components/app-layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
-import { CourseWithChaptersAndTopics } from '@/lib/types';
+import { CourseWithChaptersAndTopics, UserCourseProgress } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -36,7 +36,7 @@ export default function CoursesPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {courses.map(course => {
-            const userProgress = null; // This will be replaced with user progress data
+            const userProgress: UserCourseProgress | null = null; // This will be replaced with user progress data
             return (
               <Link href={`/courses/${course.slug}`} key={course.id}>
                 <Card className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
@@ -49,15 +49,15 @@ export default function CoursesPage() {
                   </CardContent>
                   <CardFooter className="p-6 pt-0">
                     {userProgress ? (
-                      <div>
+                      <div className="w-full">
                         <div className="flex justify-between items-center mb-2">
                            <span className="text-sm text-muted-foreground">Progress</span>
-                           {/* <span className="text-sm font-bold text-primary">{userProgress.percentage}%</span> */}
+                           <span className="text-sm font-bold text-primary">{userProgress.progress_percentage}%</span>
                         </div>
-                        {/* <Progress value={userProgress.percentage} className="h-2" /> */}
+                        <Progress value={userProgress.progress_percentage} className="h-2" />
                       </div>
                     ) : (
-                       <p className="text-sm text-accent">Start Learning</p>
+                       <p className="text-sm text-accent font-semibold">Start Learning</p>
                     )}
                   </CardFooter>
                 </Card>
