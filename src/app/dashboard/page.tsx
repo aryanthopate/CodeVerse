@@ -64,7 +64,7 @@ function DashboardContent() {
       <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Continue Learning - This can be updated when progress is stored in DB */}
-          <Card className="lg:col-span-2 bg-card/50 border-border/50 backdrop-blur-sm">
+          <Card className="lg:col-span-2 bg-card border-border/50">
             <CardHeader>
               <CardTitle>Continue Learning</CardTitle>
             </CardHeader>
@@ -86,7 +86,7 @@ function DashboardContent() {
           </Card>
 
           {/* Your Stats */}
-          <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
+          <Card className="bg-card border-border/50">
             <CardHeader>
               <CardTitle>Your Stats</CardTitle>
             </CardHeader>
@@ -107,7 +107,7 @@ function DashboardContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {mockCourses.slice(0, 4).map(course => (
               <Link key={course.id} href={`/courses/${course.slug}`}>
-                <Card className="bg-card/50 border-border/50 backdrop-blur-sm overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-lg hover:shadow-primary/10">
+                <Card className="bg-card border-border/50 overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-lg hover:shadow-primary/10">
                     <Image src={course.imageUrl} alt={course.name} width={400} height={200} className="w-full h-32 object-cover" data-ai-hint="code background" />
                     <CardContent className="p-4">
                       <h3 className="font-semibold truncate">{course.name}</h3>
