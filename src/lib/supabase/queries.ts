@@ -3,7 +3,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithLevels } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -229,4 +229,37 @@ export async function getIsUserEnrolled(courseId: string, userId: string) {
     }
 
     return !!data;
+}
+
+export async function getAllGames(): Promise<GameWithLevels[] | null> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('games')
+        .select('*, game_levels(*)')
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error("Error fetching games:", error.message);
+        return null;
+    }
+
+    return data as GameWithLevels[];
+}
+
+
+export async function getGameById(gameId: string): Promise<GameWithLevels | null> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('games')
+        .select('*, game_levels(*)')
+        .eq('id', gameId)
+        .order('order', { foreignTable: 'game_levels', ascending: true })
+        .single();
+    
+    if (error) {
+        console.error("Error fetching game by id:", error.message);
+        return null;
+    }
+
+    return data as GameWithLevels;
 }

@@ -1,11 +1,12 @@
 
+
 "use client"
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, X, Shield, ShoppingCart, Heart } from 'lucide-react';
+import { Menu, X, Shield, ShoppingCart, Heart, Gamepad2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { UserProfile } from '@/lib/types';
@@ -51,8 +52,9 @@ export function Header() {
   };
 
   const navLinks = [
-    { name: 'About', href: '#' },
     { name: 'Courses', href: '/courses' },
+    { name: 'Playground', href: '/playground' },
+    { name: 'About', href: '#' },
     { name: 'Contact', href: '#' },
   ];
 

@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import Link from 'next/link';
@@ -8,7 +9,7 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn } from 'lucide-react';
+import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn, Gamepad2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
@@ -161,6 +162,27 @@ export default async function Home() {
               })}
             </div>
           </div>
+        </section>
+
+        {/* New Play & Learn Section */}
+        <section className="py-20 container mx-auto">
+            <div className="bg-gradient-to-br from-card/50 via-card/30 to-transparent border border-primary/30 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
+                <div className="flex-1 text-center md:text-left">
+                     <Badge variant="outline" className="mb-4 border-accent text-accent animate-float">
+                        New Feature!
+                    </Badge>
+                    <h2 className="text-4xl md:text-5xl font-bold">Play & Learn</h2>
+                    <p className="mt-4 text-lg text-muted-foreground">
+                        Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
+                    </p>
+                    <Button size="lg" asChild className="mt-8 shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/40 transform hover:-translate-y-1 transition-all duration-300">
+                        <Link href="/playground">Enter the Playground <Gamepad2 className="ml-2" /></Link>
+                    </Button>
+                </div>
+                <div className="flex-1 w-full max-w-sm">
+                    <Image src="https://picsum.photos/seed/gamer/600/600" width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20" data-ai-hint="neon abstract" />
+                </div>
+            </div>
         </section>
 
         {/* Features Grid */}
