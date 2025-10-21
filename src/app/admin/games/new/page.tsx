@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { X, Plus, Trash2, Gamepad2, FileText } from 'lucide-react';
+import { X, Plus, Trash2, Gamepad2, Upload, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { createGame } from '@/lib/supabase/actions';
+import { createClient } from '@/lib/supabase/client';
 
 interface GameLevelState {
     id: string;
@@ -21,24 +23,27 @@ interface GameLevelState {
     starter_code: string;
     expected_output: string;
     reward_xp: number | string;
+    order: number;
 }
 
 export default function NewGamePage() {
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
+    const supabase = createClient();
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [thumbnail, setThumbnail] = useState('');
+    const [thumbnailUrl, setThumbnailUrl] = useState('');
+    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [isFree, setIsFree] = useState(true);
     
     const [levels, setLevels] = useState<GameLevelState[]>([
-        { id: `lvl-${Date.now()}`, title: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100 }
+        { id: `lvl-${Date.now()}`, title: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100, order: 1 }
     ]);
     
     const handleAddLevel = () => {
-        setLevels([...levels, { id: `lvl-${Date.now()}`, title: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100 }]);
+        setLevels([...levels, { id: `lvl-${Date.now()}`, title: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100, order: levels.length + 1 }]);
     };
 
     const handleRemoveLevel = (levelId: string) => {
@@ -49,22 +54,79 @@ export default function NewGamePage() {
         setLevels(prev => prev.map(l => l.id === levelId ? { ...l, [field]: value } : l));
     };
     
+    const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setThumbnailFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setThumbnailUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // In a real app, you would call a server action here to create the game
-        // For now, we'll just log the data and show a toast
-        console.log({ title, description, thumbnail, isFree, levels });
 
-        toast({
-            title: "Game Creation Mocked",
-            description: "Check the console for the game data. In a real app, this would be saved to the database.",
-        });
-        
-        setTimeout(() => {
-            setLoading(false);
+        let finalThumbnailUrl = '';
+
+        const gamePayload = {
+            title,
+            description,
+            thumbnail_url: '', // Will be updated after upload
+            is_free: isFree,
+            levels: levels.map(l => ({...l, reward_xp: Number(l.reward_xp)}))
+        };
+
+        const result = await createGame(gamePayload as any);
+
+        if (result.success && result.gameId) {
+             if (thumbnailFile) {
+                const filePath = `${result.gameId}/${thumbnailFile.name}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('game_thumbnails')
+                    .upload(filePath, thumbnailFile, {
+                        cacheControl: '3600',
+                        upsert: true,
+                    });
+                
+                if(uploadError) {
+                    toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
+                    setLoading(false);
+                    // Consider deleting the created game for consistency
+                    return;
+                }
+
+                const { data: { publicUrl } } = supabase.storage.from('game_thumbnails').getPublicUrl(filePath);
+                
+                // Update the game with the thumbnail URL
+                const { error: updateError } = await supabase
+                    .from('games')
+                    .update({ thumbnail_url: publicUrl })
+                    .eq('id', result.gameId);
+
+                 if (updateError) {
+                    toast({ variant: 'destructive', title: 'Failed to link thumbnail', description: updateError.message });
+                }
+            }
+
+            toast({
+                title: "Game Created!",
+                description: `${title} has been successfully added.`,
+            });
             router.push('/admin/games');
-        }, 1000);
+
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Uh oh! Something went wrong.",
+                description: result.error || "Could not save the game.",
+            });
+        }
+        
+        setLoading(false);
     };
 
     return (
@@ -93,10 +155,29 @@ export default function NewGamePage() {
                                         <Label htmlFor="game-description">Description</Label>
                                         <Textarea id="game-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A brief summary of the game." className="min-h-[100px]"/>
                                     </div>
+                                    
                                     <div className="space-y-2">
-                                        <Label htmlFor="game-thumbnail">Thumbnail URL</Label>
-                                        <Input id="game-thumbnail" value={thumbnail} onChange={(e) => setThumbnail(e.target.value)} placeholder="https://picsum.photos/seed/game/600/400" />
+                                        <Label>Game Thumbnail</Label>
+                                        <Card className="border-dashed">
+                                            <CardContent className="p-4">
+                                                <div className="flex flex-col items-center justify-center space-y-2">
+                                                    {thumbnailUrl ? (
+                                                        <Image src={thumbnailUrl} alt="Thumbnail preview" width={400} height={200} className="rounded-md max-h-40 w-auto object-contain"/>
+                                                    ) : (
+                                                        <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                                                            <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                                        </div>
+                                                    )}
+                                                    <Input id="thumbnail-upload" type="file" className="sr-only" onChange={handleThumbnailChange} accept="image/*"/>
+                                                    <Label htmlFor="thumbnail-upload" className="cursor-pointer text-primary text-sm underline">
+                                                        {thumbnailUrl ? 'Change image' : 'Upload an image'}
+                                                    </Label>
+                                                    <p className="text-xs text-muted-foreground">PNG, JPG up to 5MB</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
                                     </div>
+
                                     <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">
                                             <Label>Free Game</Label>

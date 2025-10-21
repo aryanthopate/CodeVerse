@@ -500,6 +500,43 @@ export async function giftCourseToUser(courseId: string, recipientEmail: string)
     return { success: true, message: `Successfully gifted the course to ${recipientEmail}!` };
 }
 
+export async function createGame(gameData: Omit<Game, 'id' | 'created_at'> & { levels: Omit<GameLevel, 'id' | 'created_at' | 'game_id'>[] }) {
+    const supabase = createClient();
+    const { levels, ...restOfGameData } = gameData;
+
+    const { data: newGame, error: gameError } = await supabase
+        .from('games')
+        .insert(restOfGameData)
+        .select()
+        .single();
+
+    if (gameError) {
+        console.error('Error creating game:', gameError);
+        return { success: false, error: gameError.message };
+    }
+
+    if (levels && levels.length > 0) {
+        const levelsToInsert = levels.map((level, index) => ({
+            ...level,
+            game_id: newGame.id,
+            order: index + 1,
+        }));
+        const { error: levelsError } = await supabase.from('game_levels').insert(levelsToInsert as any);
+
+        if (levelsError) {
+            console.error('Error creating levels:', levelsError);
+            // Rollback game creation
+            await supabase.from('games').delete().eq('id', newGame.id);
+            return { success: false, error: levelsError.message };
+        }
+    }
+    
+    revalidatePath('/admin/games');
+    revalidatePath('/playground');
+
+    return { success: true, gameId: newGame.id };
+}
+
 export async function seedDemoGames() {
     const supabase = createClient();
 
