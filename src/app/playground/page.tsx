@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Gamepad2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { getAllGames } from '@/lib/supabase/queries';
-import type { GameWithLevels } from '@/lib/types';
+import type { GameWithChaptersAndLevels } from '@/lib/types';
 import Image from 'next/image';
 
 export default async function PlaygroundPage() {
-    const games: GameWithLevels[] = await getAllGames() || [];
+    const games: GameWithChaptersAndLevels[] = await getAllGames() || [];
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
@@ -30,7 +30,9 @@ export default async function PlaygroundPage() {
 
                     {games.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                           {games.map(game => (
+                           {games.map(game => {
+                                const totalLevels = game.game_chapters.reduce((acc, ch) => acc + ch.game_levels.length, 0);
+                                return (
                                <Card key={game.id} className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 overflow-hidden group">
                                     <CardHeader className="p-0 relative">
                                         <Link href={`/playground/${game.id}`} className="block">
@@ -57,7 +59,7 @@ export default async function PlaygroundPage() {
                                             {game.description}
                                         </CardDescription>
                                         <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
-                                            <span>{game.game_levels.length} Levels</span>
+                                            <span>{totalLevels} Levels</span>
                                             {game.is_free ? (
                                                 <span className="font-bold text-primary">Free</span>
                                             ) : (
@@ -66,7 +68,7 @@ export default async function PlaygroundPage() {
                                         </div>
                                     </CardContent>
                                </Card>
-                           ))}
+                           )})}
                         </div>
                     ) : (
                         <Card className="bg-card/50 border-border/50 text-center py-20">
