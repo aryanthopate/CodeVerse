@@ -7,8 +7,41 @@ import { getGameById } from '@/lib/supabase/queries';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Lock, PlayCircle, Star, Swords } from 'lucide-react';
+import { Check, Lock, Play, Star, Swords } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+
+
+// Helper function to generate SVG path data and level positions
+const generateLevelMap = (levelCount: number) => {
+    const levels = [];
+    let pathData = "M 150 150";
+    let x = 150, y = 150;
+    const segmentLength = 200;
+    const curveAmount = 100;
+
+    for (let i = 0; i < levelCount; i++) {
+        levels.push({ id: i, x, y });
+
+        if (i < levelCount - 1) {
+            const direction = Math.floor(i / 2) % 2 === 0 ? 1 : -1;
+            const nextX = x + segmentLength;
+            const nextY = y + direction * (i % 2 === 0 ? 0 : segmentLength);
+            
+            const cp1x = x + segmentLength / 2;
+            const cp1y = y;
+            const cp2x = nextX - segmentLength / 2;
+            const cp2y = nextY;
+
+            pathData += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${nextX},${nextY}`;
+            x = nextX;
+            y = nextY;
+        }
+    }
+    const width = levelCount * segmentLength;
+    return { levels, pathData, width };
+};
+
 
 export default async function GameDetailPage({ params }: { params: { gameId: string } }) {
     const game = await getGameById(params.gameId);
@@ -16,82 +49,125 @@ export default async function GameDetailPage({ params }: { params: { gameId: str
     if (!game) {
         notFound();
     }
+    
+    const { levels: levelPositions, pathData, width } = generateLevelMap(game.game_levels.length);
 
     // This is a placeholder for user progress. In a real app, you'd fetch this.
     const userProgress = {
-        completed_levels: [],
+        completed_levels: [], // e.g. ['level_id_1', 'level_id_2']
     };
+    
+    let currentLevelIndex = game.game_levels.findIndex(l => !userProgress.completed_levels.includes(l.id as never));
+    if (currentLevelIndex === -1) currentLevelIndex = game.game_levels.length; // All completed
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
             <Header />
-            <main className="flex-grow pt-24 pb-12">
-                <div className="container mx-auto">
-                    {/* Game Header */}
-                    <div className="relative rounded-xl overflow-hidden min-h-[300px] flex items-center justify-center p-8">
-                        <Image
+            <main className="flex-grow pt-16 flex flex-col">
+                {/* Game Header */}
+                <div className="container mx-auto py-6">
+                    <div className="relative rounded-xl overflow-hidden min-h-[200px] flex items-center justify-center p-8 border border-border/50">
+                         <Image
                             src={game.thumbnail_url || `https://picsum.photos/seed/${game.id}/1200/400`}
                             alt={game.title}
                             fill
-                            className="object-cover -z-10"
+                            className="object-cover -z-10 opacity-30"
                             data-ai-hint="dark neon abstract"
                         />
                          <div className="absolute inset-0 bg-black/70 -z-10"></div>
-                        <div className="text-center text-white space-y-4">
-                            <h1 className="text-5xl font-bold">{game.title}</h1>
-                            <p className="text-lg max-w-3xl mx-auto text-white/80">{game.description}</p>
-                            <div className="flex justify-center gap-4">
-                                {game.is_free ? (
-                                    <Button size="lg" asChild>
-                                        <Link href={`/playground/${game.id}/${game.game_levels[0]?.id}`}>
-                                            Start Playing <PlayCircle className="ml-2"/>
-                                        </Link>
-                                    </Button>
-                                ) : (
-                                    <Button size="lg">Unlock Game</Button>
-                                )}
-                            </div>
+                        <div className="text-center text-white space-y-2 z-10">
+                            <h1 className="text-4xl font-bold">{game.title}</h1>
+                            <p className="text-md max-w-3xl mx-auto text-white/80">{game.description}</p>
                         </div>
                     </div>
+                </div>
 
-                    {/* Levels List */}
-                    <div className="mt-12">
-                        <h2 className="text-3xl font-bold mb-6 flex items-center gap-3"><Swords className="text-primary"/> Levels</h2>
-                        <div className="space-y-4">
-                            {game.game_levels.map((level, index) => {
-                                const isCompleted = userProgress.completed_levels.includes(level.id as never);
-                                const isLocked = !game.is_free; // Placeholder logic for locked levels
-                                
-                                return (
-                                <Link key={level.id} href={isLocked ? '#' : `/playground/${game.id}/${level.id}`}>
-                                    <div className="bg-card/50 border border-border/50 rounded-lg p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors">
-                                        <div className="flex-shrink-0 w-12 h-12 bg-muted rounded-full flex items-center justify-center text-xl font-bold text-primary">
-                                            {index + 1}
-                                        </div>
-                                        <div className="flex-grow">
-                                            <h3 className="text-lg font-semibold">{level.title}</h3>
-                                            <p className="text-sm text-muted-foreground line-clamp-1">{level.objective}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-yellow-400 font-semibold">
-                                            <Star className="w-4 h-4" /> {level.reward_xp} XP
-                                        </div>
-                                        <div className="w-24 text-right">
-                                             {isCompleted ? (
-                                                <CheckCircle className="w-8 h-8 text-green-500" />
-                                            ) : isLocked ? (
-                                                <Lock className="w-8 h-8 text-muted-foreground" />
-                                            ) : (
-                                                <PlayCircle className="w-8 h-8 text-primary opacity-50 group-hover:opacity-100" />
-                                            )}
-                                        </div>
+                {/* Levels Map */}
+                <div className="flex-grow w-full overflow-x-auto overflow-y-hidden">
+                    <div className="relative w-full h-full flex items-center" style={{ minWidth: `${width}px`, minHeight: '400px' }}>
+                        <svg width={width} height="400" className="absolute top-0 left-0">
+                            <path 
+                                d={pathData} 
+                                fill="none" 
+                                stroke="hsl(var(--primary) / 0.2)" 
+                                strokeWidth="10" 
+                                strokeLinecap="round"
+                            />
+                             <path 
+                                d={pathData} 
+                                fill="none" 
+                                stroke="url(#line-gradient)" 
+                                strokeWidth="10" 
+                                strokeLinecap="round"
+                                className="path-animation"
+                            />
+                             <defs>
+                                <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="hsl(var(--primary))" />
+                                    <stop offset="100%" stopColor="hsl(var(--accent))" />
+                                </linearGradient>
+                            </defs>
+                            <style>{`
+                                .path-animation {
+                                    stroke-dasharray: 10000;
+                                    stroke-dashoffset: 10000;
+                                    animation: draw 3s linear forwards;
+                                }
+                                @keyframes draw {
+                                    to {
+                                        stroke-dashoffset: 0;
+                                    }
+                                }
+                            `}</style>
+                        </svg>
+
+                        {game.game_levels.map((level, index) => {
+                            const position = levelPositions[index];
+                            if (!position) return null;
+
+                            const isCompleted = userProgress.completed_levels.includes(level.id as never);
+                            const isCurrent = index === currentLevelIndex;
+                            const isLocked = index > currentLevelIndex;
+                            
+                            const ChapterGate = ({ chapterNumber }: { chapterNumber: number}) => (
+                                <div style={{ left: `${position.x + 80}px`, top: '50%', transform: 'translateY(-50%)' }} className="absolute flex flex-col items-center">
+                                    <div className="h-24 w-1 bg-primary/50 rounded-full"></div>
+                                    <div className="p-2 bg-primary/20 border border-primary rounded-full my-2">
+                                        <Swords className="text-primary"/>
                                     </div>
+                                    <p className="text-xs text-primary font-bold">Chapter {chapterNumber}</p>
+                                    <div className="h-24 w-1 bg-primary/50 rounded-full"></div>
+                                </div>
+                            );
+
+                            return (
+                                <>
+                                <Link
+                                    key={level.id}
+                                    href={isLocked ? '#' : `/playground/${game.id}/${level.id}`}
+                                    className={cn(
+                                        "absolute w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-300",
+                                        "border-4 hover:border-primary",
+                                        isCurrent ? "border-primary scale-110 animate-pulse bg-primary/20" : "border-border/50 bg-card",
+                                        isCompleted ? "border-green-500" : "",
+                                        isLocked ? "border-muted-foreground/30 bg-muted/50 cursor-not-allowed" : "cursor-pointer hover:scale-110"
+                                    )}
+                                    style={{ left: `${position.x - 48}px`, top: `${position.y - 48}px` }}
+                                >
+                                    {isLocked ? <Lock className="w-8 h-8 text-muted-foreground" /> :
+                                     isCompleted ? <Check className="w-8 h-8 text-green-500" /> :
+                                     <Play className="w-8 h-8 text-primary" />
+                                    }
+                                    <p className="text-xs font-bold mt-1 text-center truncate w-full px-1">{level.title}</p>
                                 </Link>
-                            )})}
-                        </div>
+                                 {(index + 1) % 5 === 0 && index < game.game_levels.length - 1 && <ChapterGate chapterNumber={(index + 1) / 5 + 1} />}
+                                </>
+                            );
+                        })}
                     </div>
                 </div>
             </main>
             <Footer />
         </div>
-    )
+    );
 }
