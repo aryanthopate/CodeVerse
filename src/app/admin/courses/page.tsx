@@ -137,7 +137,7 @@ export default function AdminCoursesPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                          <DropdownMenuItem asChild>
-                                                            <Link href={`/admin/courses/edit/${course.id}`}>Edit</Link>
+                                                            <Link href={`/admin/courses/edit/${course.slug}`}>Edit</Link>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator/>
                                                         <AlertDialogTrigger asChild>
