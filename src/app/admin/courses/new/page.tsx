@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Clock, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -258,6 +258,8 @@ export default function NewCoursePage() {
     const [courseImageUrl, setCourseImageUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
+    const [rating, setRating] = useState<number | string>(4.5);
+    const [totalDurationHours, setTotalDurationHours] = useState<number | string>(10);
 
 
     const [chapters, setChapters] = useState<ChapterState[]>([
@@ -362,6 +364,8 @@ export default function NewCoursePage() {
             image_url: courseImageUrl || `https://picsum.photos/seed/${courseSlug}/600/400`,
             is_paid: isPaid,
             price: Number(price),
+            rating: Number(rating),
+            total_duration_hours: Number(totalDurationHours),
             chapters: chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id,
                 title: chapter.title,
@@ -445,6 +449,30 @@ export default function NewCoursePage() {
                                                 </div>
                                             </CardContent>
                                         </Card>
+                                    </div>
+                                     <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="course-rating">Rating (1-5)</Label>
+                                            <div className="relative">
+                                                <Star className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    id="course-rating" type="number" value={rating}
+                                                    onChange={e => setRating(e.target.value)}
+                                                    placeholder="e.g., 4.5" className="pl-8" min="1" max="5" step="0.1"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="course-duration">Duration (hrs)</Label>
+                                            <div className="relative">
+                                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    id="course-duration" type="number" value={totalDurationHours}
+                                                    onChange={e => setTotalDurationHours(e.target.value)}
+                                                    placeholder="e.g., 12" className="pl-8" min="0"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">

@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book, ArrowRight } from 'lucide-react';
+import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book, ArrowRight, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -204,6 +204,7 @@ export default function CoursesShopPage() {
                     filteredAndSortedCourses.map(course => {
                         const userProgress: UserCourseProgress | null = null; // This will be replaced with user progress data
                         const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
+                        const reviewsCount = 0; // Placeholder
 
                         const wishlistButton = (
                              <Button variant="ghost" size="icon" className="absolute top-3 right-3 bg-black/30 hover:bg-black/50 text-white hover:text-red-500 z-20">
@@ -230,6 +231,13 @@ export default function CoursesShopPage() {
                                 {!user ? <AuthRequiredDialog>{wishlistButton}</AuthRequiredDialog> : wishlistButton}
                             </CardHeader>
                             <CardContent className="p-6 flex-grow">
+                                <div className="flex items-center text-sm text-muted-foreground gap-4 mb-2">
+                                    <div className="flex items-center gap-1.5">
+                                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                        <span className="font-semibold text-foreground">{course.rating?.toFixed(1) || 'N/A'}</span>
+                                        <span>({reviewsCount} reviews)</span>
+                                    </div>
+                                </div>
                                 <CardTitle className="text-xl font-bold mb-2">
                                      <Link href={`/courses/${course.slug}`} className="hover:text-primary">{course.name}</Link>
                                 </CardTitle>
@@ -241,6 +249,10 @@ export default function CoursesShopPage() {
                                     <div className="flex items-center gap-1.5">
                                         <Book className="w-4 h-4" />
                                         <span>{totalTopics} Topics</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Clock className="w-4 h-4" />
+                                        <span>{course.total_duration_hours || 'N/A'} hrs</span>
                                     </div>
                                 </div>
                                 <CardDescription className="mt-2 text-sm">
