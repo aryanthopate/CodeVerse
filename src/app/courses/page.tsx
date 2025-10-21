@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn } from 'lucide-react';
+import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -125,15 +125,12 @@ export default function CoursesShopPage() {
     return processedCourses;
   }, [courses, debouncedSearchTerm, sortBy, filterBy]);
   
-    const ActionButtons = () => {
+    const ActionButtons = ({course}: {course: CourseWithChaptersAndTopics}) => {
         const buttonActions = (
             <div className="w-full flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                    <p className="text-xl text-primary font-bold">{courses[0]?.is_paid ? `₹${courses[0]?.price}` : 'Free'}</p>
-                    <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon"><Heart className="h-5 w-5 text-muted-foreground hover:text-red-500"/></Button>
-                        <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
-                    </div>
+                    <p className="text-xl text-primary font-bold">{course.is_paid ? `₹${course.price}` : 'Free'}</p>
+                    <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
                 </div>
                 <div className="flex gap-2">
                     <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
@@ -205,41 +202,45 @@ export default function CoursesShopPage() {
                 {filteredAndSortedCourses.length > 0 ? (
                     filteredAndSortedCourses.map(course => {
                         const userProgress: UserCourseProgress | null = null; // This will be replaced with user progress data
-                        
-                        const actionButtons = (
-                            <div className="w-full flex flex-col gap-2">
-                                <div className="flex justify-between items-center">
-                                    <p className="text-xl text-primary font-bold">{course.is_paid ? `₹${course.price}` : 'Free'}</p>
-                                    <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon"><Heart className="h-5 w-5 text-muted-foreground hover:text-red-500"/></Button>
-                                        <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
-                                    <Button variant="secondary" className="w-full"><Zap className="mr-2 h-4 w-4"/> Buy Now</Button>
-                                </div>
-                            </div>
+                        const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
+
+                        const wishlistButton = (
+                             <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-black/30 hover:bg-black/50 text-white hover:text-red-500">
+                                <Heart className="h-5 w-5"/>
+                            </Button>
                         );
 
                         return (
                         <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 overflow-hidden">
-                            <Link href={`/courses/${course.slug}`} className="block">
-                                <CardHeader className="p-0 relative">
+                            <CardHeader className="p-0 relative">
+                                <Link href={`/courses/${course.slug}`} className="block">
                                     <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/300`} alt={course.name} width={600} height={300} className="w-full h-40 object-cover" data-ai-hint="abstract code" />
-                                    {course.is_paid && (
-                                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
-                                            PRO
-                                        </div>
-                                    )}
-                                </CardHeader>
-                                <CardContent className="p-6 flex-grow">
-                                    <CardTitle className="text-xl font-bold">{course.name}</CardTitle>
-                                    <CardDescription className="mt-2 text-sm">
-                                    {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
-                                    </CardDescription>
-                                </CardContent>
-                            </Link>
+                                </Link>
+                                {course.is_paid && (
+                                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
+                                        PRO
+                                    </div>
+                                )}
+                                {!user ? <AuthRequiredDialog>{wishlistButton}</AuthRequiredDialog> : wishlistButton}
+                            </CardHeader>
+                            <CardContent className="p-6 flex-grow">
+                                <CardTitle className="text-xl font-bold mb-2">
+                                     <Link href={`/courses/${course.slug}`} className="hover:text-primary">{course.name}</Link>
+                                </CardTitle>
+                                <div className="flex items-center text-sm text-muted-foreground gap-4 mb-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <Book className="w-4 h-4" />
+                                        <span>{course.chapters.length} Chapters</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Book className="w-4 h-4" />
+                                        <span>{totalTopics} Topics</span>
+                                    </div>
+                                </div>
+                                <CardDescription className="mt-2 text-sm">
+                                {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
+                                </CardDescription>
+                            </CardContent>
                             <CardFooter className="p-6 pt-0 mt-auto bg-muted/30">
                                 {userProgress ? (
                                     <div className="w-full">
@@ -250,7 +251,7 @@ export default function CoursesShopPage() {
                                         <Progress value={userProgress.progress_percentage} className="h-2" />
                                     </div>
                                 ) : (
-                                    !user ? <AuthRequiredDialog>{actionButtons}</AuthRequiredDialog> : actionButtons
+                                    <ActionButtons course={course} />
                                 )}
                             </CardFooter>
                         </Card>
@@ -269,5 +270,3 @@ export default function CoursesShopPage() {
     </div>
   );
 }
-
-    
