@@ -3,7 +3,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -143,4 +143,31 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
         prevTopic: prevTopic as Topic | null,
         nextTopic: nextTopic as Topic | null,
     };
+}
+
+
+export async function getUserEnrollments(userId: string): Promise<{ enrolledCourses: CourseWithChaptersAndTopics[], enrollments: UserEnrollment[] } | null> {
+    const supabase = createClient();
+    const { data: enrollments, error } = await supabase
+        .from('user_enrollments')
+        .select(`
+            *,
+            courses (
+                *,
+                chapters (
+                    *,
+                    topics (*)
+                )
+            )
+        `)
+        .eq('user_id', userId);
+
+    if (error) {
+        console.error("Error fetching user enrollments:", error.message);
+        return null;
+    }
+
+    const enrolledCourses = enrollments.map(e => e.courses) as unknown as CourseWithChaptersAndTopics[];
+
+    return { enrolledCourses, enrollments: enrollments as UserEnrollment[] };
 }

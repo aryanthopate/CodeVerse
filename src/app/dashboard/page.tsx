@@ -5,19 +5,19 @@ import { AppLayout } from '@/components/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ArrowRight, BarChart, BookOpen, Star, TrendingUp } from 'lucide-react';
+import { ArrowRight, BarChart, BookOpen, Star, TrendingUp, Compass } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { UserProfile, CourseWithChaptersAndTopics } from '@/lib/types';
+import type { UserProfile, CourseWithChaptersAndTopics, UserEnrollment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
+import { getUserEnrollments } from '@/lib/supabase/queries';
 
 function DashboardContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [courses, setCourses] = useState<CourseWithChaptersAndTopics[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<CourseWithChaptersAndTopics[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const searchParams = useSearchParams();
@@ -31,17 +31,18 @@ function DashboardContent() {
       if (user) {
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setProfile(profileData);
-      }
 
-      const courseData = await getCoursesWithChaptersAndTopics();
-      if(courseData) {
-        setCourses(courseData);
+        const enrollmentsData = await getUserEnrollments(user.id);
+        if (enrollmentsData) {
+          setEnrolledCourses(enrollmentsData.enrolledCourses);
+        }
+      } else {
+        router.push('/login'); // Redirect if no user
       }
-
       setLoading(false);
     }
     fetchInitialData();
-  }, [supabase]);
+  }, [supabase, router]);
 
   useEffect(() => {
     if (searchParams.get('toast')) {
@@ -54,13 +55,12 @@ function DashboardContent() {
     }
   }, [searchParams, toast, router]);
 
-  const lastCourse = courses[0];
-  // Logic to find the first topic of the first course
+  const lastCourse = enrolledCourses.length > 0 ? enrolledCourses[0] : null;
   const firstTopic = lastCourse?.chapters[0]?.topics[0];
 
   const stats = [
     { title: 'XP Earned', value: `${profile?.xp || 0} XP`, icon: <Star className="text-yellow-400" /> },
-    { title: 'Courses in Progress', value: 0, icon: <BookOpen className="text-blue-400" /> },
+    { title: 'Courses in Progress', value: enrolledCourses.length, icon: <BookOpen className="text-blue-400" /> },
     { title: 'Weekly Streak', value: `${profile?.streak || 0} days`, icon: <TrendingUp className="text-green-400" /> },
     { title: 'Leaderboard Rank', value: '#- / -', icon: <BarChart className="text-red-400" /> },
   ];
@@ -72,8 +72,8 @@ function DashboardContent() {
   return (
       <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Continue Learning */}
-          {lastCourse && firstTopic && (
+          {/* Continue Learning or Welcome Card */}
+          {lastCourse && firstTopic ? (
             <Card className="lg:col-span-2 bg-card border-border/50">
               <CardHeader>
                 <CardTitle>Continue Learning</CardTitle>
@@ -94,6 +94,17 @@ function DashboardContent() {
                 </div>
               </CardContent>
             </Card>
+          ) : (
+             <Card className="lg:col-span-2 bg-card border-border/50 flex flex-col items-center justify-center text-center p-8">
+                <div className="mx-auto bg-muted rounded-full p-4 w-fit mb-4">
+                    <Compass className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <CardTitle className="text-2xl">Start Your Learning Journey</CardTitle>
+                <CardDescription className="mt-2">You are not enrolled in any courses yet.</CardDescription>
+                <Button asChild className="mt-6">
+                    <Link href="/courses">Explore Courses</Link>
+                </Button>
+            </Card>
           )}
 
           {/* Your Stats */}
@@ -112,21 +123,23 @@ function DashboardContent() {
           </Card>
         </div>
 
-        {/* Recommended For You */}
+        {/* My Courses */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Recommended For You</h2>
+          <h2 className="text-2xl font-bold mb-4">My Courses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {courses.slice(0, 4).map(course => (
+            {enrolledCourses.length > 0 ? enrolledCourses.map(course => (
               <Link key={course.id} href={`/courses/${course.slug}`}>
                 <Card className="bg-card border-border/50 overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-lg hover:shadow-primary/10">
                     <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/400/200`} alt={course.name} width={400} height={200} className="w-full h-32 object-cover" data-ai-hint="code background" />
                     <CardContent className="p-4">
                       <h3 className="font-semibold truncate">{course.name}</h3>
-                      <p className="text-sm text-muted-foreground">{course.description?.substring(0, 40) || ''}...</p>
+                       <Progress value={0} className="mt-2 h-1.5" />
                     </CardContent>
                 </Card>
               </Link>
-            ))}
+            )) : (
+              <p className="text-muted-foreground md:col-span-4">Your enrolled courses will appear here.</p>
+            )}
           </div>
         </div>
       </div>

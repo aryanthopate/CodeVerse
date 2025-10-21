@@ -387,3 +387,31 @@ export async function createQuizForTopic(topicId: string, quizData: QuizWithQues
 
   return { success: true, quizId: quiz.id };
 }
+
+export async function enrollInCourse(courseId: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: "You must be logged in to enroll." };
+    }
+
+    const { error } = await supabase.from('user_enrollments').insert({
+        user_id: user.id,
+        course_id: courseId,
+    });
+
+    if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+            return { success: true, message: "Already enrolled." };
+        }
+        console.error("Error enrolling user in course:", error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/dashboard');
+    revalidatePath('/courses');
+    revalidatePath(`/courses/${courseId}`); // Revalidate specific course page
+
+    return { success: true };
+}

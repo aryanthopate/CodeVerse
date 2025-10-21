@@ -22,6 +22,7 @@ export type Question = Database['public']['Tables']['questions']['Row'];
 export type QuestionOption = Database['public']['Tables']['question_options']['Row'] & {
     explanation?: string | null;
 };
+export type UserEnrollment = Database['public']['Tables']['user_enrollments']['Row'];
 
 
 // Custom combined types for nested data fetching

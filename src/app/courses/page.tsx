@@ -6,10 +6,10 @@ import { Footer } from '@/components/footer';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
-import { CourseWithChaptersAndTopics, UserCourseProgress } from '@/lib/types';
+import { CourseWithChaptersAndTopics, UserCourseProgress, UserProfile } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, startTransition } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book, ArrowRight, Clock, Star } from 'lucide-react';
@@ -28,6 +28,9 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { useDebounce } from 'use-debounce';
+import { enrollInCourse } from '@/lib/supabase/actions';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     return (
@@ -68,6 +71,9 @@ export default function CoursesShopPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [filterBy, setFilterBy] = useState('all');
   const [user, setUser] = useState<User | null>(null);
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   const supabase = createClient();
 
@@ -127,37 +133,59 @@ export default function CoursesShopPage() {
   }, [courses, debouncedSearchTerm, sortBy, filterBy]);
   
     const ActionButtons = ({course}: {course: CourseWithChaptersAndTopics}) => {
-        const buttonActions = (
+        const handleEnroll = async () => {
+            if (!user) return; // Should be handled by AuthRequiredDialog, but good practice
+            
+            const result = await enrollInCourse(course.id);
+            if(result.success) {
+                toast({
+                    title: "Enrollment Successful!",
+                    description: `You have been enrolled in "${course.name}".`,
+                });
+                startTransition(() => {
+                    router.push('/dashboard');
+                });
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Enrollment Failed",
+                    description: result.error || "An unexpected error occurred.",
+                });
+            }
+        };
+
+        const enrollButton = (
+            <Button className="w-full" onClick={handleEnroll}>Enroll Now</Button>
+        );
+
+        if (!user && !course.is_paid) {
+            return <AuthRequiredDialog>{enrollButton}</AuthRequiredDialog>;
+        }
+
+        const paidActions = (
             <div className="w-full flex flex-col gap-2">
-                {course.is_paid ? (
-                    <>
-                        <div className="flex justify-between items-center">
-                            <p className="text-xl text-primary font-bold">{`₹${course.price}`}</p>
-                            <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
-                            <Button variant="secondary" className="w-full"><Zap className="mr-2 h-4 w-4"/> Buy Now</Button>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="flex justify-between items-center">
-                            <p className="text-xl text-primary font-bold">Free</p>
-                            <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
-                        </div>
-                        <Button className="w-full">
-                            <Link href={`/courses/${course.slug}`}>Enroll Now</Link>
-                        </Button>
-                    </>
-                )}
+                 <div className="flex justify-between items-center">
+                    <p className="text-xl text-primary font-bold">{`₹${course.price}`}</p>
+                    <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
+                </div>
+                <div className="flex gap-2">
+                    <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
+                    <Button variant="secondary" className="w-full"><Zap className="mr-2 h-4 w-4"/> Buy Now</Button>
+                </div>
             </div>
         );
 
-        if (!user) {
-            return <AuthRequiredDialog>{buttonActions}</AuthRequiredDialog>
-        }
-        return buttonActions;
+        const allPaidActions = <AuthRequiredDialog>{paidActions}</AuthRequiredDialog>;
+        
+        return (
+            <>
+                {course.is_paid ? (
+                    user ? paidActions : allPaidActions
+                ) : (
+                    enrollButton
+                )}
+            </>
+        )
     }
 
 
