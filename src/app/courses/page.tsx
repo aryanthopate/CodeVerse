@@ -155,7 +155,9 @@ export default function CoursesShopPage() {
         };
 
         const enrollButton = (
-            <Button className="w-full" onClick={handleEnroll}>Enroll Now</Button>
+            <div className="w-full flex justify-center">
+                 <Button className="w-full max-w-xs" onClick={handleEnroll}>Enroll Now</Button>
+            </div>
         );
 
         if (!user && !course.is_paid) {
@@ -175,17 +177,11 @@ export default function CoursesShopPage() {
             </div>
         );
 
-        const allPaidActions = <AuthRequiredDialog>{paidActions}</AuthRequiredDialog>;
+        if (course.is_paid) {
+            return user ? paidActions : <AuthRequiredDialog>{paidActions}</AuthRequiredDialog>;
+        }
         
-        return (
-            <>
-                {course.is_paid ? (
-                    user ? paidActions : allPaidActions
-                ) : (
-                    enrollButton
-                )}
-            </>
-        )
+        return user ? enrollButton : <AuthRequiredDialog>{enrollButton}</AuthRequiredDialog>;
     }
 
 
@@ -292,6 +288,12 @@ export default function CoursesShopPage() {
                                         <Book className="w-4 h-4" />
                                         <span>{totalTopics} Topics</span>
                                     </div>
+                                     {course.total_duration_hours && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="w-4 h-4" />
+                                            <span>{course.total_duration_hours} hours</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <CardDescription className="mt-2 text-sm">
                                 {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}

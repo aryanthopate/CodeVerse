@@ -20,7 +20,7 @@ interface ChapterData extends Omit<Chapter, 'id' | 'created_at' | 'course_id' | 
     topics: TopicData[];
 }
 
-interface CourseData extends Omit<Course, 'id' | 'created_at'> {
+interface CourseData extends Omit<Course, 'id' | 'created_at' | 'rating'> {
     chapters: ChapterData[];
 }
 
@@ -62,6 +62,7 @@ export async function createCourse(courseData: CourseData) {
             image_url: restOfCourseData.image_url,
             is_paid: restOfCourseData.is_paid,
             price: restOfCourseData.price,
+            total_duration_hours: restOfCourseData.total_duration_hours
         })
         .select()
         .single();
@@ -206,6 +207,7 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             image_url: courseData.image_url,
             is_paid: courseData.is_paid,
             price: courseData.price,
+            total_duration_hours: courseData.total_duration_hours,
         })
         .eq('id', courseId);
 

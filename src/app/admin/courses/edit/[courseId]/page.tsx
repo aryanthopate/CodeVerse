@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
 import { getCourseBySlug } from '@/lib/supabase/queries';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2 } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Clock } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
@@ -166,10 +166,10 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     
     if (!quiz) {
         return (
-            <div className="pt-2 px-4 flex flex-col gap-2">
+            <div class="pt-2 px-4 flex flex-col gap-2">
                 <Label className="text-sm font-medium">Quiz Management</Label>
-                <div className="p-4 border-dashed border-2 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">No quiz exists for this topic.</p>
+                <div class="p-4 border-dashed border-2 rounded-lg text-center">
+                    <p class="text-sm text-muted-foreground">No quiz exists for this topic.</p>
                     <Button variant="link" onClick={handleAddQuiz}>Create a Manual Quiz</Button>
                 </div>
             </div>
@@ -177,9 +177,9 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     }
 
     return (
-         <div className="pt-2 px-4 flex flex-col gap-4">
+         <div class="pt-2 px-4 flex flex-col gap-4">
             <Label className="text-sm font-medium">Quiz Management</Label>
-            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
+            <div class="p-4 bg-muted/30 rounded-lg space-y-4">
                 {quiz.questions.map((q, qIndex) => (
                     <Card key={q.id}>
                         <CardHeader className='flex-row items-center justify-between p-4'>
@@ -284,14 +284,16 @@ export default function EditCoursePage() {
     const [courseImageUrl, setCourseImageUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
+    const [totalDurationHours, setTotalDurationHours] = useState<number | string | null>(null);
+
 
     const [chapters, setChapters] = useState<ChapterState[]>([]);
 
     // A ref to hold the latest state, used for debounced saving
-    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters });
+    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, totalDurationHours, chapters });
     useEffect(() => {
-        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters };
-    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters]);
+        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, totalDurationHours, chapters };
+    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, totalDurationHours, chapters]);
 
 
     const handleStateChange = (setter: Function) => (...args: any[]) => {
@@ -344,6 +346,7 @@ export default function EditCoursePage() {
                 setCourseImageUrl(course.image_url || '');
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
+                setTotalDurationHours(course.total_duration_hours);
 
                 setChapters(course.chapters.map(c => ({
                     id: c.id,
@@ -396,6 +399,7 @@ export default function EditCoursePage() {
             image_url: currentState.courseImageUrl,
             is_paid: currentState.isPaid,
             price: Number(currentState.price),
+            total_duration_hours: currentState.totalDurationHours ? Number(currentState.totalDurationHours) : null,
             chapters: currentState.chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
                 title: chapter.title,
@@ -583,6 +587,8 @@ export default function EditCoursePage() {
      const handleIsPaidChange = handleStateChange(setIsPaid);
      
      const handlePriceChange = handleStateChange(setPrice);
+
+     const handleDurationChange = handleStateChange(setTotalDurationHours);
      
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -648,6 +654,22 @@ export default function EditCoursePage() {
                                     <div className="space-y-2">
                                         <Label htmlFor="course-description">Description</Label>
                                         <Textarea id="course-description" value={courseDescription} onChange={e => handleDescriptionChange(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
+                                    </div>
+                                     <div className="space-y-2">
+                                        <Label htmlFor="course-duration">Total Duration (hours)</Label>
+                                        <div className="relative">
+                                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                id="course-duration"
+                                                type="number"
+                                                value={totalDurationHours || ''}
+                                                onChange={e => handleDurationChange(e.target.value)}
+                                                placeholder="e.g., 8.5"
+                                                className="pl-8"
+                                                step="0.5"
+                                                min="0"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Course Image</Label>
