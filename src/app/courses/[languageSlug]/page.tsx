@@ -6,25 +6,11 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { LogIn, Star, GitCompareArrows, Heart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Star } from 'lucide-react';
 import { getCourseBySlug } from '@/lib/supabase/queries';
 import { createClient } from '@/lib/supabase/server';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { ReviewAndRatingSection } from '@/components/review-rating-section';
 import { Badge } from '@/components/ui/badge';
-import { CourseActionCard } from '@/components/course-action-card';
-import { CourseContentAccordion } from '@/components/course-content-accordion';
+import { CourseActionCard, CourseContentAccordion, ReviewAndRatingSection } from '@/components';
 import Image from 'next/image';
 
 
