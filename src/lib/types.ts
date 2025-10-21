@@ -44,7 +44,10 @@ export type CourseReview = Database['public']['Tables']['course_reviews']['Row']
     profiles: Pick<UserProfile, 'full_name' | 'avatar_url'> | null;
 };
 export type CourseGift = Database['public']['Tables']['course_gifts']['Row'];
-export type Game = Database['public']['Tables']['games']['Row'];
+export type Game = Database['public']['Tables']['games']['Row'] & {
+    language?: string;
+};
+export type GameChapter = Database['public']['Tables']['game_chapters']['Row'];
 export type GameLevel = Database['public']['Tables']['game_levels']['Row'];
 
 
@@ -75,6 +78,15 @@ export interface UserCourseProgress {
     progress_percentage: number;
 }
 
+
+export type GameChapterWithLevels = GameChapter & {
+    game_levels: GameLevel[];
+};
+
+export type GameWithChaptersAndLevels = Game & {
+    game_chapters: GameChapterWithLevels[];
+};
+// This was the old flat structure, it has been replaced by GameWithChaptersAndLevels
 export type GameWithLevels = Game & {
     game_levels: GameLevel[];
 };

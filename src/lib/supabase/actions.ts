@@ -4,7 +4,7 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel } from '@/lib/types';
+import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter } from '@/lib/types';
 import crypto from 'crypto';
 import placeholderGames from '@/lib/placeholder-games.json';
 
@@ -500,9 +500,22 @@ export async function giftCourseToUser(courseId: string, recipientEmail: string)
     return { success: true, message: `Successfully gifted the course to ${recipientEmail}!` };
 }
 
-export async function createGame(gameData: Omit<Game, 'id' | 'created_at'> & { levels: Omit<GameLevel, 'id' | 'created_at' | 'game_id'>[] }) {
+interface LevelData extends Omit<GameLevel, 'id' | 'created_at' | 'chapter_id' | 'order'> {
+    id: string; // Temporary client-side ID
+    order: number;
+}
+interface GameChapterData extends Omit<GameChapter, 'id' | 'created_at' | 'game_id' | 'order'> {
+    id: string; // Temporary client-side ID
+    order: number;
+    game_levels: LevelData[];
+}
+interface GameData extends Omit<Game, 'id' | 'created_at'> {
+    game_chapters: GameChapterData[];
+}
+
+export async function createGame(gameData: GameData) {
     const supabase = createClient();
-    const { levels, ...restOfGameData } = gameData;
+    const { game_chapters, ...restOfGameData } = gameData;
 
     const { data: newGame, error: gameError } = await supabase
         .from('games')
@@ -511,23 +524,37 @@ export async function createGame(gameData: Omit<Game, 'id' | 'created_at'> & { l
         .single();
 
     if (gameError) {
-        console.error('Error creating game:', gameError);
-        return { success: false, error: gameError.message };
+        return { success: false, error: `Game creation failed: ${gameError.message}` };
     }
 
-    if (levels && levels.length > 0) {
-        const levelsToInsert = levels.map((level, index) => ({
-            ...level,
-            game_id: newGame.id,
-            order: index + 1,
-        }));
-        const { error: levelsError } = await supabase.from('game_levels').insert(levelsToInsert as any);
+    for (const chapterData of game_chapters) {
+        const { game_levels, ...restOfChapterData } = chapterData;
+        const { data: newChapter, error: chapterError } = await supabase
+            .from('game_chapters')
+            .insert({ ...restOfChapterData, game_id: newGame.id })
+            .select()
+            .single();
 
-        if (levelsError) {
-            console.error('Error creating levels:', levelsError);
-            // Rollback game creation
+        if (chapterError) {
+            console.error('Error creating game chapter:', chapterError.message);
+            // Rollback game creation for consistency
             await supabase.from('games').delete().eq('id', newGame.id);
-            return { success: false, error: levelsError.message };
+            return { success: false, error: chapterError.message };
+        }
+
+        if (game_levels && game_levels.length > 0) {
+            const levelsToInsert = game_levels.map(level => ({
+                ...level,
+                id: undefined, // Let Supabase generate UUID
+                chapter_id: newChapter.id
+            }));
+            const { error: levelsError } = await supabase.from('game_levels').insert(levelsToInsert as any);
+
+            if (levelsError) {
+                console.error('Error creating game levels:', levelsError.message);
+                await supabase.from('games').delete().eq('id', newGame.id);
+                return { success: false, error: levelsError.message };
+            }
         }
     }
     
@@ -537,10 +564,10 @@ export async function createGame(gameData: Omit<Game, 'id' | 'created_at'> & { l
     return { success: true, gameId: newGame.id };
 }
 
+
 export async function seedDemoGames() {
     const supabase = createClient();
 
-    // Check if games already exist to prevent duplicates
     const { data: existingGames, error: fetchError } = await supabase
         .from('games')
         .select('title');
@@ -557,11 +584,11 @@ export async function seedDemoGames() {
     }
 
     for (const game of gamesToInsert) {
-        const { levels, ...gameData } = game;
+        const { chapters, ...gameData } = game;
         
         const { data: newGame, error: gameError } = await supabase
             .from('games')
-            .insert(gameData as Omit<Game, 'id' | 'created_at'>)
+            .insert(gameData as any)
             .select()
             .single();
 
@@ -570,26 +597,49 @@ export async function seedDemoGames() {
             return { success: false, error: `Failed to insert game "${game.title}": ${gameError.message}` };
         }
 
-        const levelsToInsert = levels.map((level, index) => ({
-            ...level,
-            game_id: newGame.id,
-            order: index + 1,
-        }));
+        for (const chapter of chapters) {
+            const { levels, ...chapterData } = chapter;
+            const { data: newChapter, error: chapterError } = await supabase
+                .from('game_chapters')
+                .insert({ ...chapterData, game_id: newGame.id })
+                .select().single();
 
-        const { error: levelsError } = await supabase
-            .from('game_levels')
-            .insert(levelsToInsert as Omit<GameLevel, 'id' | 'created_at'>[]);
+            if (chapterError) {
+                 await supabase.from('games').delete().eq('id', newGame.id);
+                 return { success: false, error: `Failed to insert chapter for "${game.title}": ${chapterError.message}` };
+            }
 
-        if (levelsError) {
-            console.error(`Error inserting levels for "${game.title}":`, levelsError);
-            // Rollback the game insertion for consistency
-            await supabase.from('games').delete().eq('id', newGame.id);
-            return { success: false, error: `Failed to insert levels for "${game.title}": ${levelsError.message}` };
+            const levelsToInsert = levels.map((level: any, index: number) => ({
+                ...level,
+                chapter_id: newChapter.id,
+                order: index + 1
+            }));
+
+            if (levelsToInsert.length > 0) {
+                const { error: levelsError } = await supabase
+                    .from('game_levels')
+                    .insert(levelsToInsert);
+                if (levelsError) {
+                    await supabase.from('games').delete().eq('id', newGame.id);
+                    return { success: false, error: `Failed to insert levels for "${game.title}": ${levelsError.message}` };
+                }
+            }
         }
     }
     
     revalidatePath('/admin/games');
     revalidatePath('/playground');
 
+    return { success: true };
+}
+
+export async function deleteGame(gameId: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from('games').delete().eq('id', gameId);
+    if (error) {
+        return { success: false, error: `Failed to delete game: ${error.message}` };
+    }
+    revalidatePath('/admin/games');
+    revalidatePath('/playground');
     return { success: true };
 }

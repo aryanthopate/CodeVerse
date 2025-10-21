@@ -9,34 +9,40 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { X, Plus, Trash2, Gamepad2, Upload, Image as ImageIcon, Book } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useParams, notFound } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
-import { createGame } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/client';
+import { getGameById } from '@/lib/supabase/queries';
+import type { GameWithChaptersAndLevels, GameChapter, GameLevel } from '@/lib/types';
 
-interface GameLevelState {
+
+interface GameLevelState extends Partial<GameLevel> {
     id: string;
     title: string;
     objective: string;
-    starter_code: string;
-    expected_output: string;
+    starter_code?: string | null;
+    expected_output?: string | null;
     reward_xp: number | string;
     order: number;
 }
 
-interface GameChapterState {
+interface GameChapterState extends Partial<GameChapter> {
     id: string;
     title: string;
     order: number;
     game_levels: GameLevelState[];
 }
 
-export default function NewGamePage() {
+
+export default function EditGamePage() {
     const router = useRouter();
+    const params = useParams();
+    const gameId = params.gameId as string;
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
     const supabase = createClient();
 
     const [title, setTitle] = useState('');
@@ -46,11 +52,32 @@ export default function NewGamePage() {
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [isFree, setIsFree] = useState(true);
     
-    const [chapters, setChapters] = useState<GameChapterState[]>([
-        { id: `chap-${Date.now()}`, title: 'Chapter 1', order: 1, game_levels: [
-            { id: `lvl-${Date.now()}`, title: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100, order: 1 }
-        ]}
-    ]);
+    const [chapters, setChapters] = useState<GameChapterState[]>([]);
+
+    const fetchGame = useCallback(async () => {
+        if (!gameId) return;
+        setInitialLoading(true);
+        const gameData = await getGameById(gameId);
+        if (gameData) {
+            setTitle(gameData.title);
+            setDescription(gameData.description || '');
+            setLanguage(gameData.language || '');
+            setThumbnailUrl(gameData.thumbnail_url || '');
+            setIsFree(gameData.is_free);
+            setChapters(gameData.game_chapters.map(c => ({
+                ...c,
+                game_levels: c.game_levels as GameLevelState[]
+            })));
+        } else {
+            notFound();
+        }
+        setInitialLoading(false);
+    }, [gameId]);
+
+    useEffect(() => {
+        fetchGame();
+    }, [fetchGame]);
+
     
     const handleAddChapter = () => {
         const newOrder = chapters.length + 1;
@@ -113,65 +140,74 @@ export default function NewGamePage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        let finalThumbnailUrl = thumbnailUrl;
 
-        const gamePayload = {
-            title,
-            description,
-            language,
-            thumbnail_url: '', // Will be updated after upload
-            is_free: isFree,
-            game_chapters: chapters,
-        };
+        if (thumbnailFile) {
+            const filePath = `${gameId}/${thumbnailFile.name}`;
+            const { error: uploadError } = await supabase.storage
+                .from('game_thumbnails')
+                .upload(filePath, thumbnailFile, { cacheControl: '3600', upsert: true });
 
-        const result = await createGame(gamePayload as any);
-
-        if (result.success && result.gameId) {
-             if (thumbnailFile) {
-                const filePath = `${result.gameId}/${thumbnailFile.name}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('game_thumbnails')
-                    .upload(filePath, thumbnailFile, {
-                        cacheControl: '3600',
-                        upsert: true,
-                    });
-                
-                if(uploadError) {
-                    toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
-                    // Don't stop the whole process, but log the error
-                } else {
-                    const { data: { publicUrl } } = supabase.storage.from('game_thumbnails').getPublicUrl(filePath);
-                    
-                    // Update the game with the thumbnail URL
-                    await supabase
-                        .from('games')
-                        .update({ thumbnail_url: publicUrl })
-                        .eq('id', result.gameId);
-                }
+            if (uploadError) {
+                toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
+            } else {
+                finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
             }
-
-            toast({
-                title: "Game Created!",
-                description: `${title} has been successfully added.`,
-            });
-            router.push('/admin/games');
-
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: result.error || "Could not save the game.",
-            });
         }
-        
+
+        const { error: gameError } = await supabase.from('games').update({
+            title, description, language, thumbnail_url: finalThumbnailUrl, is_free
+        }).eq('id', gameId);
+
+        if (gameError) {
+            toast({ variant: 'destructive', title: 'Update Failed', description: gameError.message });
+            setLoading(false);
+            return;
+        }
+
+        // ... Logic to upsert chapters and levels ...
+        for (const chapter of chapters) {
+            const isNewChapter = chapter.id.startsWith('chap-');
+            const { data: upsertedChapter, error: chapterError } = await supabase.from('game_chapters').upsert({
+                id: isNewChapter ? undefined : chapter.id,
+                game_id: gameId,
+                title: chapter.title,
+                order: chapter.order,
+            }).select().single();
+
+            if (chapterError) { console.error('Chapter upsert failed:', chapterError); continue; }
+
+            for (const level of chapter.game_levels) {
+                const isNewLevel = level.id.startsWith('lvl-');
+                await supabase.from('game_levels').upsert({
+                    id: isNewLevel ? undefined : level.id,
+                    chapter_id: upsertedChapter!.id,
+                    title: level.title,
+                    objective: level.objective,
+                    starter_code: level.starter_code,
+                    expected_output: level.expected_output,
+                    reward_xp: Number(level.reward_xp),
+                    order: level.order,
+                });
+            }
+        }
+
+
+        toast({ title: "Game Updated!", description: `${title} has been saved.` });
+        router.push('/admin/games');
         setLoading(false);
     };
+
+    if (initialLoading) {
+        return <AdminLayout><div>Loading game editor...</div></AdminLayout>
+    }
 
     return (
         <AdminLayout>
              <div className="space-y-8">
                 <div>
-                    <h1 className="text-4xl font-bold">Create a New Game</h1>
-                    <p className="text-lg text-muted-foreground mt-1">Fill out the details to add a new coding game.</p>
+                    <h1 className="text-4xl font-bold">Edit Game</h1>
+                    <p className="text-lg text-muted-foreground mt-1">Now editing: <span className="font-semibold text-foreground">{title}</span></p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -232,7 +268,7 @@ export default function NewGamePage() {
                                 </CardContent>
                             </Card>
                              <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                                {loading ? 'Saving Game...' : 'Save and Publish Game'}
+                                {loading ? 'Saving Game...' : 'Save Changes'}
                             </Button>
                         </div>
 
@@ -267,11 +303,11 @@ export default function NewGamePage() {
                                                     </div>
                                                     <div className="space-y-2 md:col-span-2">
                                                         <Label htmlFor={`level-starter-code-${level.id}`}>Starter Code</Label>
-                                                        <Textarea id={`level-starter-code-${level.id}`} value={level.starter_code} onChange={e => handleLevelChange(chapter.id, level.id, 'starter_code', e.target.value)} placeholder="Provide some initial code for the user." className="min-h-[120px] font-mono" />
+                                                        <Textarea id={`level-starter-code-${level.id}`} value={level.starter_code || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'starter_code', e.target.value)} placeholder="Provide some initial code for the user." className="min-h-[120px] font-mono" />
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Label htmlFor={`level-expected-output-${level.id}`}>Expected Output</Label>
-                                                        <Textarea id={`level-expected-output-${level.id}`} value={level.expected_output} onChange={e => handleLevelChange(chapter.id, level.id, 'expected_output', e.target.value)} placeholder="What should the code output on success?" className="min-h-[60px] font-mono" />
+                                                        <Textarea id={`level-expected-output-${level.id}`} value={level.expected_output || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'expected_output', e.target.value)} placeholder="What should the code output on success?" className="min-h-[60px] font-mono" />
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Label htmlFor={`level-reward-xp-${level.id}`}>Reward XP</Label>
