@@ -424,7 +424,6 @@ export default function EditCoursePage() {
             is_paid: currentState.isPaid,
             price: Number(currentState.price),
             what_you_will_learn: currentState.whatYouWillLearn.filter(item => item.trim() !== ''),
-            is_bestseller: currentState.tags.includes('Bestseller'),
             tags: currentState.tags,
             students_enrolled: Number(currentState.studentsEnrolled),
             total_duration_hours: Number(currentState.totalDurationHours),

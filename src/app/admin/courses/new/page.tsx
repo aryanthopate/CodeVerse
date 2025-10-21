@@ -433,7 +433,6 @@ export default function NewCoursePage() {
             is_paid: isPaid,
             price: Number(price),
             what_you_will_learn: whatYouWillLearn.filter(item => item.trim() !== ''),
-            is_bestseller: tags.includes('Bestseller'), // Kept for legacy compatibility if needed
             tags: tags,
             students_enrolled: Number(studentsEnrolled),
             total_duration_hours: Number(totalDurationHours),
