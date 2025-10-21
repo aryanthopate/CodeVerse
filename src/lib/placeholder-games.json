@@ -1,0 +1,104 @@
+
+[
+    {
+        "title": "Python Variable Voyage",
+        "description": "Master the art of Python variables, from integers to strings, in this foundational adventure.",
+        "thumbnail_url": "https://picsum.photos/seed/py-vars/600/400",
+        "is_free": true,
+        "levels": [
+            {
+                "title": "First Assignment",
+                "objective": "Declare a variable named 'player_name' and assign it your name as a string.",
+                "starter_code": "# Your code here",
+                "expected_output": "",
+                "ai_hint_prompt": "Remember to use quotes for string values.",
+                "reward_xp": 100
+            },
+            {
+                "title": "Number Crunch",
+                "objective": "Create two variables, 'score' with a value of 100 and 'bonus' with a value of 25. Then create a third variable 'total_score' that is the sum of the first two.",
+                "starter_code": "score = 100\nbonus = 25\n# Your code here",
+                "expected_output": "",
+                "reward_xp": 150
+            }
+        ]
+    },
+    {
+        "title": "JavaScript Function Fortress",
+        "description": "Learn to build and call functions in JavaScript to create reusable blocks of code.",
+        "thumbnail_url": "https://picsum.photos/seed/js-func/600/400",
+        "is_free": true,
+        "levels": [
+            {
+                "title": "Hello, World!",
+                "objective": "Create a function named 'greet' that prints 'Hello, World!' to the console.",
+                "starter_code": "function greet() {\n  // Your code here\n}\n\ngreet();",
+                "expected_output": "Hello, World!",
+                "ai_hint_prompt": "Use `console.log()` to print text.",
+                "reward_xp": 100
+            },
+            {
+                "title": "Personalized Greeting",
+                "objective": "Modify the 'greet' function to accept a 'name' parameter and print 'Hello, [name]!'.",
+                "starter_code": "function greet(name) {\n  // Your code here\n}\n\ngreet('CodeVerse');",
+                "expected_output": "Hello, CodeVerse!",
+                "reward_xp": 200
+            }
+        ]
+    },
+    {
+        "title": "HTML Structure Spire",
+        "description": "Climb the spire of web development by mastering the fundamental tags of HTML.",
+        "thumbnail_url": "https://picsum.photos/seed/html-spire/600/400",
+        "is_free": true,
+        "levels": [
+            {
+                "title": "The Main Title",
+                "objective": "Create a main heading (h1) with the text 'Welcome to my Page'.",
+                "starter_code": "<!-- Your code here -->",
+                "expected_output": "<h1>Welcome to my Page</h1>",
+                "ai_hint_prompt": "The tag for the largest heading is `<h1>`.",
+                "reward_xp": 50
+            },
+            {
+                "title": "Paragraph Power",
+                "objective": "Below the h1, add a paragraph (`<p>` tag) with the text 'This is my first webpage.'",
+                "starter_code": "<h1>Welcome to my Page</h1>\n<!-- Your code here -->",
+                "expected_output": "<h1>Welcome to my Page</h1>\n<p>This is my first webpage.</p>",
+                "reward_xp": 75
+            }
+        ]
+    },
+    {
+        "title": "CSS Style Citadel",
+        "description": "Defend the citadel of blandness by applying colors and styles using CSS selectors.",
+        "thumbnail_url": "https://picsum.photos/seed/css-citadel/600/400",
+        "is_free": false,
+        "levels": [
+            {
+                "title": "Coloring the Title",
+                "objective": "Select the `h1` element and give it the color 'blue'.",
+                "starter_code": "h1 {\n  /* Your code here */\n}",
+                "expected_output": "h1 { color: blue; }",
+                "ai_hint_prompt": "The CSS property for text color is `color`.",
+                "reward_xp": 120
+            }
+        ]
+    },
+    {
+        "title": "Java Object Outpost",
+        "description": "Establish an outpost of object-oriented programming by creating classes and objects in Java.",
+        "thumbnail_url": "https://picsum.photos/seed/java-oop/600/400",
+        "is_free": false,
+        "levels": [
+            {
+                "title": "The Player Class",
+                "objective": "Define a simple 'Player' class with a 'name' field and a 'score' field.",
+                "starter_code": "public class Player {\n  // Your code here\n}",
+                "expected_output": "public class Player {\n  String name;\n  int score;\n}",
+                "ai_hint_prompt": "Remember to declare the type for each field, like `String` for text and `int` for whole numbers.",
+                "reward_xp": 250
+            }
+        ]
+    }
+]

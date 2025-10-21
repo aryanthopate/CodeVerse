@@ -4,8 +4,9 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course } from '@/lib/types';
+import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel } from '@/lib/types';
 import crypto from 'crypto';
+import placeholderGames from '@/lib/placeholder-games.json';
 
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
     id?: string; // id is present when updating
@@ -497,4 +498,61 @@ export async function giftCourseToUser(courseId: string, recipientEmail: string)
     }
     
     return { success: true, message: `Successfully gifted the course to ${recipientEmail}!` };
+}
+
+export async function seedDemoGames() {
+    const supabase = createClient();
+
+    // Check if games already exist to prevent duplicates
+    const { data: existingGames, error: fetchError } = await supabase
+        .from('games')
+        .select('title');
+
+    if (fetchError) {
+        return { success: false, error: `Failed to check for existing games: ${fetchError.message}` };
+    }
+
+    const existingTitles = existingGames.map(g => g.title);
+    const gamesToInsert = placeholderGames.filter(g => !existingTitles.includes(g.title));
+
+    if (gamesToInsert.length === 0) {
+        return { success: false, error: 'Demo games have already been seeded.' };
+    }
+
+    for (const game of gamesToInsert) {
+        const { levels, ...gameData } = game;
+        
+        const { data: newGame, error: gameError } = await supabase
+            .from('games')
+            .insert(gameData as Omit<Game, 'id' | 'created_at'>)
+            .select()
+            .single();
+
+        if (gameError) {
+            console.error(`Error inserting game "${game.title}":`, gameError);
+            return { success: false, error: `Failed to insert game "${game.title}": ${gameError.message}` };
+        }
+
+        const levelsToInsert = levels.map((level, index) => ({
+            ...level,
+            game_id: newGame.id,
+            order: index + 1,
+        }));
+
+        const { error: levelsError } = await supabase
+            .from('game_levels')
+            .insert(levelsToInsert as Omit<GameLevel, 'id' | 'created_at'>[]);
+
+        if (levelsError) {
+            console.error(`Error inserting levels for "${game.title}":`, levelsError);
+            // Rollback the game insertion for consistency
+            await supabase.from('games').delete().eq('id', newGame.id);
+            return { success: false, error: `Failed to insert levels for "${game.title}": ${levelsError.message}` };
+        }
+    }
+    
+    revalidatePath('/admin/games');
+    revalidatePath('/playground');
+
+    return { success: true };
 }
