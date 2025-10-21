@@ -3,7 +3,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithLevels } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithLevels, GameLevel } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -262,4 +262,34 @@ export async function getGameById(gameId: string): Promise<GameWithLevels | null
     }
 
     return data as GameWithLevels;
+}
+
+export async function getGameAndLevelDetails(gameId: string, levelId: string) {
+    const supabase = createClient();
+    
+    const { data: gameData, error: gameError } = await supabase
+        .from('games')
+        .select('*, game_levels(*)')
+        .eq('id', gameId)
+        .order('order', { foreignTable: 'game_levels', ascending: true })
+        .single();
+    
+    if(gameError || !gameData) {
+        console.error("Error fetching game details:", gameError?.message);
+        return { game: null, level: null, prevLevel: null, nextLevel: null };
+    }
+    
+    const game = gameData as GameWithLevels;
+    const allLevels = game.game_levels;
+    const currentLevelIndex = allLevels.findIndex(l => l.id === levelId);
+
+    if (currentLevelIndex === -1) {
+        return { game: game, level: null, prevLevel: null, nextLevel: null };
+    }
+
+    const currentLevel = allLevels[currentLevelIndex];
+    const prevLevel = currentLevelIndex > 0 ? allLevels[currentLevelIndex - 1] : null;
+    const nextLevel = currentLevelIndex < allLevels.length - 1 ? allLevels[currentLevelIndex + 1] : null;
+
+    return { game, level: currentLevel, prevLevel, nextLevel };
 }
