@@ -129,14 +129,28 @@ export default function CoursesShopPage() {
     const ActionButtons = ({course}: {course: CourseWithChaptersAndTopics}) => {
         const buttonActions = (
             <div className="w-full flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                    <p className="text-xl text-primary font-bold">{course.is_paid ? `₹${course.price}` : 'Free'}</p>
-                    <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
-                </div>
-                <div className="flex gap-2">
-                    <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
-                    <Button variant="secondary" className="w-full"><Zap className="mr-2 h-4 w-4"/> Buy Now</Button>
-                </div>
+                {course.is_paid ? (
+                    <>
+                        <div className="flex justify-between items-center">
+                            <p className="text-xl text-primary font-bold">{`₹${course.price}`}</p>
+                            <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
+                            <Button variant="secondary" className="w-full"><Zap className="mr-2 h-4 w-4"/> Buy Now</Button>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex justify-between items-center">
+                            <p className="text-xl text-primary font-bold">Free</p>
+                            <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
+                        </div>
+                        <Button className="w-full">
+                            <Link href={`/courses/${course.slug}`}>Enroll Now</Link>
+                        </Button>
+                    </>
+                )}
             </div>
         );
 
