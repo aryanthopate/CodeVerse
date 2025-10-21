@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { CourseActionCard, CourseContentAccordion, ReviewAndRatingSection } from '@/components';
 import Image from 'next/image';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 export default async function LanguagePage({ params }: { params: { languageSlug: string } }) {
@@ -43,11 +44,11 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                     <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
                     <p className="text-lg text-muted-foreground">{course.description}</p>
                     
-                    <div className="flex items-center gap-4 text-sm flex-wrap">
+                     <div className="flex items-center gap-4 text-sm flex-wrap">
                         <div className="flex items-center gap-2">
                            {(course.tags || []).map(tag => (
-                                <Badge key={tag} variant="secondary" className="capitalize bg-yellow-400/20 text-yellow-300 border-none">
-                                    {tag}
+                                <Badge key={tag.text} className={cn("border-none", tag.color)}>
+                                    {tag.text}
                                 </Badge>
                            ))}
                         </div>

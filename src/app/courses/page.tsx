@@ -32,6 +32,7 @@ import { enrollInCourse } from '@/lib/supabase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     return (
@@ -266,8 +267,8 @@ export default function CoursesShopPage() {
                                 </Link>
                                 <div className="absolute top-2 left-2 z-10 flex gap-2">
                                     {(course.tags || []).map(tag => (
-                                        <Badge key={tag} variant="secondary" className="capitalize bg-primary/80 text-primary-foreground border-none">
-                                            {tag}
+                                        <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
+                                            {tag.text}
                                         </Badge>
                                     ))}
                                 </div>

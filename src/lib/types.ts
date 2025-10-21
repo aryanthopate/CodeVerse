@@ -13,16 +13,20 @@ export interface UserProfile {
   role: 'user' | 'admin';
 }
 
+export interface Tag {
+  text: string;
+  color: string;
+}
+
 // Re-exporting Supabase generated types for convenience
 export type Course = Database['public']['Tables']['courses']['Row'] & {
     preview_video_url?: string | null;
     what_you_will_learn?: string[] | null;
-    is_bestseller?: boolean | null;
     students_enrolled?: number | null;
     language?: string | null;
     notes_url?: string | null;
     total_duration_hours?: number | null;
-    tags?: string[] | null;
+    tags?: Tag[] | null;
 };
 export type Chapter = Database['public']['Tables']['chapters']['Row'];
 export type Topic = Database['public']['Tables']['topics']['Row'] & {

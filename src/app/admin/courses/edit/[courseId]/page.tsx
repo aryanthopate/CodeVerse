@@ -15,7 +15,7 @@ import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIco
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption, Course } from '@/lib/types';
+import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption, Course, Tag as TagType } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
@@ -25,6 +25,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useDebouncedCallback } from 'use-debounce';
 import { generateCourseDescription } from '@/ai/flows/generate-course-description';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 
 type QuestionType = 'single' | 'multiple';
@@ -68,6 +70,16 @@ interface ChapterState {
     title: string;
     topics: TopicState[];
 }
+
+const tagColorClasses = [
+    { name: 'Blue', class: 'bg-blue-500/20 text-blue-300' },
+    { name: 'Green', class: 'bg-green-500/20 text-green-300' },
+    { name: 'Yellow', class: 'bg-yellow-500/20 text-yellow-300' },
+    { name: 'Red', class: 'bg-red-500/20 text-red-300' },
+    { name: 'Purple', class: 'bg-purple-500/20 text-purple-300' },
+    { name: 'Pink', class: 'bg-pink-500/20 text-pink-300' },
+    { name: 'Indigo', class: 'bg-indigo-500/20 text-indigo-300' },
+];
 
 function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic: TopicState; onTopicChange: (chapterId: string, topicId: string, field: keyof TopicState, value: any) => void; chapterId: string; topicId: string; }) {
     
@@ -292,7 +304,7 @@ export default function EditCoursePage() {
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
     const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
-    const [tags, setTags] = useState<string[]>([]);
+    const [tags, setTags] = useState<TagType[]>([]);
     const [currentTag, setCurrentTag] = useState('');
     const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
     const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
@@ -724,19 +736,16 @@ export default function EditCoursePage() {
         }
     };
     
-     const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && currentTag.trim() !== '') {
-            e.preventDefault();
-            if (!tags.includes(currentTag.trim())) {
-                setTags([...tags, currentTag.trim()]);
-                setSaveStatus('unsaved');
-            }
-            setCurrentTag('');
+    const handleAddTag = (color: string) => {
+        if (currentTag.trim() !== '' && !tags.some(tag => tag.text === currentTag.trim())) {
+            setTags([...tags, { text: currentTag.trim(), color }]);
+            setSaveStatus('unsaved');
         }
+        setCurrentTag('');
     };
 
     const removeTag = (tagToRemove: string) => {
-        setTags(tags.filter(tag => tag !== tagToRemove));
+        setTags(tags.filter(tag => tag.text !== tagToRemove));
         setSaveStatus('unsaved');
     };
     
@@ -892,31 +901,41 @@ export default function EditCoursePage() {
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="tags">Course Tags</Label>
-                                            <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px] items-center">
-                                                {tags.map(tag => (
-                                                    <div key={tag} className="flex items-center gap-1 bg-primary/20 text-primary-foreground px-2 py-1 rounded-full text-xs">
-                                                        <span className="capitalize">{tag}</span>
-                                                        <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-primary-foreground hover:text-white"><X className="h-3 w-3"/></button>
+                                     <div className="space-y-2">
+                                        <Label htmlFor="tags">Course Tags</Label>
+                                        <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px] items-center">
+                                            {tags.map(tag => (
+                                                <div key={tag.text} className={cn("flex items-center gap-1 text-primary-foreground px-2 py-1 rounded-full text-xs", tag.color)}>
+                                                    <span>{tag.text}</span>
+                                                    <button type="button" onClick={() => removeTag(tag.text)} className="ml-1 opacity-70 hover:opacity-100"><X className="h-3 w-3"/></button>
+                                                </div>
+                                            ))}
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                     <Input
+                                                        id="tags"
+                                                        value={currentTag}
+                                                        onChange={(e) => setCurrentTag(e.target.value)}
+                                                        placeholder="Add tag..."
+                                                        className="flex-1 border-0 bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none min-w-[80px]"
+                                                    />
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-2">
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {tagColorClasses.map(color => (
+                                                            <Button key={color.name} size="icon" variant="outline" className={cn("w-8 h-8 rounded-full", color.class)} onClick={() => handleAddTag(color.class)}>
+                                                                <span className="sr-only">{color.name}</span>
+                                                            </Button>
+                                                        ))}
                                                     </div>
-                                                ))}
-                                                <Input
-                                                    id="tags"
-                                                    value={currentTag}
-                                                    onChange={(e) => setCurrentTag(e.target.value)}
-                                                    onKeyDown={handleTagKeyDown}
-                                                    placeholder="Add a tag and press Enter"
-                                                    className="flex-1 border-0 bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none min-w-[120px]"
-                                                />
-                                            </div>
+                                                </PopoverContent>
+                                            </Popover>
                                         </div>
+                                    </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="students-enrolled">Students Enrolled (Fake)</Label>
                                             <Input id="students-enrolled" type="number" value={studentsEnrolled} onChange={e => handleStudentsEnrolledChange(e.target.value)} placeholder="e.g., 12345" />
                                         </div>
-                                    </div>
                                     
                                      <div className="space-y-2">
                                         <Label>Related Courses</Label>
