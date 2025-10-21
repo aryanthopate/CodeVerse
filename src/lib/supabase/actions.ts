@@ -20,8 +20,9 @@ interface ChapterData extends Omit<Chapter, 'id' | 'created_at' | 'course_id' | 
     topics: TopicData[];
 }
 
-interface CourseData extends Omit<Course, 'id' | 'created_at' | 'rating' | 'total_duration_hours'> {
+interface CourseData extends Omit<Course, 'id' | 'created_at' > {
     chapters: ChapterData[];
+    related_courses?: string[];
 }
 
 // Represents the state of a quiz from the client-side editor
@@ -51,7 +52,7 @@ interface OptionState extends Partial<QuestionOption> {
 export async function createCourse(courseData: CourseData) {
     const supabase = createClient();
     
-    const { chapters, ...restOfCourseData } = courseData;
+    const { chapters, related_courses, ...restOfCourseData } = courseData;
 
     const { data: course, error: courseError } = await supabase
         .from('courses')
@@ -62,6 +63,11 @@ export async function createCourse(courseData: CourseData) {
             image_url: restOfCourseData.image_url,
             is_paid: restOfCourseData.is_paid,
             price: restOfCourseData.price,
+            rating: restOfCourseData.rating,
+            total_duration_hours: restOfCourseData.total_duration_hours,
+            what_you_will_learn: restOfCourseData.what_you_will_learn,
+            is_bestseller: restOfCourseData.is_bestseller,
+            students_enrolled: restOfCourseData.students_enrolled
         })
         .select()
         .single();
@@ -69,6 +75,14 @@ export async function createCourse(courseData: CourseData) {
     if (courseError) {
         console.error('Error creating course:', courseError);
         return { success: false, error: courseError.message };
+    }
+
+    if (related_courses && related_courses.length > 0) {
+        const relationsToInsert = related_courses.map(relatedId => ({
+            course_id: course.id,
+            related_course_id: relatedId
+        }));
+        await supabase.from('related_courses').insert(relationsToInsert);
     }
 
     for (const [chapterIndex, chapterData] of chapters.entries()) {
@@ -196,16 +210,23 @@ async function upsertQuiz(quizData: QuizState, topicId: string) {
 
 export async function updateCourse(courseId: string, courseData: CourseData) {
     const supabase = createClient();
+    
+    const { chapters, related_courses, ...restOfCourseData } = courseData;
 
     const { error: courseError } = await supabase
         .from('courses')
         .update({
-            name: courseData.name,
-            slug: courseData.slug,
-            description: courseData.description,
-            image_url: courseData.image_url,
-            is_paid: courseData.is_paid,
-            price: courseData.price,
+            name: restOfCourseData.name,
+            slug: restOfCourseData.slug,
+            description: restOfCourseData.description,
+            image_url: restOfCourseData.image_url,
+            is_paid: restOfCourseData.is_paid,
+            price: restOfCourseData.price,
+            rating: restOfCourseData.rating,
+            total_duration_hours: restOfCourseData.total_duration_hours,
+            what_you_will_learn: restOfCourseData.what_you_will_learn,
+            is_bestseller: restOfCourseData.is_bestseller,
+            students_enrolled: restOfCourseData.students_enrolled
         })
         .eq('id', courseId);
 
@@ -213,6 +234,17 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
         console.error('Error updating course:', courseError);
         return { success: false, error: courseError.message };
     }
+
+    // Handle related courses
+    await supabase.from('related_courses').delete().eq('course_id', courseId);
+    if (related_courses && related_courses.length > 0) {
+        const relationsToInsert = related_courses.map(relatedId => ({
+            course_id: courseId,
+            related_course_id: relatedId
+        }));
+        await supabase.from('related_courses').insert(relationsToInsert);
+    }
+
 
     const { data: existingCourse } = await supabase
         .from('courses')

@@ -1,10 +1,11 @@
 
+
 'use client'
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock } from 'lucide-react';
+import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows } from 'lucide-react';
 import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -60,7 +61,7 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
     }, 0);
   }, 0);
 
-  const totalDurationHours = totalDurationMinutes > 0 ? (totalDurationMinutes / 60).toFixed(1) : null;
+  const totalDurationHours = course.total_duration_hours ? parseFloat(course.total_duration_hours as any).toFixed(1) : null;
 
 
   const startCourseButton = (
@@ -119,8 +120,8 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
                     </ul>
                 </div>
                 <div className="flex justify-around pt-4 border-t border-border/50">
-                    <Button variant="link" size="sm" className="text-muted-foreground">Share</Button>
-                    <Button variant="link" size="sm" className="text-muted-foreground">Gift this course</Button>
+                    <Button variant="link" size="sm" className="text-muted-foreground"><Heart className="mr-2 h-4 w-4" /> Add to Wishlist</Button>
+                    <Button variant="link" size="sm" className="text-muted-foreground"><GitCompareArrows className="mr-2 h-4 w-4" /> Compare</Button>
                 </div>
             </div>
         </div>

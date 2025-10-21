@@ -10,12 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
-import { getCourseBySlug } from '@/lib/supabase/queries';
+import { getCourseBySlug, getAllCoursesMinimal, getRelatedCourseIds } from '@/lib/supabase/queries';
 import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Clock } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption } from '@/lib/types';
+import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption, Course } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
@@ -285,14 +285,28 @@ export default function EditCoursePage() {
     const [courseImageUrl, setCourseImageUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
+    const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
+    const [isBestseller, setIsBestseller] = useState(false);
+    const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
+    const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
+    const [allCourses, setAllCourses] = useState<{ id: string; name: string }[]>([]);
     
     const [chapters, setChapters] = useState<ChapterState[]>([]);
 
-    // A ref to hold the latest state, used for debounced saving
-    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters });
     useEffect(() => {
-        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters };
-    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters]);
+        const fetchAllCourses = async () => {
+            const courses = await getAllCoursesMinimal();
+            setAllCourses(courses.filter(c => c.id !== courseId)); // Exclude self
+        };
+        fetchAllCourses();
+    }, [courseId]);
+
+
+    // A ref to hold the latest state, used for debounced saving
+    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters });
+    useEffect(() => {
+        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters };
+    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters]);
 
 
     const handleStateChange = (setter: Function) => (...args: any[]) => {
@@ -326,30 +340,26 @@ export default function EditCoursePage() {
         if (!courseId) return;
         setInitialLoading(true);
         try {
-            const { data: courseData, error } = await supabase
-                .from('courses')
-                .select('*, chapters(*, topics(*, quizzes(*, questions(*, question_options(*)))))')
-                .eq('id', courseId)
-                .order('order', { foreignTable: 'chapters', ascending: true })
-                .order('order', { foreignTable: 'chapters.topics', ascending: true })
-                .order('order', { foreignTable: 'chapters.topics.quizzes.questions', ascending: true })
-                .single();
-            
-            if (error) throw error;
-            
-            if (courseData) {
-                const course = courseData as unknown as CourseWithChaptersAndTopics;
+            const courseResult = await getCourseBySlug(courseId);
+            const relatedIds = await getRelatedCourseIds(courseId);
+
+            if (courseResult) {
+                const course = courseResult as unknown as Course;
                 setCourseName(course.name);
                 setCourseSlug(course.slug);
                 setCourseDescription(course.description || '');
                 setCourseImageUrl(course.image_url || '');
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
+                setWhatYouWillLearn(course.what_you_will_learn || ['']);
+                setIsBestseller(course.is_bestseller || false);
+                setStudentsEnrolled(course.students_enrolled || 0);
+                setRelatedCourses(relatedIds);
 
-                setChapters(course.chapters.map(c => ({
+                setChapters((course as any).chapters.map((c: any) => ({
                     id: c.id,
                     title: c.title,
-                    topics: (c.topics || []).map(t => ({
+                    topics: (c.topics || []).map((t: any) => ({
                         id: t.id,
                         title: t.title,
                         slug: t.slug,
@@ -381,7 +391,7 @@ export default function EditCoursePage() {
         } finally {
             setInitialLoading(false);
         }
-    }, [courseId, supabase, toast]);
+    }, [courseId, toast]);
 
     useEffect(() => {
         fetchCourse();
@@ -391,6 +401,10 @@ export default function EditCoursePage() {
         setSaveStatus('saving');
         const currentState = stateRef.current;
         
+        const totalDuration = currentState.chapters.reduce((total, chapter) => 
+            total + chapter.topics.reduce((chapterTotal, topic) => 
+                chapterTotal + Number(topic.duration_minutes || 0), 0), 0);
+
         const courseData = {
             name: currentState.courseName,
             slug: currentState.courseSlug,
@@ -398,6 +412,11 @@ export default function EditCoursePage() {
             image_url: currentState.courseImageUrl,
             is_paid: currentState.isPaid,
             price: Number(currentState.price),
+            what_you_will_learn: currentState.whatYouWillLearn.filter(item => item.trim() !== ''),
+            is_bestseller: currentState.isBestseller,
+            students_enrolled: Number(currentState.studentsEnrolled),
+            total_duration_hours: totalDuration > 0 ? (totalDuration / 60).toFixed(1) : null,
+            related_courses: currentState.relatedCourses,
             chapters: currentState.chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
                 title: chapter.title,
@@ -442,29 +461,7 @@ export default function EditCoursePage() {
                     });
                 }
                 setSaveStatus('saved');
-                // Re-fetch to get the updated data with new DB-generated IDs, without resetting the whole page state
-                // This ensures accordion states etc. are maintained
-                const refreshedCourse = await getCourseBySlug(courseData.slug);
-                if (refreshedCourse) {
-                    setChapters(refreshedCourse.chapters.map(c => ({
-                        id: c.id,
-                        title: c.title,
-                        topics: (c.topics || []).map(t => ({
-                            id: t.id,
-                            title: t.title,
-                            slug: t.slug,
-                            is_free: t.is_free,
-                            video_url: t.video_url || '',
-                            duration_minutes: t.duration_minutes || 0,
-                            content: t.content || '',
-                            summary: t.summary || '',
-                            explanation: t.explanation || '',
-                            uploadProgress: undefined,
-                            quizzes: t.quizzes ? (Array.isArray(t.quizzes) ? t.quizzes : [t.quizzes]) : []
-                        }))
-                    })));
-                }
-
+                fetchCourse(); // Re-fetch to get updated IDs and state
             } else {
                 throw new Error(result.error || 'An unknown error occurred');
             }
@@ -476,7 +473,7 @@ export default function EditCoursePage() {
             });
             setSaveStatus('unsaved');
         }
-    }, [courseId, toast]);
+    }, [courseId, toast, fetchCourse]);
 
 
     const debouncedSave = useDebouncedCallback(() => {
@@ -577,16 +574,36 @@ export default function EditCoursePage() {
         }, 2000);
     };
 
+    const handleWhatYouWillLearnChange = (index: number, value: string) => {
+        const newItems = [...whatYouWillLearn];
+        newItems[index] = value;
+        setWhatYouWillLearn(newItems);
+        setSaveStatus('unsaved');
+    };
+
+    const addWhatYouWillLearnItem = () => {
+        setWhatYouWillLearn([...whatYouWillLearn, '']);
+        setSaveStatus('unsaved');
+    };
+
+    const removeWhatYouWillLearnItem = (index: number) => {
+        const newItems = whatYouWillLearn.filter((_, i) => i !== index);
+        setWhatYouWillLearn(newItems);
+        setSaveStatus('unsaved');
+    };
+
+     const handleRelatedCourseChange = (courseId: string) => {
+        setRelatedCourses(prev => prev.includes(courseId) ? prev.filter(id => id !== courseId) : [...prev, courseId]);
+        setSaveStatus('unsaved');
+    }
 
      const handleCourseNameChange = handleStateChange(setCourseName);
-    
      const handleSlugChange = handleStateChange(setCourseSlug);
-
      const handleDescriptionChange = handleStateChange(setCourseDescription);
-
      const handleIsPaidChange = handleStateChange(setIsPaid);
-     
      const handlePriceChange = handleStateChange(setPrice);
+     const handleIsBestsellerChange = handleStateChange(setIsBestseller);
+     const handleStudentsEnrolledChange = handleStateChange(setStudentsEnrolled);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSaveStatus('unsaved');
@@ -674,6 +691,56 @@ export default function EditCoursePage() {
                                             </CardContent>
                                         </Card>
                                     </div>
+                                    
+                                     <div className="space-y-2">
+                                        <Label>What You'll Learn</Label>
+                                        <div className="space-y-2">
+                                            {whatYouWillLearn.map((item, index) => (
+                                                <div key={index} className="flex items-center gap-2">
+                                                    <Input
+                                                        value={item}
+                                                        onChange={e => handleWhatYouWillLearnChange(index, e.target.value)}
+                                                        placeholder={`Learning objective ${index + 1}`}
+                                                    />
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeWhatYouWillLearnItem(index)} disabled={whatYouWillLearn.length <= 1}>
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                            <Button type="button" variant="outline" size="sm" onClick={addWhatYouWillLearnItem}><Plus className="mr-2 h-4 w-4"/>Add Objective</Button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                            <div className="space-y-0.5">
+                                                <Label>Bestseller Status</Label>
+                                                <CardDescription>Mark this course as a bestseller.</CardDescription>
+                                            </div>
+                                            <Switch checked={isBestseller} onCheckedChange={handleIsBestsellerChange} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="students-enrolled">Students Enrolled (Fake)</Label>
+                                            <Input id="students-enrolled" type="number" value={studentsEnrolled} onChange={e => handleStudentsEnrolledChange(e.target.value)} placeholder="e.g., 12345" />
+                                        </div>
+                                    </div>
+                                    
+                                     <div className="space-y-2">
+                                        <Label>Related Courses</Label>
+                                        <div className="p-4 border rounded-md max-h-48 overflow-y-auto space-y-2">
+                                            {allCourses.map(course => (
+                                                <div key={course.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`related-${course.id}`}
+                                                        checked={relatedCourses.includes(course.id)}
+                                                        onCheckedChange={() => handleRelatedCourseChange(course.id)}
+                                                    />
+                                                    <Label htmlFor={`related-${course.id}`} className="font-normal">{course.name}</Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                      <div className="space-y-2">
                                       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">

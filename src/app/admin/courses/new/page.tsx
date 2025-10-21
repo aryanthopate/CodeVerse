@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
+import { getAllCoursesMinimal } from '@/lib/supabase/queries';
 import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
@@ -253,6 +254,7 @@ export default function NewCoursePage() {
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
+    const [allCourses, setAllCourses] = useState<{ id: string; name: string }[]>([]);
 
     const [courseName, setCourseName] = useState('');
     const [courseSlug, setCourseSlug] = useState('');
@@ -260,7 +262,19 @@ export default function NewCoursePage() {
     const [courseImageUrl, setCourseImageUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
+    const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
+    const [isBestseller, setIsBestseller] = useState(false);
+    const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
+    const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
     
+    useEffect(() => {
+        const fetchCourses = async () => {
+            const courses = await getAllCoursesMinimal();
+            setAllCourses(courses);
+        };
+        fetchCourses();
+    }, []);
+
     const [chapters, setChapters] = useState<ChapterState[]>([
         { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0, content: '', summary: '', explanation: '', uploadProgress: undefined, quizzes: [] }] }
     ]);
@@ -352,9 +366,32 @@ export default function NewCoursePage() {
         }
     };
 
+    const handleWhatYouWillLearnChange = (index: number, value: string) => {
+        const newItems = [...whatYouWillLearn];
+        newItems[index] = value;
+        setWhatYouWillLearn(newItems);
+    };
+
+    const addWhatYouWillLearnItem = () => {
+        setWhatYouWillLearn([...whatYouWillLearn, '']);
+    };
+
+    const removeWhatYouWillLearnItem = (index: number) => {
+        const newItems = whatYouWillLearn.filter((_, i) => i !== index);
+        setWhatYouWillLearn(newItems);
+    };
+
+    const handleRelatedCourseChange = (courseId: string) => {
+        setRelatedCourses(prev => prev.includes(courseId) ? prev.filter(id => id !== courseId) : [...prev, courseId]);
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        const totalDuration = chapters.reduce((total, chapter) => 
+            total + chapter.topics.reduce((chapterTotal, topic) => 
+                chapterTotal + Number(topic.duration_minutes || 0), 0), 0);
 
         const courseData = {
             name: courseName,
@@ -363,6 +400,12 @@ export default function NewCoursePage() {
             image_url: courseImageUrl || `https://picsum.photos/seed/${courseSlug}/600/400`,
             is_paid: isPaid,
             price: Number(price),
+            what_you_will_learn: whatYouWillLearn.filter(item => item.trim() !== ''),
+            is_bestseller: isBestseller,
+            students_enrolled: Number(studentsEnrolled),
+            rating: null,
+            total_duration_hours: totalDuration > 0 ? (totalDuration / 60).toFixed(1) : null,
+            related_courses: relatedCourses,
             chapters: chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id,
                 title: chapter.title,
@@ -449,7 +492,57 @@ export default function NewCoursePage() {
                                             </CardContent>
                                         </Card>
                                     </div>
+
                                     <div className="space-y-2">
+                                        <Label>What You'll Learn</Label>
+                                        <div className="space-y-2">
+                                            {whatYouWillLearn.map((item, index) => (
+                                                <div key={index} className="flex items-center gap-2">
+                                                    <Input
+                                                        value={item}
+                                                        onChange={e => handleWhatYouWillLearnChange(index, e.target.value)}
+                                                        placeholder={`Learning objective ${index + 1}`}
+                                                    />
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeWhatYouWillLearnItem(index)} disabled={whatYouWillLearn.length <= 1}>
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                            <Button type="button" variant="outline" size="sm" onClick={addWhatYouWillLearnItem}><Plus className="mr-2 h-4 w-4"/>Add Objective</Button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                            <div className="space-y-0.5">
+                                                <Label>Bestseller Status</Label>
+                                                <CardDescription>Mark this course as a bestseller.</CardDescription>
+                                            </div>
+                                            <Switch checked={isBestseller} onCheckedChange={setIsBestseller} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="students-enrolled">Students Enrolled (Fake)</Label>
+                                            <Input id="students-enrolled" type="number" value={studentsEnrolled} onChange={e => setStudentsEnrolled(e.target.value)} placeholder="e.g., 12345" />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Related Courses</Label>
+                                        <div className="p-4 border rounded-md max-h-48 overflow-y-auto space-y-2">
+                                            {allCourses.map(course => (
+                                                <div key={course.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`related-${course.id}`}
+                                                        checked={relatedCourses.includes(course.id)}
+                                                        onCheckedChange={() => handleRelatedCourseChange(course.id)}
+                                                    />
+                                                    <Label htmlFor={`related-${course.id}`} className="font-normal">{course.name}</Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                     <div className="space-y-2">
                                       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">
                                           <Label>Paid Course</Label>

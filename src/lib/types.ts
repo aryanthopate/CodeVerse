@@ -45,6 +45,7 @@ export type ChapterWithTopics = Chapter & {
 
 export type CourseWithChaptersAndTopics = Course & {
   chapters: ChapterWithTopics[];
+  related_courses?: Course[];
 };
 
 export interface UserCourseProgress {

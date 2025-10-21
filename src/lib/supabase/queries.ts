@@ -64,6 +64,17 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
                         )
                     )
                 )
+            ),
+            related_courses!inner (
+                course_id,
+                related_course_id,
+                courses!related_course_id (
+                  id,
+                  name,
+                  slug,
+                  image_url,
+                  description
+                )
             )
         `)
         .eq('slug', slug)
@@ -74,10 +85,32 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
     
     if (error) {
         console.error("Error fetching course by slug:", error.message);
+        // If the error is because there are no related courses, we can still return the course
+        if (error.code === 'PGRST116') {
+             const { data: courseWithoutRelations, error: courseError } = await supabase
+                .from('courses')
+                .select(`*, chapters(*, topics(*, quizzes(*, questions(*, question_options(*)))))`)
+                .eq('slug', slug)
+                .order('order', { foreignTable: 'chapters', ascending: true })
+                .order('order', { foreignTable: 'chapters.topics', ascending: true })
+                .order('order', { foreignTable: 'chapters.topics.quizzes.questions', ascending: true })
+                .single();
+            if (courseError) {
+                 console.error("Error fetching course without relations:", courseError.message);
+                 return null;
+            }
+            return courseWithoutRelations as unknown as CourseWithChaptersAndTopics;
+        }
+
         return null;
     }
+    
+    const transformedCourse = {
+        ...course,
+        related_courses: course.related_courses.map((rc: any) => rc.courses)
+    };
 
-    return course as unknown as CourseWithChaptersAndTopics;
+    return transformedCourse as unknown as CourseWithChaptersAndTopics;
 }
 
 export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: string) {
@@ -170,4 +203,25 @@ export async function getUserEnrollments(userId: string): Promise<{ enrolledCour
     const enrolledCourses = enrollments.map(e => e.courses) as unknown as CourseWithChaptersAndTopics[];
 
     return { enrolledCourses, enrollments: enrollments as UserEnrollment[] };
+}
+
+
+export async function getAllCoursesMinimal() {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('courses').select('id, name');
+    if (error) {
+        console.error("Error fetching minimal courses:", error);
+        return [];
+    }
+    return data;
+}
+
+export async function getRelatedCourseIds(courseId: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('related_courses').select('related_course_id').eq('course_id', courseId);
+    if(error) {
+        console.error("Error fetching related course ids", error);
+        return [];
+    }
+    return data.map(r => r.related_course_id);
 }
