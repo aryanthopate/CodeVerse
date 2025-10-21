@@ -139,7 +139,9 @@ export default function CoursesShopPage() {
                             </CardHeader>
                             <CardContent className="p-6 flex-grow">
                                 <CardTitle className="text-2xl font-bold">{course.name}</CardTitle>
-                                <CardDescription className="mt-2 text-sm">{course.description}</CardDescription>
+                                <CardDescription className="mt-2 text-sm">
+                                   {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
+                                </CardDescription>
                             </CardContent>
                             <CardFooter className="p-6 pt-0">
                                 {userProgress ? (
