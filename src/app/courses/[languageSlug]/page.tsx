@@ -207,17 +207,28 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                         <ul className="space-y-2">
                             {chapter.topics.map(topic => (
                             <li key={topic.id}>
-                                <Link href={topic.is_free ? `/courses/${course.slug}/${topic.slug}` : '#'}>
-                                <div className={`flex items-center p-3 rounded-lg transition-colors ${topic.is_free ? 'hover:bg-muted/50' : 'opacity-60 cursor-not-allowed'}`}>
-                                    <div className={`mr-4 ${topic.is_free ? 'text-primary' : 'text-muted-foreground'}`}>
-                                    {topic.is_free ? <PlayCircle /> : <Lock />}
-                                    </div>
-                                    <span className="flex-grow">{topic.title}</span>
-                                    {!topic.is_free && (
-                                        <Button size="sm" variant="secondary" className="bg-accent/80 text-accent-foreground hover:bg-accent">Subscribe</Button>
-                                    )}
-                                </div>
-                                </Link>
+                                {user ? (
+                                    <Link href={`/courses/${course.slug}/${topic.slug}`}>
+                                        <div className={`flex items-center p-3 rounded-lg transition-colors ${topic.is_free ? 'hover:bg-muted/50' : 'hover:bg-muted/50'}`}>
+                                            <div className={`mr-4 ${topic.is_free ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                {topic.is_free || !course.is_paid ? <PlayCircle /> : <Lock />}
+                                            </div>
+                                            <span className="flex-grow">{topic.title}</span>
+                                        </div>
+                                    </Link>
+                                ) : (
+                                    <AuthRequiredDialog>
+                                        <div className={`flex items-center p-3 rounded-lg transition-colors ${topic.is_free ? 'hover:bg-muted/50 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}>
+                                            <div className={`mr-4 ${topic.is_free ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                {topic.is_free ? <PlayCircle /> : <Lock />}
+                                            </div>
+                                            <span className="flex-grow">{topic.title}</span>
+                                            {!topic.is_free && course.is_paid && (
+                                                <Button size="sm" variant="secondary" className="bg-accent/80 text-accent-foreground hover:bg-accent" onClick={(e) => e.stopPropagation()}>Subscribe</Button>
+                                            )}
+                                        </div>
+                                    </AuthRequiredDialog>
+                                )}
                             </li>
                             ))}
                         </ul>
