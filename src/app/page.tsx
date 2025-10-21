@@ -12,7 +12,7 @@ import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
-import { createClient } from './lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import {
   AlertDialog,
   AlertDialogAction,
