@@ -26,53 +26,53 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
   }
   
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div class="flex flex-col min-h-screen bg-background">
       <Header />
 
       {/* Hero Section */}
-      <div className="bg-card/30 border-b border-border/50">
-        <div className="container mx-auto py-12">
-            <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-4">
-                    <nav className="text-sm text-muted-foreground">
-                        <Link href="/courses" className="hover:text-primary">Courses</Link>
-                        <span className="mx-2">&gt;</span>
+      <div class="bg-card/30 border-b border-border/50">
+        <div class="container mx-auto py-12">
+            <div class="grid lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 space-y-4">
+                    <nav class="text-sm text-muted-foreground">
+                        <Link href="/courses" class="hover:text-primary">Courses</Link>
+                        <span class="mx-2">&gt;</span>
                         <span>{course.name}</span>
                     </nav>
                     
-                    <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
-                    <p className="text-lg text-muted-foreground">{course.description}</p>
+                    <h1 class="text-4xl md:text-5xl font-bold">{course.name}</h1>
+                    <p class="text-lg text-muted-foreground">{course.description}</p>
                     
-                    <div className="flex items-center gap-4 text-sm flex-wrap">
-                        {course.is_bestseller && <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-300 border-none">Bestseller</Badge>}
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-yellow-400">{course.rating?.toFixed(1) || 'N/A'}</span>
-                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <div class="flex items-center gap-4 text-sm flex-wrap">
+                        {course.is_bestseller && <Badge variant="secondary" class="bg-yellow-400/20 text-yellow-300 border-none">Bestseller</Badge>}
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-yellow-400">{course.rating?.toFixed(1) || 'N/A'}</span>
+                            <Star class="w-4 h-4 text-yellow-400 fill-yellow-400" />
                         </div>
-                        <p className="text-muted-foreground">(1,234 ratings)</p>
-                        <p className="text-muted-foreground">{course.students_enrolled || 0} students</p>
+                        <p class="text-muted-foreground">(1,234 ratings)</p>
+                        <p class="text-muted-foreground">{course.students_enrolled || 0} students</p>
                     </div>
-                     <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                        {course.language && <div className="flex items-center gap-2"><Globe2 className="w-4 h-4" /><span>{course.language}</span></div>}
-                        <div className="flex items-center gap-2"><RefreshCw className="w-4 h-4" /><span>Last updated {format(new Date(course.created_at), 'MM/yyyy')}</span></div>
+                     <div class="flex items-center gap-6 text-sm text-muted-foreground">
+                        {course.language && <div class="flex items-center gap-2"><Globe2 class="w-4 h-4" /><span>{course.language}</span></div>}
+                        <div class="flex items-center gap-2"><RefreshCw class="w-4 h-4" /><span>Last updated {format(new Date(course.created_at), 'MM/yyyy')}</span></div>
                     </div>
                 </div>
             </div>
         </div>
       </div>
 
-      <main className="flex-grow py-12">
-        <div className="container mx-auto">
-            <div className="grid lg:grid-cols-3 gap-12">
+      <main class="flex-grow py-12">
+        <div class="container mx-auto">
+            <div class="grid lg:grid-cols-3 gap-12">
             
-            <div className="lg:col-span-2 space-y-12">
+            <div class="lg:col-span-2 space-y-12">
               
               {/* What you'll learn */}
-              <div className="p-6 bg-card/50 rounded-xl border border-border/50">
-                <h2 className="text-3xl font-bold mb-4">What you'll learn</h2>
-                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+              <div class="p-6 bg-card/50 rounded-xl border border-border/50">
+                <h2 class="text-3xl font-bold mb-4">What you'll learn</h2>
+                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                     {(course.what_you_will_learn || []).map((item, index) => (
-                        <li key={index} className="flex items-start gap-3"><span className="text-primary mt-1">✓</span><span>{item}</span></li>
+                        <li key={index} class="flex items-start gap-3"><span class="text-primary mt-1">✓</span><span>{item}</span></li>
                     ))}
                 </ul>
               </div>
@@ -82,16 +82,16 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
 
               {/* Related Courses */}
               {course.related_courses && course.related_courses.length > 0 && (
-                  <div className="pt-6">
-                      <h2 className="text-3xl font-bold mb-4">Related Courses</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="pt-6">
+                      <h2 class="text-3xl font-bold mb-4">Related Courses</h2>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {course.related_courses.map(related => (
                               <Link key={related.id} href={`/courses/${related.slug}`}>
-                                  <div className="p-4 bg-card/50 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors flex items-center gap-4">
-                                      <Image src={related.image_url || ''} alt={related.name} width={120} height={80} className="rounded-md object-cover" />
+                                  <div class="p-4 bg-card/50 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors flex items-center gap-4">
+                                      <Image src={related.image_url || ''} alt={related.name} width={120} height={80} class="rounded-md object-cover" />
                                       <div>
-                                          <h4 className="font-semibold">{related.name}</h4>
-                                          <p className="text-sm text-muted-foreground line-clamp-2">{related.description}</p>
+                                          <h4 class="font-semibold">{related.name}</h4>
+                                          <p class="text-sm text-muted-foreground line-clamp-2">{related.description}</p>
                                       </div>
                                   </div>
                               </Link>
@@ -101,13 +101,13 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
               )}
 
               {/* Reviews Section */}
-              <div className="pt-6">
+              <div class="pt-6">
                   <ReviewAndRatingSection courseId={course.id} />
               </div>
             </div>
             
-            <div className="lg:col-span-1 relative">
-                <div className="sticky top-24 w-full">
+            <div class="lg:col-span-1 relative">
+                <div class="sticky top-24 w-full">
                     <CourseActionCard course={course} user={user} />
                 </div>
             </div>
