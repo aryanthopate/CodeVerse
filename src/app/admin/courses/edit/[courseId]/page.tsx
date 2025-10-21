@@ -167,10 +167,10 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     
     if (!quiz) {
         return (
-            <div class="pt-2 px-4 flex flex-col gap-2">
-                <Label class="text-sm font-medium">Quiz Management</Label>
-                <div class="p-4 border-dashed border-2 rounded-lg text-center">
-                    <p class="text-sm text-muted-foreground">No quiz exists for this topic.</p>
+            <div className="pt-2 px-4 flex flex-col gap-2">
+                <Label className="text-sm font-medium">Quiz Management</Label>
+                <div className="p-4 border-dashed border-2 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">No quiz exists for this topic.</p>
                     <Button variant="link" onClick={handleAddQuiz}>Create a Manual Quiz</Button>
                 </div>
             </div>
@@ -178,16 +178,16 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     }
 
     return (
-         <div class="pt-2 px-4 flex flex-col gap-4">
-            <Label class="text-sm font-medium">Quiz Management</Label>
-            <div class="p-4 bg-muted/30 rounded-lg space-y-4">
+         <div className="pt-2 px-4 flex flex-col gap-4">
+            <Label className="text-sm font-medium">Quiz Management</Label>
+            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
                 {quiz.questions.map((q, qIndex) => (
                     <Card key={q.id}>
-                        <CardHeader class='flex-row items-center justify-between p-4'>
-                            <CardTitle class='text-lg'>Question {qIndex + 1}</CardTitle>
-                            <div class='flex items-center gap-2'>
+                        <CardHeader className='flex-row items-center justify-between p-4'>
+                            <CardTitle className='text-lg'>Question {qIndex + 1}</CardTitle>
+                            <div className='flex items-center gap-2'>
                                  <Select value={q.question_type} onValueChange={(value: QuestionType) => handleQuestionChange(q.id, 'question_type', value)}>
-                                    <SelectTrigger class="w-[180px] h-9">
+                                    <SelectTrigger className="w-[180px] h-9">
                                         <SelectValue placeholder="Question Type" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -195,20 +195,20 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                                         <SelectItem value="multiple">Multiple Choice</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id)}><Trash2 class="text-destructive h-4 w-4"/></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id)}><Trash2 className="text-destructive h-4 w-4"/></Button>
                             </div>
                         </CardHeader>
-                        <CardContent class="p-4 pt-0 space-y-4">
+                        <CardContent className="p-4 pt-0 space-y-4">
                             <Textarea 
                                 placeholder="Enter question text..." 
                                 value={q.question_text}
                                 onChange={e => handleQuestionChange(q.id, 'question_text', e.target.value)}
                             />
-                            <div class='space-y-2'>
-                                <Label class="text-xs">Options</Label>
+                            <div className='space-y-2'>
+                                <Label className="text-xs">Options</Label>
                                 {q.question_options.map(opt => (
-                                    <div key={opt.id} class="flex items-start gap-2">
-                                        <div class='pt-2.5'>
+                                    <div key={opt.id} className="flex items-start gap-2">
+                                        <div className='pt-2.5'>
                                         {q.question_type === 'single' ? (
                                             <RadioGroup
                                                 value={q.question_options.find(o => o.is_correct)?.id}
@@ -224,29 +224,29 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                                             />
                                         )}
                                         </div>
-                                        <div class='flex-grow space-y-2'>
+                                        <div className='flex-grow space-y-2'>
                                             <Input 
                                                 value={opt.option_text}
                                                 onChange={(e) => handleOptionChange(q.id, opt.id, 'option_text', e.target.value)}
-                                                class="h-9"
+                                                className="h-9"
                                                 placeholder="Option text..."
                                             />
                                             <Textarea 
                                                 value={opt.explanation || ''}
                                                 onChange={(e) => handleOptionChange(q.id, opt.id, 'explanation', e.target.value)}
-                                                class="min-h-[60px] text-xs"
+                                                className="min-h-[60px] text-xs"
                                                 placeholder="Explanation for this option..."
                                             />
                                         </div>
-                                        <Button variant="ghost" size="icon" class='mt-1' onClick={() => handleRemoveOption(q.id, opt.id)}><X class="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className='mt-1' onClick={() => handleRemoveOption(q.id, opt.id)}><X className="h-4 w-4"/></Button>
                                     </div>
                                 ))}
-                                <Button variant="outline" size="sm" onClick={() => handleAddOption(q.id)}><Plus class="mr-2 h-4 w-4"/>Add Option</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleAddOption(q.id)}><Plus className="mr-2 h-4 w-4"/>Add Option</Button>
                             </div>
                         </CardContent>
                     </Card>
                 ))}
-                <Button onClick={handleAddQuestion}><Plus class="mr-2"/>Add Question</Button>
+                <Button onClick={handleAddQuestion}><Plus className="mr-2"/>Add Question</Button>
             </div>
         </div>
     );
@@ -256,14 +256,14 @@ type SaveStatus = 'unsaved' | 'saving' | 'saved';
 
 function AutoSaveStatus({ status }: { status: SaveStatus }) {
     const messages = {
-        unsaved: { icon: <Save class="h-4 w-4 text-yellow-500" />, text: "Unsaved changes" },
-        saving: { icon: <Loader2 class="h-4 w-4 animate-spin" />, text: "Saving..." },
-        saved: { icon: <Save class="h-4 w-4 text-green-500" />, text: "All changes saved" },
+        unsaved: { icon: <Save className="h-4 w-4 text-yellow-500" />, text: "Unsaved changes" },
+        saving: { icon: <Loader2 className="h-4 w-4 animate-spin" />, text: "Saving..." },
+        saved: { icon: <Save className="h-4 w-4 text-green-500" />, text: "All changes saved" },
     };
     const { icon, text } = messages[status];
     
     return (
-        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {icon}
             <span>{text}</span>
         </div>
@@ -676,26 +676,26 @@ export default function EditCoursePage() {
 
     return (
         <AdminLayout>
-             <div class="space-y-8">
-                <div class="flex justify-between items-center">
+             <div className="space-y-8">
+                <div className="flex justify-between items-center">
                     <div>
-                        <h1 class="text-4xl font-bold">Edit Course</h1>
-                        <p class="text-lg text-muted-foreground mt-1">Editing course: <span class="font-semibold text-foreground">{courseName}</span></p>
+                        <h1 className="text-4xl font-bold">Edit Course</h1>
+                        <p className="text-lg text-muted-foreground mt-1">Editing course: <span className="font-semibold text-foreground">{courseName}</span></p>
                     </div>
                     <AutoSaveStatus status={saveStatus} />
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         {/* Course Details Column */}
-                        <div class="lg:col-span-1 space-y-6 sticky top-8">
+                        <div className="lg:col-span-1 space-y-6 sticky top-8">
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Course Details</CardTitle>
                                     <CardDescription>Provide the main details for the course.</CardDescription>
                                 </CardHeader>
-                                <CardContent class="space-y-4">
-                                    <div class="space-y-2">
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
                                         <Label htmlFor="course-name">Course Name</Label>
                                         <Input id="course-name" value={courseName} onChange={e => {
                                             setCourseName(e.target.value);
@@ -703,129 +703,129 @@ export default function EditCoursePage() {
                                             setSaveStatus('unsaved');
                                         }} placeholder="e.g., Introduction to Python" required />
                                     </div>
-                                    <div class="space-y-2">
+                                    <div className="space-y-2">
                                         <Label htmlFor="course-slug">Course Slug</Label>
                                         <Input id="course-slug" value={courseSlug} onChange={e => handleSlugChange(e.target.value)} placeholder="e.g., python-intro" required />
                                     </div>
-                                    <div class="space-y-2">
+                                    <div className="space-y-2">
                                         <Label htmlFor="course-description">Description</Label>
-                                        <Textarea id="course-description" value={courseDescription} onChange={e => handleDescriptionChange(e.target.value)} placeholder="A brief summary of the course." class="min-h-[100px]"/>
+                                        <Textarea id="course-description" value={courseDescription} onChange={e => handleDescriptionChange(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
                                     </div>
                                      
-                                    <div class="space-y-2">
+                                    <div className="space-y-2">
                                         <Label>Course Image</Label>
-                                        <Card class="border-dashed">
-                                            <CardContent class="p-4">
-                                                <div class="flex flex-col items-center justify-center space-y-2">
+                                        <Card className="border-dashed">
+                                            <CardContent className="p-4">
+                                                <div className="flex flex-col items-center justify-center space-y-2">
                                                     {courseImageUrl ? (
-                                                        <Image src={courseImageUrl} alt="Image preview" width={400} height={200} class="rounded-md max-h-40 w-auto object-contain"/>
+                                                        <Image src={courseImageUrl} alt="Image preview" width={400} height={200} className="rounded-md max-h-40 w-auto object-contain"/>
                                                     ) : (
-                                                        <div class="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                                                            <ImageIcon class="w-6 h-6 text-muted-foreground" />
+                                                        <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                                                            <ImageIcon className="w-6 h-6 text-muted-foreground" />
                                                         </div>
                                                     )}
-                                                    <Input id="image-upload" type="file" class="sr-only" onChange={handleImageChange} accept="image/*"/>
-                                                    <Label htmlFor="image-upload" class="cursor-pointer text-primary text-sm underline">
+                                                    <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*"/>
+                                                    <Label htmlFor="image-upload" className="cursor-pointer text-primary text-sm underline">
                                                         {courseImageUrl ? 'Change image' : 'Upload an image'}
                                                     </Label>
-                                                    <p class="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
+                                                    <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
                                                 </div>
                                             </CardContent>
                                         </Card>
                                     </div>
                                     
-                                     <div class="space-y-2">
+                                     <div className="space-y-2">
                                         <Label htmlFor="preview-video-url">Preview Video URL</Label>
                                         <Input id="preview-video-url" value={previewVideoUrl} onChange={e => handlePreviewVideoUrlChange(e.target.value)} placeholder="e.g., https://www.youtube.com/watch?v=..." />
                                     </div>
 
-                                    <div class="space-y-2">
+                                    <div className="space-y-2">
                                         <Label htmlFor="language">Language of Teaching</Label>
                                         <Input id="language" value={language} onChange={e => handleLanguageChange(e.target.value)} placeholder="e.g., English" />
                                     </div>
 
-                                    <div class="space-y-2">
+                                    <div className="space-y-2">
                                         <Label>Course Notes</Label>
-                                         <div class="flex items-center gap-2">
+                                         <div className="flex items-center gap-2">
                                             <Input 
                                                 value={notesUrl} 
                                                 onChange={e => handleNotesUrlChange(e.target.value)} 
                                                 placeholder="Upload a file or paste a link"
-                                                class="flex-grow"
+                                                className="flex-grow"
                                             />
                                             <Button type="button" variant="outline" size="icon" asChild>
-                                                <Label htmlFor="notes-upload" class="cursor-pointer">
-                                                    <Upload class="h-4 w-4" />
-                                                    <span class="sr-only">Upload Notes</span>
+                                                <Label htmlFor="notes-upload" className="cursor-pointer">
+                                                    <Upload className="h-4 w-4" />
+                                                    <span className="sr-only">Upload Notes</span>
                                                 </Label>
                                             </Button>
-                                            <Input id="notes-upload" type="file" class="sr-only" onChange={(e) => handleFileChange(e, 'notes_url')} />
+                                            <Input id="notes-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'notes_url')} />
                                         </div>
                                          {notesUploadProgress !== undefined && (
-                                            <div class="mt-2 space-y-1">
-                                                <Progress value={notesUploadProgress} class="h-2" />
-                                                <p class="text-xs text-muted-foreground text-center">{notesUploadProgress === 100 ? "Upload complete!" : `Uploading... ${notesUploadProgress}%`}</p>
+                                            <div className="mt-2 space-y-1">
+                                                <Progress value={notesUploadProgress} className="h-2" />
+                                                <p className="text-xs text-muted-foreground text-center">{notesUploadProgress === 100 ? "Upload complete!" : `Uploading... ${notesUploadProgress}%`}</p>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div class="space-y-2">
+                                    <div className="space-y-2">
                                         <Label htmlFor="total-duration">Total Duration (Hours)</Label>
                                         <Input id="total-duration" type="number" value={totalDurationHours} onChange={e => handleTotalDurationChange(e.target.value)} placeholder="e.g., 8" />
                                     </div>
 
-                                     <div class="space-y-2">
+                                     <div className="space-y-2">
                                         <Label>What You'll Learn</Label>
-                                        <div class="space-y-2">
+                                        <div className="space-y-2">
                                             {whatYouWillLearn.map((item, index) => (
-                                                <div key={index} class="flex items-center gap-2">
+                                                <div key={index} className="flex items-center gap-2">
                                                     <Input
                                                         value={item}
                                                         onChange={e => handleWhatYouWillLearnChange(index, e.target.value)}
                                                         placeholder={`Learning objective ${index + 1}`}
                                                     />
                                                     <Button type="button" variant="ghost" size="icon" onClick={() => removeWhatYouWillLearnItem(index)} disabled={whatYouWillLearn.length <= 1}>
-                                                        <X class="h-4 w-4" />
+                                                        <X className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             ))}
-                                            <Button type="button" variant="outline" size="sm" onClick={addWhatYouWillLearnItem}><Plus class="mr-2 h-4 w-4"/>Add Objective</Button>
+                                            <Button type="button" variant="outline" size="sm" onClick={addWhatYouWillLearnItem}><Plus className="mr-2 h-4 w-4"/>Add Objective</Button>
                                         </div>
                                     </div>
                                     
-                                    <div class="space-y-4">
-                                        <div class="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                            <div class="space-y-0.5">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                            <div className="space-y-0.5">
                                                 <Label>Bestseller Status</Label>
                                                 <CardDescription>Mark this course as a bestseller.</CardDescription>
                                             </div>
                                             <Switch checked={isBestseller} onCheckedChange={handleIsBestsellerChange} />
                                         </div>
-                                        <div class="space-y-2">
+                                        <div className="space-y-2">
                                             <Label htmlFor="students-enrolled">Students Enrolled (Fake)</Label>
                                             <Input id="students-enrolled" type="number" value={studentsEnrolled} onChange={e => handleStudentsEnrolledChange(e.target.value)} placeholder="e.g., 12345" />
                                         </div>
                                     </div>
                                     
-                                     <div class="space-y-2">
+                                     <div className="space-y-2">
                                         <Label>Related Courses</Label>
-                                        <div class="p-4 border rounded-md max-h-48 overflow-y-auto space-y-2">
+                                        <div className="p-4 border rounded-md max-h-48 overflow-y-auto space-y-2">
                                             {allCourses.map(course => (
-                                                <div key={course.id} class="flex items-center space-x-2">
+                                                <div key={course.id} className="flex items-center space-x-2">
                                                     <Checkbox
                                                         id={`related-${course.id}`}
                                                         checked={relatedCourses.includes(course.id)}
                                                         onCheckedChange={() => handleRelatedCourseChange(course.id)}
                                                     />
-                                                    <Label htmlFor={`related-${course.id}`} class="font-normal">{course.name}</Label>
+                                                    <Label htmlFor={`related-${course.id}`} className="font-normal">{course.name}</Label>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
 
-                                     <div class="space-y-2">
-                                      <div class="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <div class="space-y-0.5">
+                                     <div className="space-y-2">
+                                      <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
                                           <Label>Paid Course</Label>
                                           <CardDescription>Is this a premium course?</CardDescription>
                                         </div>
@@ -836,17 +836,17 @@ export default function EditCoursePage() {
                                       </div>
                                     </div>
                                      {isPaid && (
-                                        <div class="space-y-2">
+                                        <div className="space-y-2">
                                             <Label htmlFor="course-price">Price (₹)</Label>
-                                            <div class="relative">
-                                                <IndianRupee class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <div className="relative">
+                                                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                                 <Input
                                                     id="course-price"
                                                     type="number"
                                                     value={price}
                                                     onChange={e => handlePriceChange(e.target.value)}
                                                     placeholder="e.g., 499"
-                                                    class="pl-8"
+                                                    className="pl-8"
                                                     min="0"
                                                 />
                                             </div>
@@ -854,124 +854,124 @@ export default function EditCoursePage() {
                                     )}
                                 </CardContent>
                             </Card>
-                             <Button type="submit" size="lg" class="w-full" disabled={saveStatus === 'saving'}>
+                             <Button type="submit" size="lg" className="w-full" disabled={saveStatus === 'saving'}>
                                 {saveStatus === 'saving' ? 'Saving...' : 'Save Changes'}
                             </Button>
                         </div>
 
                         {/* Chapters and Topics Column */}
-                        <div class="lg:col-span-2 space-y-6">
+                        <div className="lg:col-span-2 space-y-6">
                             {chapters.map((chapter, chapterIndex) => (
-                                <Card key={chapter.id} class="bg-muted/30">
-                                    <CardHeader class="flex flex-row items-center justify-between">
-                                        <div class="space-y-1.5 flex-grow mr-4">
-                                            <CardTitle class="flex items-center gap-2"><Book class="text-primary"/> Chapter {chapterIndex + 1}</CardTitle>
-                                            <Input placeholder="Chapter Title, e.g., 'Getting Started'" value={chapter.title} onChange={e => handleChapterChange(chapter.id!, e.target.value)} required class="text-lg font-semibold p-0 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"/>
+                                <Card key={chapter.id} className="bg-muted/30">
+                                    <CardHeader className="flex flex-row items-center justify-between">
+                                        <div className="space-y-1.5 flex-grow mr-4">
+                                            <CardTitle className="flex items-center gap-2"><Book className="text-primary"/> Chapter {chapterIndex + 1}</CardTitle>
+                                            <Input placeholder="Chapter Title, e.g., 'Getting Started'" value={chapter.title} onChange={e => handleChapterChange(chapter.id!, e.target.value)} required className="text-lg font-semibold p-0 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"/>
                                         </div>
                                         <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveChapter(chapter.id!)}>
-                                            <X class="text-destructive"/>
+                                            <X className="text-destructive"/>
                                         </Button>
                                     </CardHeader>
-                                    <CardContent class="space-y-4 pl-10">
-                                         <Accordion type="single" collapsible class="w-full">
+                                    <CardContent className="space-y-4 pl-10">
+                                         <Accordion type="single" collapsible className="w-full">
                                             {chapter.topics.map((topic, topicIndex) => (
-                                                <AccordionItem key={topic.id} value={topic.id!} class="bg-background border rounded-lg mb-4">
-                                                    <AccordionTrigger class="p-4 text-base font-semibold hover:no-underline">
+                                                <AccordionItem key={topic.id} value={topic.id!} className="bg-background border rounded-lg mb-4">
+                                                    <AccordionTrigger className="p-4 text-base font-semibold hover:no-underline">
                                                         <span>Topic {topicIndex + 1}: {topic.title || 'New Topic'}</span>
                                                     </AccordionTrigger>
-                                                    <AccordionContent class="p-4 pt-0">
-                                                         <div class="flex flex-col gap-4 relative">
-                                                            <div class="flex items-start gap-4">
-                                                                <FileText class="mt-2.5 text-accent-foreground/50"/>
-                                                                <div class="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                                    <div class="space-y-2">
+                                                    <AccordionContent className="p-4 pt-0">
+                                                         <div className="flex flex-col gap-4 relative">
+                                                            <div className="flex items-start gap-4">
+                                                                <FileText className="mt-2.5 text-accent-foreground/50"/>
+                                                                <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                    <div className="space-y-2">
                                                                         <Label htmlFor={`topic-title-${chapter.id}-${topic.id}`}>Topic Title</Label>
                                                                         <Input id={`topic-title-${chapter.id}-${topic.id}`} value={topic.title} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'title', e.target.value)} placeholder="e.g., 'Variables'" required />
                                                                     </div>
-                                                                    <div class="space-y-2">
+                                                                    <div className="space-y-2">
                                                                         <Label htmlFor={`topic-slug-${chapter.id}-${topic.id}`}>Topic Slug</Label>
                                                                         <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
                                                                     </div>
-                                                                     <div class="space-y-2 sm:col-span-2">
+                                                                     <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-duration-${chapter.id}-${topic.id}`}>Duration (minutes)</Label>
                                                                         <Input id={`topic-duration-${chapter.id}-${topic.id}`} type="number" value={topic.duration_minutes} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'duration_minutes', e.target.value)} placeholder="e.g., 10" />
                                                                     </div>
-                                                                    <div class="space-y-2 sm:col-span-2">
+                                                                    <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File or URL</Label>
-                                                                        <div class="flex items-center gap-2">
+                                                                        <div className="flex items-center gap-2">
                                                                             <Input 
                                                                                 id={`topic-video-${chapter.id}-${topic.id}`} 
                                                                                 value={topic.video_url} 
                                                                                 onChange={e => handleTopicChange(chapter.id!, topic.id!, 'video_url', e.target.value)} 
                                                                                 placeholder="Upload a file or paste a direct video link"
-                                                                                class="flex-grow"
+                                                                                className="flex-grow"
                                                                             />
                                                                             <Button type="button" variant="outline" size="icon" asChild>
-                                                                                <Label htmlFor={`video-upload-${chapter.id}-${topic.id}`} class="cursor-pointer">
-                                                                                    <Upload class="h-4 w-4" />
-                                                                                    <span class="sr-only">Upload Video</span>
+                                                                                <Label htmlFor={`video-upload-${chapter.id}-${topic.id}`} className="cursor-pointer">
+                                                                                    <Upload className="h-4 w-4" />
+                                                                                    <span className="sr-only">Upload Video</span>
                                                                                 </Label>
                                                                             </Button>
-                                                                            <Input id={`video-upload-${chapter.id}-${topic.id}`} type="file" class="sr-only" accept="video/*" onChange={(e) => handleVideoFileChange(chapter.id!, topic.id!, e)} />
+                                                                            <Input id={`video-upload-${chapter.id}-${topic.id}`} type="file" className="sr-only" accept="video/*" onChange={(e) => handleVideoFileChange(chapter.id!, topic.id!, e)} />
                                                                         </div>
                                                                         {topic.uploadProgress !== undefined && (
-                                                                            <div class="mt-2 space-y-1">
-                                                                                <Progress value={topic.uploadProgress} class="h-2" />
-                                                                                <p class="text-xs text-muted-foreground text-center">{topic.uploadProgress === 100 ? "Upload complete!" : `Uploading... ${topic.uploadProgress}%`}</p>
+                                                                            <div className="mt-2 space-y-1">
+                                                                                <Progress value={topic.uploadProgress} className="h-2" />
+                                                                                <p className="text-xs text-muted-foreground text-center">{topic.uploadProgress === 100 ? "Upload complete!" : `Uploading... ${topic.uploadProgress}%`}</p>
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                    <div class="flex items-center space-x-2 sm:col-span-2 pt-2">
+                                                                    <div className="flex items-center space-x-2 sm:col-span-2 pt-2">
                                                                         <Switch
                                                                         id={`is-free-${chapter.id}-${topic.id}`}
                                                                         checked={topic.is_free}
                                                                         onCheckedChange={checked => handleTopicChange(chapter.id!, topic.id!, 'is_free', checked)}
                                                                         />
-                                                                        <Label htmlFor={`is-free-${chapter.id}-${topic.id}`} class="text-sm font-medium">This topic is a free preview</Label>
+                                                                        <Label htmlFor={`is-free-${chapter.id}-${topic.id}`} className="text-sm font-medium">This topic is a free preview</Label>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                             
-                                                            <div class="border-t border-dashed -mx-4 mt-2"></div>
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
 
-                                                            <div class="pt-2 px-4 flex flex-col gap-2">
-                                                                <Label class="text-sm font-medium">Video Summary</Label>
+                                                            <div className="pt-2 px-4 flex flex-col gap-2">
+                                                                <Label className="text-sm font-medium">Video Summary</Label>
                                                                 <Textarea 
                                                                     value={topic.summary || ''}
                                                                     onChange={e => handleTopicChange(chapter.id!, topic.id!, 'summary', e.target.value)}
                                                                     placeholder="Manually enter a summary for the video."
-                                                                    class="mt-2 min-h-[120px]"
+                                                                    className="mt-2 min-h-[120px]"
                                                                     rows={4}
                                                                 />
                                                             </div>
                                                             
-                                                            <div class="border-t border-dashed -mx-4 mt-2"></div>
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
 
-                                                            <div class="pt-2 px-4 flex flex-col gap-2">
-                                                                <Label class="text-sm font-medium">Coding Challenge (Markdown)</Label>
+                                                            <div className="pt-2 px-4 flex flex-col gap-2">
+                                                                <Label className="text-sm font-medium">Coding Challenge (Markdown)</Label>
                                                                 <Textarea 
                                                                     value={topic.content || ''}
                                                                     onChange={e => handleTopicChange(chapter.id!, topic.id!, 'content', e.target.value)}
                                                                     placeholder="Manually enter a coding challenge in Markdown format."
-                                                                    class="mt-2 min-h-[120px] font-mono"
+                                                                    className="mt-2 min-h-[120px] font-mono"
                                                                     rows={6}
                                                                 />
                                                             </div>
                                                             
-                                                            <div class="border-t border-dashed -mx-4 mt-2"></div>
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
                                                             
-                                                            <div class="pt-2 px-4 flex flex-col gap-2">
-                                                                <Label class="text-sm font-medium">Code Challenge Explanation</Label>
+                                                            <div className="pt-2 px-4 flex flex-col gap-2">
+                                                                <Label className="text-sm font-medium">Code Challenge Explanation</Label>
                                                                 <Textarea 
                                                                     value={topic.explanation || ''}
                                                                     onChange={e => handleTopicChange(chapter.id!, topic.id!, 'explanation', e.target.value)}
                                                                     placeholder="Explain the solution to the code challenge."
-                                                                    class="mt-2 min-h-[120px]"
+                                                                    className="mt-2 min-h-[120px]"
                                                                     rows={4}
                                                                 />
                                                             </div>
 
-                                                            <div class="border-t border-dashed -mx-4 mt-2"></div>
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
                                                             
                                                             <ManualQuizEditor 
                                                                 topic={topic} 
@@ -980,11 +980,11 @@ export default function EditCoursePage() {
                                                                 topicId={topic.id!}
                                                             />
 
-                                                            <div class="border-t border-dashed -mx-4 mt-2"></div>
+                                                            <div className="border-t border-dashed -mx-4 mt-2"></div>
 
-                                                            <div class="pt-4 px-4 flex justify-end">
+                                                            <div className="pt-4 px-4 flex justify-end">
                                                                 <Button type="button" variant="destructive" size="sm" onClick={() => handleRemoveTopic(chapter.id!, topic.id!)}>
-                                                                    <Trash2 class="w-4 h-4 mr-2"/>
+                                                                    <Trash2 className="w-4 h-4 mr-2"/>
                                                                     Delete Topic
                                                                 </Button>
                                                             </div>
@@ -994,13 +994,13 @@ export default function EditCoursePage() {
                                             ))}
                                         </Accordion>
                                         <Button type="button" variant="outline" onClick={() => handleAddTopic(chapter.id!)}>
-                                            <Plus class="mr-2"/> Add Topic
+                                            <Plus className="mr-2"/> Add Topic
                                         </Button>
                                     </CardContent>
                                 </Card>
                             ))}
-                             <Button type="button" onClick={handleAddChapter} class="w-full">
-                                <Plus class="mr-2"/> Add Another Chapter
+                             <Button type="button" onClick={handleAddChapter} className="w-full">
+                                <Plus className="mr-2"/> Add Another Chapter
                             </Button>
                         </div>
                     </div>
