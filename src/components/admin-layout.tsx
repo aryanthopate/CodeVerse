@@ -139,7 +139,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <AppHeader profile={profile} onLogout={handleLogout} />
           </div>
           <div className="flex-1 bg-card border rounded-xl p-4 md:p-6 lg:p-8 overflow-y-auto">
-            {children}
+            <div className="w-full">
+              {children}
+            </div>
           </div>
         </main>
       </div>
