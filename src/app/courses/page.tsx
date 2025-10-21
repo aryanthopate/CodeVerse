@@ -160,7 +160,7 @@ export default function CoursesShopPage() {
         );
 
         const freeActions = (
-            <div className='text-center space-y-2'>
+            <div className='flex items-center justify-center gap-4 w-full'>
                 <p className='text-xl font-bold text-primary'>Free</p>
                 {user ? enrollButton : <AuthRequiredDialog>{enrollButton}</AuthRequiredDialog>}
             </div>
