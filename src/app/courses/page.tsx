@@ -155,9 +155,7 @@ export default function CoursesShopPage() {
         };
 
         const enrollButton = (
-            <div className="w-full flex justify-center">
-                 <Button className="w-full max-w-xs" onClick={handleEnroll}>Enroll Now</Button>
-            </div>
+            <Button className="w-full max-w-xs" onClick={handleEnroll}>Enroll Now</Button>
         );
 
         if (!user && !course.is_paid) {
@@ -261,11 +259,11 @@ export default function CoursesShopPage() {
                                         </div>
                                     </div>
                                 </Link>
-                                {course.is_paid && (
-                                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full z-10">
-                                        PRO
-                                    </div>
-                                )}
+                                {(course.tags || []).map(tag => (
+                                    <Badge key={tag} variant="secondary" className="absolute top-2 left-2 bg-primary/80 text-primary-foreground border-none z-10 capitalize">
+                                        {tag}
+                                    </Badge>
+                                ))}
                                 {!user ? <AuthRequiredDialog>{wishlistButton}</AuthRequiredDialog> : wishlistButton}
                             </CardHeader>
                             <CardContent className="p-6 flex-grow">
@@ -299,7 +297,7 @@ export default function CoursesShopPage() {
                                 {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
                                 </CardDescription>
                             </CardContent>
-                            <CardFooter className="p-6 pt-0 mt-auto bg-muted/30">
+                            <CardFooter className="p-6 pt-0 mt-auto bg-muted/30 flex items-center justify-center">
                                 {userProgress ? (
                                     <div className="w-full">
                                         <div className="flex justify-between items-center mb-2">
@@ -309,7 +307,9 @@ export default function CoursesShopPage() {
                                         <Progress value={userProgress.progress_percentage} className="h-2" />
                                     </div>
                                 ) : (
-                                    <ActionButtons course={course} />
+                                    <div className="w-full flex justify-center">
+                                      <ActionButtons course={course} />
+                                    </div>
                                 )}
                             </CardFooter>
                         </Card>
