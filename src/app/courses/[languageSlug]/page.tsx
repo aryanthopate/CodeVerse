@@ -6,13 +6,58 @@ import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
-import { Lock, PlayCircle, ArrowRight } from 'lucide-react';
+import { Lock, PlayCircle, ArrowRight, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { getCourseBySlug } from '@/lib/supabase/queries';
 import Image from 'next/image';
+import { createClient } from '@/lib/supabase/server';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                {children}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <div className="flex justify-center mb-2">
+                        <LogIn className="w-12 h-12 text-primary"/>
+                    </div>
+                    <AlertDialogTitle className="text-center text-2xl">Authentication Required</AlertDialogTitle>
+                    <AlertDialogDescription className="text-center">
+                        Please log in or create an account to start your learning journey.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                        <Link href="/login">Login</Link>
+                    </AlertDialogAction>
+                    <AlertDialogAction asChild>
+                        <Link href="/signup">Sign Up</Link>
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
 
 export default async function LanguagePage({ params }: { params: { languageSlug: string } }) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const course = await getCourseBySlug(params.languageSlug);
 
   if (!course) {
@@ -23,6 +68,14 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
   const completedTopics = 0; // Mock data for now, will be replaced with user progress
   const progressPercentage = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
   const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
+
+  const startCourseButton = (
+    <Button size="lg" asChild className="mt-6 w-full sm:w-auto">
+        <Link href={`/courses/${course.slug}/${firstTopicSlug}`}>
+            {progressPercentage > 0 ? 'Continue Learning' : 'Start Course'} <ArrowRight className="ml-2"/>
+        </Link>
+    </Button>
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -45,11 +98,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                 </div>
                 <Progress value={progressPercentage} />
                 {firstTopicSlug && (
-                    <Button size="lg" asChild className="mt-6 w-full sm:w-auto">
-                        <Link href={`/courses/${course.slug}/${firstTopicSlug}`}>
-                            {progressPercentage > 0 ? 'Continue Learning' : 'Start Course'} <ArrowRight className="ml-2"/>
-                        </Link>
-                    </Button>
+                    user ? startCourseButton : <AuthRequiredDialog>{startCourseButton}</AuthRequiredDialog>
                 )}
               </div>
 

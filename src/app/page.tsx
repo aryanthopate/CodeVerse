@@ -8,13 +8,56 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Bot, Code, Film, Star, Zap } from 'lucide-react';
+import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
+import { createClient } from './lib/supabase/server';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
+function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                {children}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <div className="flex justify-center mb-2">
+                        <LogIn className="w-12 h-12 text-primary"/>
+                    </div>
+                    <AlertDialogTitle className="text-center text-2xl">Authentication Required</AlertDialogTitle>
+                    <AlertDialogDescription className="text-center">
+                        Please log in or create an account to start your learning journey.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                        <Link href="/login">Login</Link>
+                    </AlertDialogAction>
+                    <AlertDialogAction asChild>
+                        <Link href="/signup">Sign Up</Link>
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
 
 export default async function Home() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const courses: CourseWithChaptersAndTopics[] = await getCoursesWithChaptersAndTopics() || [];
   
   const features = [
@@ -97,6 +140,12 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {courses.map((course) => {
                 const freeTopicsCount = course.chapters.flatMap(c => c.topics).filter(t => t.is_free).length;
+                const exploreButton = (
+                    <Button asChild variant="link" className="p-0 text-primary">
+                        <Link href={`/courses/${course.slug}`}>Explore Course <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                    </Button>
+                );
+
                 return (
                   <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
                     <CardHeader className="p-0">
@@ -105,9 +154,7 @@ export default async function Home() {
                     <CardContent className="p-6">
                       <CardTitle className="text-2xl font-bold mb-2">{course.name}</CardTitle>
                       <p className="text-muted-foreground mb-4">{`Learn ${course.name} → ${freeTopicsCount} Free Topics`}</p>
-                      <Button asChild variant="link" className="p-0 text-primary">
-                        <Link href={`/courses/${course.slug}`}>Explore Course <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                      </Button>
+                      {user ? exploreButton : <AuthRequiredDialog>{exploreButton}</AuthRequiredDialog>}
                     </CardContent>
                   </Card>
                 )
