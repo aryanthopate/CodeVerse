@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -11,7 +12,7 @@ import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book } from 'lucide-react';
+import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -205,19 +206,24 @@ export default function CoursesShopPage() {
                         const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
 
                         const wishlistButton = (
-                             <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-black/30 hover:bg-black/50 text-white hover:text-red-500">
+                             <Button variant="ghost" size="icon" className="absolute top-3 right-3 bg-black/30 hover:bg-black/50 text-white hover:text-red-500 z-20">
                                 <Heart className="h-5 w-5"/>
                             </Button>
                         );
 
                         return (
-                        <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 overflow-hidden">
+                        <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 overflow-hidden group">
                             <CardHeader className="p-0 relative">
                                 <Link href={`/courses/${course.slug}`} className="block">
-                                    <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/300`} alt={course.name} width={600} height={300} className="w-full h-40 object-cover" data-ai-hint="abstract code" />
+                                    <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/300`} alt={course.name} width={600} height={300} className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="abstract code" />
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <div className="text-white font-semibold flex items-center gap-2">
+                                            Explore Course <ArrowRight className="h-4 w-4"/>
+                                        </div>
+                                    </div>
                                 </Link>
                                 {course.is_paid && (
-                                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
+                                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full z-10">
                                         PRO
                                     </div>
                                 )}
