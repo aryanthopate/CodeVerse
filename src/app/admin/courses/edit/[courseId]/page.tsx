@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
 import { getCourseBySlug, getAllCoursesMinimal, getRelatedCourseIds } from '@/lib/supabase/queries';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Globe, File, Tag } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Globe, File, Tag, Sparkles } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
@@ -24,6 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useDebouncedCallback } from 'use-debounce';
+import { generateCourseDescription } from '@/ai/flows/generate-course-description';
 
 
 type QuestionType = 'single' | 'multiple';
@@ -278,6 +279,8 @@ export default function EditCoursePage() {
 
     const [initialLoading, setInitialLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
+    const [generatingDescription, setGeneratingDescription] = useState(false);
+
 
     const [courseName, setCourseName] = useState('');
     const [courseSlug, setCourseSlug] = useState('');
@@ -317,6 +320,39 @@ export default function EditCoursePage() {
     useEffect(() => {
         stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, tags, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours };
     }, [courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, tags, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours]);
+
+    const handleGenerateDescription = async () => {
+        if (!courseName) {
+            toast({
+                variant: 'destructive',
+                title: 'Course Title Required',
+                description: 'Please enter a course title before generating a description.'
+            });
+            return;
+        }
+        setGeneratingDescription(true);
+        try {
+            const result = await generateCourseDescription({ courseTitle: courseName });
+            if (result.description) {
+                setCourseDescription(result.description);
+                setSaveStatus('unsaved');
+                toast({
+                    title: 'Description Generated!',
+                    description: 'The AI has created a description for your course.'
+                });
+            } else {
+                throw new Error('AI did not return a description.');
+            }
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Generation Failed',
+                description: error.message || 'An unexpected error occurred while generating the description.'
+            });
+        } finally {
+            setGeneratingDescription(false);
+        }
+    };
 
 
     const handleStateChange = (setter: Function) => (...args: any[]) => {
@@ -728,7 +764,13 @@ export default function EditCoursePage() {
                                         <Input id="course-slug" value={courseSlug} onChange={e => handleSlugChange(e.target.value)} placeholder="e.g., python-intro" required />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="course-description">Description</Label>
+                                        <div className="flex justify-between items-center">
+                                            <Label htmlFor="course-description">Description</Label>
+                                            <Button type="button" variant="link" size="sm" onClick={handleGenerateDescription} disabled={generatingDescription || !courseName}>
+                                                {generatingDescription ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                                Generate with AI
+                                            </Button>
+                                        </div>
                                         <Textarea id="course-description" value={courseDescription} onChange={e => handleDescriptionChange(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
                                     </div>
                                      
@@ -763,7 +805,7 @@ export default function EditCoursePage() {
                                             <SelectContent>
                                                 {freeTopics.length > 0 ? (
                                                     freeTopics.map(topic => (
-                                                        <SelectItem key={topic.id} value={topic.video_url}>{topic.title}</SelectItem>
+                                                        <SelectItem key={topic.id!} value={topic.video_url}>{topic.title}</SelectItem>
                                                     ))
                                                 ) : (
                                                     <div className="p-2 text-sm text-muted-foreground">No free topic videos available.</div>
