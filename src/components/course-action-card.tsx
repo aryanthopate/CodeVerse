@@ -2,10 +2,11 @@
 
 'use client'
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows } from 'lucide-react';
+import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows, Share2 } from 'lucide-react';
 import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -19,6 +20,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { useToast } from '@/hooks/use-toast';
 
 function AuthRequiredDialog({ children, fullWidth = false }: { children: React.ReactNode, fullWidth?: boolean }) {
     return (
@@ -50,18 +59,62 @@ function AuthRequiredDialog({ children, fullWidth = false }: { children: React.R
     );
 }
 
+function VideoPreviewDialog({ previewUrl, children }: { previewUrl: string, children: React.ReactNode }) {
+    if (!previewUrl) return <>{children}</>;
+
+    let embedUrl = '';
+    if (previewUrl.includes('youtube.com') || previewUrl.includes('youtu.be')) {
+        let videoId;
+        if (previewUrl.includes('youtu.be')) {
+            videoId = previewUrl.split('/').pop()?.split('?')[0];
+        } else {
+            const url = new URL(previewUrl);
+            videoId = url.searchParams.get('v');
+        }
+        if (videoId) {
+            embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        }
+    } else {
+        embedUrl = previewUrl; // Assume it's a direct link
+    }
+    
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-4xl p-0">
+                <div className="aspect-video">
+                     {embedUrl ? (
+                         <iframe 
+                            className="w-full h-full"
+                            src={embedUrl}
+                            title="Course Preview" 
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                        ></iframe>
+                     ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-black text-white">
+                            Invalid video URL provided.
+                        </div>
+                     )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export function CourseActionCard({ course, user }: { course: CourseWithChaptersAndTopics, user: User | null }) {
+  const { toast } = useToast();
   if (!course) return null;
   const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
   const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
 
-  const totalDurationMinutes = course.chapters.reduce((total, chapter) => {
+  const totalDurationHours = course.chapters.reduce((total, chapter) => {
     return total + chapter.topics.reduce((chapterTotal, topic) => {
       return chapterTotal + (topic.duration_minutes || 0);
     }, 0);
-  }, 0);
-
-  const totalDurationHours = course.total_duration_hours ? parseFloat(course.total_duration_hours as any).toFixed(1) : null;
+  }, 0) / 60;
 
 
   const startCourseButton = (
@@ -91,16 +144,31 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
         <Button size="lg" variant="outline" className="w-full">Buy Now</Button>
     </div>
   );
+  
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+        title: "Link Copied!",
+        description: "The course URL has been copied to your clipboard.",
+    })
+  }
+
+  const imagePreview = (
+    <div className="relative w-full aspect-video rounded-t-xl overflow-hidden group cursor-pointer">
+        <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/1280/720`} alt={course.name} fill style={{objectFit: 'cover'}} />
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <PlayCircle className="w-16 h-16 text-white" />
+        </div>
+    </div>
+  )
 
   return (
     <div className="sticky top-24 w-full">
         <div className="rounded-xl border bg-card text-card-foreground shadow-lg backdrop-blur-lg bg-card/50">
-            <div className="relative w-full aspect-video rounded-t-xl overflow-hidden group">
-                <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/1280/720`} alt={course.name} fill style={{objectFit: 'cover'}} />
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <PlayCircle className="w-16 h-16 text-white" />
-                </div>
-            </div>
+            <VideoPreviewDialog previewUrl={course.preview_video_url || ''}>
+                {imagePreview}
+            </VideoPreviewDialog>
+
             <div className="p-6 space-y-4">
                 {course.is_paid 
                     ? user ? paidActions : <AuthRequiredDialog fullWidth>{paidActions}</AuthRequiredDialog>
@@ -114,13 +182,14 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
                     <ul className="space-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {course.chapters.length} chapters</li>
                         <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {totalTopics} topics</li>
-                        {totalDurationHours && (
-                             <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {totalDurationHours} hours on-demand video</li>
+                        {totalDurationHours > 0 && (
+                             <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {totalDurationHours.toFixed(1)} hours on-demand video</li>
                         )}
                     </ul>
                 </div>
                 <div className="flex justify-around pt-4 border-t border-border/50">
-                    <Button variant="link" size="sm" className="text-muted-foreground"><Heart className="mr-2 h-4 w-4" /> Add to Wishlist</Button>
+                    <Button variant="link" size="sm" className="text-muted-foreground" onClick={handleShare}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+                    <Button variant="link" size="sm" className="text-muted-foreground"><Heart className="mr-2 h-4 w-4" /> Wishlist</Button>
                     <Button variant="link" size="sm" className="text-muted-foreground"><GitCompareArrows className="mr-2 h-4 w-4" /> Compare</Button>
                 </div>
             </div>

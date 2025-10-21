@@ -260,6 +260,7 @@ export default function NewCoursePage() {
     const [courseSlug, setCourseSlug] = useState('');
     const [courseDescription, setCourseDescription] = useState('');
     const [courseImageUrl, setCourseImageUrl] = useState('');
+    const [previewVideoUrl, setPreviewVideoUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
     const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
@@ -389,22 +390,17 @@ export default function NewCoursePage() {
         e.preventDefault();
         setLoading(true);
 
-        const totalDuration = chapters.reduce((total, chapter) => 
-            total + chapter.topics.reduce((chapterTotal, topic) => 
-                chapterTotal + Number(topic.duration_minutes || 0), 0), 0);
-
         const courseData = {
             name: courseName,
             slug: courseSlug,
             description: courseDescription,
             image_url: courseImageUrl || `https://picsum.photos/seed/${courseSlug}/600/400`,
+            preview_video_url: previewVideoUrl,
             is_paid: isPaid,
             price: Number(price),
             what_you_will_learn: whatYouWillLearn.filter(item => item.trim() !== ''),
             is_bestseller: isBestseller,
             students_enrolled: Number(studentsEnrolled),
-            rating: null,
-            total_duration_hours: totalDuration > 0 ? (totalDuration / 60).toFixed(1) : null,
             related_courses: relatedCourses,
             chapters: chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id,
@@ -491,6 +487,11 @@ export default function NewCoursePage() {
                                                 </div>
                                             </CardContent>
                                         </Card>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="preview-video-url">Preview Video URL</Label>
+                                        <Input id="preview-video-url" value={previewVideoUrl} onChange={e => setPreviewVideoUrl(e.target.value)} placeholder="e.g., https://www.youtube.com/watch?v=..." />
                                     </div>
 
                                     <div className="space-y-2">

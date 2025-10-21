@@ -283,6 +283,7 @@ export default function EditCoursePage() {
     const [courseSlug, setCourseSlug] = useState('');
     const [courseDescription, setCourseDescription] = useState('');
     const [courseImageUrl, setCourseImageUrl] = useState('');
+    const [previewVideoUrl, setPreviewVideoUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
     const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
@@ -303,10 +304,10 @@ export default function EditCoursePage() {
 
 
     // A ref to hold the latest state, used for debounced saving
-    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters });
+    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters });
     useEffect(() => {
-        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters };
-    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters]);
+        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters };
+    }, [courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters]);
 
 
     const handleStateChange = (setter: Function) => (...args: any[]) => {
@@ -349,6 +350,7 @@ export default function EditCoursePage() {
                 setCourseSlug(course.slug);
                 setCourseDescription(course.description || '');
                 setCourseImageUrl(course.image_url || '');
+                setPreviewVideoUrl(course.preview_video_url || '');
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
                 setWhatYouWillLearn(course.what_you_will_learn || ['']);
@@ -401,21 +403,17 @@ export default function EditCoursePage() {
         setSaveStatus('saving');
         const currentState = stateRef.current;
         
-        const totalDuration = currentState.chapters.reduce((total, chapter) => 
-            total + chapter.topics.reduce((chapterTotal, topic) => 
-                chapterTotal + Number(topic.duration_minutes || 0), 0), 0);
-
         const courseData = {
             name: currentState.courseName,
             slug: currentState.courseSlug,
             description: currentState.courseDescription,
             image_url: currentState.courseImageUrl,
+            preview_video_url: currentState.previewVideoUrl,
             is_paid: currentState.isPaid,
             price: Number(currentState.price),
             what_you_will_learn: currentState.whatYouWillLearn.filter(item => item.trim() !== ''),
             is_bestseller: currentState.isBestseller,
             students_enrolled: Number(currentState.studentsEnrolled),
-            total_duration_hours: totalDuration > 0 ? (totalDuration / 60).toFixed(1) : null,
             related_courses: currentState.relatedCourses,
             chapters: currentState.chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
@@ -600,6 +598,7 @@ export default function EditCoursePage() {
      const handleCourseNameChange = handleStateChange(setCourseName);
      const handleSlugChange = handleStateChange(setCourseSlug);
      const handleDescriptionChange = handleStateChange(setCourseDescription);
+     const handlePreviewVideoUrlChange = handleStateChange(setPreviewVideoUrl);
      const handleIsPaidChange = handleStateChange(setIsPaid);
      const handlePriceChange = handleStateChange(setPrice);
      const handleIsBestsellerChange = handleStateChange(setIsBestseller);
@@ -692,6 +691,11 @@ export default function EditCoursePage() {
                                         </Card>
                                     </div>
                                     
+                                     <div className="space-y-2">
+                                        <Label htmlFor="preview-video-url">Preview Video URL</Label>
+                                        <Input id="preview-video-url" value={previewVideoUrl} onChange={e => handlePreviewVideoUrlChange(e.target.value)} placeholder="e.g., https://www.youtube.com/watch?v=..." />
+                                    </div>
+
                                      <div className="space-y-2">
                                         <Label>What You'll Learn</Label>
                                         <div className="space-y-2">

@@ -14,7 +14,9 @@ export interface UserProfile {
 }
 
 // Re-exporting Supabase generated types for convenience
-export type Course = Database['public']['Tables']['courses']['Row'];
+export type Course = Database['public']['Tables']['courses']['Row'] & {
+    preview_video_url?: string | null;
+};
 export type Chapter = Database['public']['Tables']['chapters']['Row'];
 export type Topic = Database['public']['Tables']['topics']['Row'];
 export type Quiz = Database['public']['Tables']['quizzes']['Row'];
@@ -38,6 +40,7 @@ export type QuizWithQuestions = Quiz & {
 export type TopicWithContent = Topic & {
     quizzes: QuizWithQuestions[] | null; // A topic can have one quiz, represented as an array of 1
     explanation?: string | null;
+    duration_minutes?: number | null;
 }
 export type ChapterWithTopics = Chapter & {
   topics: TopicWithContent[];

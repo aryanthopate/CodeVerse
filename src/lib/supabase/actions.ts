@@ -7,10 +7,11 @@ import { revalidatePath } from 'next/cache';
 import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course } from '@/lib/types';
 import crypto from 'crypto';
 
-interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
+interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation' | 'duration_minutes'> {
     id?: string; // id is present when updating
     order: number;
     explanation?: string | null;
+    duration_minutes?: number | string | null;
     quizzes?: QuizState[];
 }
 
@@ -64,10 +65,10 @@ export async function createCourse(courseData: CourseData) {
             is_paid: restOfCourseData.is_paid,
             price: restOfCourseData.price,
             rating: restOfCourseData.rating,
-            total_duration_hours: restOfCourseData.total_duration_hours,
             what_you_will_learn: restOfCourseData.what_you_will_learn,
             is_bestseller: restOfCourseData.is_bestseller,
-            students_enrolled: restOfCourseData.students_enrolled
+            students_enrolled: restOfCourseData.students_enrolled,
+            preview_video_url: restOfCourseData.preview_video_url,
         })
         .select()
         .single();
@@ -110,6 +111,7 @@ export async function createCourse(courseData: CourseData) {
                     ...restOfTopicData,
                     chapter_id: chapter.id,
                     order: topicIndex + 1,
+                    duration_minutes: Number(topicData.duration_minutes)
                 })
                 .select()
                 .single();
@@ -222,11 +224,10 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             image_url: restOfCourseData.image_url,
             is_paid: restOfCourseData.is_paid,
             price: restOfCourseData.price,
-            rating: restOfCourseData.rating,
-            total_duration_hours: restOfCourseData.total_duration_hours,
             what_you_will_learn: restOfCourseData.what_you_will_learn,
             is_bestseller: restOfCourseData.is_bestseller,
-            students_enrolled: restOfCourseData.students_enrolled
+            students_enrolled: restOfCourseData.students_enrolled,
+            preview_video_url: restOfCourseData.preview_video_url,
         })
         .eq('id', courseId);
 
@@ -294,7 +295,8 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             const isNewTopic = topicDetails.id?.startsWith('t-');
             const topicToUpsert: any = {
                 ...topicDetails,
-                chapter_id: upsertedChapter.id
+                chapter_id: upsertedChapter.id,
+                duration_minutes: Number(topicData.duration_minutes)
             };
             delete topicToUpsert.uploadProgress; // Don't save uploadProgress to DB
 
