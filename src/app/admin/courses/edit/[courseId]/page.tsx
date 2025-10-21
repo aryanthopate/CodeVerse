@@ -54,6 +54,7 @@ interface TopicState {
     slug: string;
     is_free: boolean;
     video_url: string;
+    duration_minutes: number | string;
     content?: string;
     summary?: string;
     explanation?: string;
@@ -284,16 +285,14 @@ export default function EditCoursePage() {
     const [courseImageUrl, setCourseImageUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
-    const [totalDurationHours, setTotalDurationHours] = useState<number | string | null>(null);
-
-
+    
     const [chapters, setChapters] = useState<ChapterState[]>([]);
 
     // A ref to hold the latest state, used for debounced saving
-    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, totalDurationHours, chapters });
+    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters });
     useEffect(() => {
-        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, totalDurationHours, chapters };
-    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, totalDurationHours, chapters]);
+        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters };
+    }, [courseName, courseSlug, courseDescription, courseImageUrl, isPaid, price, chapters]);
 
 
     const handleStateChange = (setter: Function) => (...args: any[]) => {
@@ -346,7 +345,6 @@ export default function EditCoursePage() {
                 setCourseImageUrl(course.image_url || '');
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
-                setTotalDurationHours(course.total_duration_hours);
 
                 setChapters(course.chapters.map(c => ({
                     id: c.id,
@@ -357,6 +355,7 @@ export default function EditCoursePage() {
                         slug: t.slug,
                         is_free: t.is_free,
                         video_url: t.video_url || '',
+                        duration_minutes: t.duration_minutes || 0,
                         content: t.content || '',
                         summary: t.summary || '',
                         explanation: t.explanation || '',
@@ -399,7 +398,6 @@ export default function EditCoursePage() {
             image_url: currentState.courseImageUrl,
             is_paid: currentState.isPaid,
             price: Number(currentState.price),
-            total_duration_hours: currentState.totalDurationHours ? Number(currentState.totalDurationHours) : null,
             chapters: currentState.chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
                 title: chapter.title,
@@ -410,6 +408,7 @@ export default function EditCoursePage() {
                     slug: topic.slug,
                     is_free: topic.is_free,
                     video_url: topic.video_url,
+                    duration_minutes: Number(topic.duration_minutes),
                     content: topic.content,
                     summary: topic.summary,
                     explanation: topic.explanation,
@@ -456,6 +455,7 @@ export default function EditCoursePage() {
                             slug: t.slug,
                             is_free: t.is_free,
                             video_url: t.video_url || '',
+                            duration_minutes: t.duration_minutes || 0,
                             content: t.content || '',
                             summary: t.summary || '',
                             explanation: t.explanation || '',
@@ -492,7 +492,7 @@ export default function EditCoursePage() {
 
     const handleAddChapter = () => {
         setSaveStatus('unsaved');
-        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '' }] }]);
+        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0 }] }]);
     };
 
     const handleRemoveChapter = (chapterId: string) => {
@@ -511,7 +511,7 @@ export default function EditCoursePage() {
         setSaveStatus('unsaved');
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
-                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', explanation: '' }] };
+                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0, content: '', summary: '', explanation: '' }] };
             }
             return c;
         });
@@ -588,9 +588,6 @@ export default function EditCoursePage() {
      
      const handlePriceChange = handleStateChange(setPrice);
 
-     const handleDurationChange = handleStateChange(setTotalDurationHours);
-     
-
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSaveStatus('unsaved');
         const file = e.target.files?.[0];
@@ -655,22 +652,7 @@ export default function EditCoursePage() {
                                         <Label htmlFor="course-description">Description</Label>
                                         <Textarea id="course-description" value={courseDescription} onChange={e => handleDescriptionChange(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
                                     </div>
-                                     <div className="space-y-2">
-                                        <Label htmlFor="course-duration">Total Duration (hours)</Label>
-                                        <div className="relative">
-                                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                id="course-duration"
-                                                type="number"
-                                                value={totalDurationHours || ''}
-                                                onChange={e => handleDurationChange(e.target.value)}
-                                                placeholder="e.g., 8.5"
-                                                className="pl-8"
-                                                step="0.5"
-                                                min="0"
-                                            />
-                                        </div>
-                                    </div>
+                                     
                                     <div className="space-y-2">
                                         <Label>Course Image</Label>
                                         <Card className="border-dashed">
@@ -760,6 +742,10 @@ export default function EditCoursePage() {
                                                                     <div className="space-y-2">
                                                                         <Label htmlFor={`topic-slug-${chapter.id}-${topic.id}`}>Topic Slug</Label>
                                                                         <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
+                                                                    </div>
+                                                                     <div className="space-y-2 sm:col-span-2">
+                                                                        <Label htmlFor={`topic-duration-${chapter.id}-${topic.id}`}>Duration (minutes)</Label>
+                                                                        <Input id={`topic-duration-${chapter.id}-${topic.id}`} type="number" value={topic.duration_minutes} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'duration_minutes', e.target.value)} placeholder="e.g., 10" required />
                                                                     </div>
                                                                     <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File or URL</Label>

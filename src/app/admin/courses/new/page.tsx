@@ -50,6 +50,7 @@ interface TopicState {
     slug: string;
     is_free: boolean;
     video_url: string;
+    duration_minutes: number | string;
     content?: string;
     summary?: string;
     explanation?: string;
@@ -259,15 +260,13 @@ export default function NewCoursePage() {
     const [courseImageUrl, setCourseImageUrl] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
-    const [totalDurationHours, setTotalDurationHours] = useState<number | string | null>(null);
-
-
+    
     const [chapters, setChapters] = useState<ChapterState[]>([
-        { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', explanation: '', uploadProgress: undefined, quizzes: [] }] }
+        { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0, content: '', summary: '', explanation: '', uploadProgress: undefined, quizzes: [] }] }
     ]);
 
     const handleAddChapter = () => {
-        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', explanation: '', quizzes: [] }] }]);
+        setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0, content: '', summary: '', explanation: '', quizzes: [] }] }]);
     };
 
     const handleRemoveChapter = (chapterId: string) => {
@@ -283,7 +282,7 @@ export default function NewCoursePage() {
     const handleAddTopic = (chapterId: string) => {
         const newChapters = chapters.map(c => {
             if (c.id === chapterId) {
-                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', content: '', summary: '', explanation: '', quizzes: [] }] };
+                return { ...c, topics: [...c.topics, { id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0, content: '', summary: '', explanation: '', quizzes: [] }] };
             }
             return c;
         });
@@ -364,7 +363,6 @@ export default function NewCoursePage() {
             image_url: courseImageUrl || `https://picsum.photos/seed/${courseSlug}/600/400`,
             is_paid: isPaid,
             price: Number(price),
-            total_duration_hours: totalDurationHours ? Number(totalDurationHours) : null,
             chapters: chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id,
                 title: chapter.title,
@@ -372,6 +370,7 @@ export default function NewCoursePage() {
                 topics: chapter.topics.map((topic, topicIndex) => ({
                     ...topic,
                     id: topic.id,
+                    duration_minutes: Number(topic.duration_minutes),
                     order: topicIndex + 1,
                 }))
             }))
@@ -430,22 +429,7 @@ export default function NewCoursePage() {
                                         <Label htmlFor="course-description">Description</Label>
                                         <Textarea id="course-description" value={courseDescription} onChange={e => setCourseDescription(e.target.value)} placeholder="A brief summary of the course." className="min-h-[100px]"/>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="course-duration">Total Duration (hours)</Label>
-                                        <div className="relative">
-                                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                id="course-duration"
-                                                type="number"
-                                                value={totalDurationHours || ''}
-                                                onChange={e => setTotalDurationHours(e.target.value)}
-                                                placeholder="e.g., 8.5"
-                                                className="pl-8"
-                                                step="0.5"
-                                                min="0"
-                                            />
-                                        </div>
-                                    </div>
+                                    
                                     <div className="space-y-2">
                                         <Label>Course Image</Label>
                                         <Card className="border-dashed">
@@ -533,6 +517,10 @@ export default function NewCoursePage() {
                                                                     <div className="space-y-2">
                                                                         <Label htmlFor={`topic-slug-${chapter.id}-${topic.id}`}>Topic Slug</Label>
                                                                         <Input id={`topic-slug-${chapter.id}-${topic.id}`} value={topic.slug} onChange={e => handleTopicChange(chapter.id, topic.id, 'slug', e.target.value)} placeholder="e.g., 'variables'" required />
+                                                                    </div>
+                                                                     <div className="space-y-2 sm:col-span-2">
+                                                                        <Label htmlFor={`topic-duration-${chapter.id}-${topic.id}`}>Duration (minutes)</Label>
+                                                                        <Input id={`topic-duration-${chapter.id}-${topic.id}`} type="number" value={topic.duration_minutes} onChange={e => handleTopicChange(chapter.id, topic.id, 'duration_minutes', e.target.value)} placeholder="e.g., 10" required />
                                                                     </div>
                                                                     <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Video URL or Upload</Label>
