@@ -141,9 +141,8 @@ export default async function GameDetailPage({ params }: { params: { gameId: str
                             );
 
                             return (
-                                <>
+                                <React.Fragment key={level.id}>
                                 <Link
-                                    key={level.id}
                                     href={isLocked ? '#' : `/playground/${game.id}/${level.id}`}
                                     className={cn(
                                         "absolute w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-300",
@@ -161,7 +160,7 @@ export default async function GameDetailPage({ params }: { params: { gameId: str
                                     <p className="text-xs font-bold mt-1 text-center truncate w-full px-1">{level.title}</p>
                                 </Link>
                                  {(index + 1) % 5 === 0 && index < game.game_levels.length - 1 && <ChapterGate chapterNumber={(index + 1) / 5 + 1} />}
-                                </>
+                                </React.Fragment>
                             );
                         })}
                     </div>
