@@ -279,7 +279,8 @@ export default function NewCoursePage() {
     const [price, setPrice] = useState<number | string>(0);
     const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
     const [tags, setTags] = useState<TagType[]>([]);
-    const [currentTag, setCurrentTag] = useState('');
+    const [currentTagText, setCurrentTagText] = useState('');
+    const [currentTagColor, setCurrentTagColor] = useState(tagColorClasses[0].class);
     const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
     const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
     const [language, setLanguage] = useState('');
@@ -453,11 +454,11 @@ export default function NewCoursePage() {
         setRelatedCourses(prev => prev.includes(courseId) ? prev.filter(id => id !== courseId) : [...prev, courseId]);
     }
     
-    const handleAddTag = (color: string) => {
-        if (currentTag.trim() !== '' && !tags.some(tag => tag.text === currentTag.trim())) {
-            setTags([...tags, { text: currentTag.trim(), color }]);
+    const handleAddTag = () => {
+        if (currentTagText.trim() !== '' && !tags.some(tag => tag.text === currentTagText.trim())) {
+            setTags([...tags, { text: currentTagText.trim(), color: currentTagColor }]);
+            setCurrentTagText(''); // Reset text input after adding
         }
-        setCurrentTag('');
     };
 
     const removeTag = (tagToRemove: string) => {
@@ -642,7 +643,8 @@ export default function NewCoursePage() {
                                     </div>
                                     
                                     <div className="space-y-2">
-                                        <Label htmlFor="tags">Course Tags</Label>
+                                        <Label>Course Tags</Label>
+                                        {/* Display existing tags */}
                                         <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px] items-center">
                                             {tags.map(tag => (
                                                 <div key={tag.text} className={cn("flex items-center gap-1 text-primary-foreground px-2 py-1 rounded-full text-xs", tag.color)}>
@@ -650,26 +652,31 @@ export default function NewCoursePage() {
                                                     <button type="button" onClick={() => removeTag(tag.text)} className="ml-1 opacity-70 hover:opacity-100"><X className="h-3 w-3"/></button>
                                                 </div>
                                             ))}
+                                        </div>
+                                        {/* Input for new tag */}
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="tag-name"
+                                                value={currentTagText}
+                                                onChange={(e) => setCurrentTagText(e.target.value)}
+                                                placeholder="New tag name..."
+                                                className="flex-grow"
+                                            />
                                             <Popover>
                                                 <PopoverTrigger asChild>
-                                                     <Input
-                                                        id="tags"
-                                                        value={currentTag}
-                                                        onChange={(e) => setCurrentTag(e.target.value)}
-                                                        placeholder="Add tag..."
-                                                        className="flex-1 border-0 bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none min-w-[80px]"
-                                                    />
+                                                    <Button type="button" variant="outline" size="icon">
+                                                        <div className={cn("w-4 h-4 rounded-full", currentTagColor)}></div>
+                                                    </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-auto p-2">
-                                                    <div className="grid grid-cols-4 gap-2">
+                                                    <div className="grid grid-cols-4 gap-1">
                                                         {tagColorClasses.map(color => (
-                                                            <Button key={color.name} size="icon" variant="outline" className={cn("w-8 h-8 rounded-full", color.class)} onClick={() => handleAddTag(color.class)}>
-                                                                <span className="sr-only">{color.name}</span>
-                                                            </Button>
+                                                            <Button key={color.name} type="button" size="icon" variant="outline" className={cn("w-6 h-6 rounded-full", color.class)} onClick={() => setCurrentTagColor(color.class)} />
                                                         ))}
                                                     </div>
                                                 </PopoverContent>
                                             </Popover>
+                                            <Button type="button" onClick={handleAddTag}>Add Tag</Button>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
