@@ -44,6 +44,8 @@ export type CourseReview = Database['public']['Tables']['course_reviews']['Row']
     profiles: Pick<UserProfile, 'full_name' | 'avatar_url'> | null;
 };
 export type CourseGift = Database['public']['Tables']['course_gifts']['Row'];
+export type Game = Database['public']['Tables']['games']['Row'];
+export type GameLevel = Database['public']['Tables']['game_levels']['Row'];
 
 
 // Custom combined types for nested data fetching
@@ -72,3 +74,7 @@ export interface UserCourseProgress {
     completed_topics: string[]; // array of topic_ids
     progress_percentage: number;
 }
+
+export type GameWithLevels = Game & {
+    game_levels: GameLevel[];
+};

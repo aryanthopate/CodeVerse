@@ -18,7 +18,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { LayoutDashboard, BookCopy, Users, Home } from 'lucide-react';
+import { LayoutDashboard, BookCopy, Users, Home, Gamepad2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { UserProfile } from '@/lib/types';
 import { AppHeader } from './app-header';
@@ -29,6 +29,7 @@ const adminNav = [
   { href: '/admin', icon: <LayoutDashboard />, label: 'Dashboard' },
   { href: '/admin/users', icon: <Users />, label: 'User Management' },
   { href: '/admin/courses', icon: <BookCopy />, label: 'Course Management' },
+  { href: '/admin/games', icon: <Gamepad2 />, label: 'Games' },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -93,6 +94,18 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <p>Loading Admin Panel...</p>
       </div>
     );
+  }
+
+  if (pathname.startsWith('/admin/games')) {
+    return (
+        <div className="min-h-screen bg-background flex flex-col">
+             <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+                <div className="w-full max-w-7xl mx-auto">
+                {children}
+                </div>
+            </div>
+        </div>
+    )
   }
 
   return (
