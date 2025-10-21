@@ -292,10 +292,6 @@ export default function CoursesShopPage() {
                                         <Book className="w-4 h-4" />
                                         <span>{totalTopics} Topics</span>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Clock className="w-4 h-4" />
-                                        <span>{course.total_duration_hours || 'N/A'} hrs</span>
-                                    </div>
                                 </div>
                                 <CardDescription className="mt-2 text-sm">
                                 {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}

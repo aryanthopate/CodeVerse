@@ -631,5 +631,3 @@ export default function NewCoursePage() {
         </AdminLayout>
     );
 }
-
-    
