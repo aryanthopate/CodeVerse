@@ -70,7 +70,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
 
       <main className="flex-grow py-12">
         <div className="container mx-auto">
-            <div className="grid lg:grid-cols-3 gap-12 items-start">
+            <div className="grid lg:grid-cols-3 gap-12">
             
             <div className="lg:col-span-2 space-y-12">
               
@@ -94,8 +94,10 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
               </div>
             </div>
             
-            <div className="lg:col-span-1">
-                <CourseActionCard course={course} user={user} />
+            <div className="lg:col-span-1 relative">
+                <div className="sticky top-24 w-full">
+                    <CourseActionCard course={course} user={user} />
+                </div>
             </div>
 
           </div>
