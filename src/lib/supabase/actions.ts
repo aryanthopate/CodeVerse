@@ -7,11 +7,10 @@ import { revalidatePath } from 'next/cache';
 import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course } from '@/lib/types';
 import crypto from 'crypto';
 
-interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation' | 'duration_minutes'> {
+interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
     id?: string; // id is present when updating
     order: number;
     explanation?: string | null;
-    duration_minutes?: number | string | null;
     quizzes?: QuizState[];
 }
 
@@ -69,6 +68,8 @@ export async function createCourse(courseData: CourseData) {
             is_bestseller: restOfCourseData.is_bestseller,
             students_enrolled: restOfCourseData.students_enrolled,
             preview_video_url: restOfCourseData.preview_video_url,
+            language: restOfCourseData.language,
+            notes_url: restOfCourseData.notes_url,
         })
         .select()
         .single();
@@ -111,7 +112,6 @@ export async function createCourse(courseData: CourseData) {
                     ...restOfTopicData,
                     chapter_id: chapter.id,
                     order: topicIndex + 1,
-                    duration_minutes: Number(topicData.duration_minutes)
                 })
                 .select()
                 .single();
@@ -228,6 +228,8 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             is_bestseller: restOfCourseData.is_bestseller,
             students_enrolled: restOfCourseData.students_enrolled,
             preview_video_url: restOfCourseData.preview_video_url,
+            language: restOfCourseData.language,
+            notes_url: restOfCourseData.notes_url,
         })
         .eq('id', courseId);
 
@@ -296,7 +298,6 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             const topicToUpsert: any = {
                 ...topicDetails,
                 chapter_id: upsertedChapter.id,
-                duration_minutes: Number(topicData.duration_minutes)
             };
             delete topicToUpsert.uploadProgress; // Don't save uploadProgress to DB
 
@@ -444,4 +445,56 @@ export async function enrollInCourse(courseId: string) {
     revalidatePath(`/courses/${courseId}`); // Revalidate specific course page
 
     return { success: true };
+}
+
+
+export async function giftCourseToUser(courseId: string, recipientEmail: string) {
+    const supabase = createClient();
+    const { data: { user: gifterUser } } = await supabase.auth.getUser();
+
+    if (!gifterUser) {
+        return { success: false, error: "You must be logged in to gift a course." };
+    }
+
+    // Find the recipient user by email
+    const { data: recipientProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', recipientEmail)
+        .single();
+    
+    if (profileError || !recipientProfile) {
+        return { success: false, error: `Could not find a user with the email: ${recipientEmail}. Please make sure they have a CodeVerse account.` };
+    }
+
+    const recipientId = recipientProfile.id;
+
+    // Enroll the user in the course with the gifted flag
+    const { error: enrollError } = await supabase.from('user_enrollments').insert({
+        user_id: recipientId,
+        course_id: courseId,
+        is_gifted: true,
+    });
+
+     if (enrollError) {
+        if (enrollError.code === '23505') { // Unique constraint violation
+            return { success: false, error: `This user is already enrolled in the course.` };
+        }
+        console.error("Error enrolling user in gifted course:", enrollError);
+        return { success: false, error: `Failed to enroll the user: ${enrollError.message}` };
+    }
+
+    // Record the gift transaction
+    const { error: giftRecordError } = await supabase.from('course_gifts').insert({
+        course_id: courseId,
+        gifter_user_id: gifterUser.id,
+        recipient_user_id: recipientId,
+    });
+
+     if (giftRecordError) {
+        // This is not a critical failure, but should be logged. The user has the course.
+        console.error("Critical: Failed to record gift transaction after enrollment:", giftRecordError);
+    }
+    
+    return { success: true, message: `Successfully gifted the course to ${recipientEmail}!` };
 }

@@ -6,7 +6,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows, Share2 } from 'lucide-react';
+import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows, Share2, FileText, Gift } from 'lucide-react';
 import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -26,8 +26,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
+import { giftCourseToUser } from '@/lib/supabase/actions';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 function AuthRequiredDialog({ children, fullWidth = false }: { children: React.ReactNode, fullWidth?: boolean }) {
     return (
@@ -104,18 +110,74 @@ function VideoPreviewDialog({ previewUrl, children }: { previewUrl: string, chil
     )
 }
 
+function GiftCourseDialog({ courseId, children }: { courseId: string, children: React.ReactNode }) {
+    const { toast } = useToast();
+    const [recipientEmail, setRecipientEmail] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleGift = async () => {
+        setLoading(true);
+        const result = await giftCourseToUser(courseId, recipientEmail);
+        if (result.success) {
+            toast({ title: "Gift Sent!", description: result.message });
+            setIsOpen(false);
+            setRecipientEmail('');
+        } else {
+            toast({ variant: "destructive", title: "Gifting Failed", description: result.error });
+        }
+        setLoading(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Gift this Course</DialogTitle>
+                    <DialogDescription>
+                        Enter the recipient's email address. They will receive an email notification if they have an account.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="email" className="text-right">
+                            Email
+                        </Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            value={recipientEmail}
+                            onChange={(e) => setRecipientEmail(e.target.value)}
+                            className="col-span-3"
+                            placeholder="recipient@example.com"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit" onClick={handleGift} disabled={loading || !recipientEmail}>
+                        {loading ? 'Sending Gift...' : 'Send Gift'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export function CourseActionCard({ course, user }: { course: CourseWithChaptersAndTopics, user: User | null }) {
   const { toast } = useToast();
   if (!course) return null;
   const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
   const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
 
-  const totalDurationHours = course.chapters.reduce((total, chapter) => {
+  const totalDurationMinutes = course.chapters.reduce((total, chapter) => {
     return total + chapter.topics.reduce((chapterTotal, topic) => {
       return chapterTotal + (topic.duration_minutes || 0);
     }, 0);
-  }, 0) / 60;
-
+  }, 0);
 
   const startCourseButton = (
     <Button size="lg" asChild className="w-full">
@@ -182,14 +244,25 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
                     <ul className="space-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {course.chapters.length} chapters</li>
                         <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {totalTopics} topics</li>
-                        {totalDurationHours > 0 && (
-                             <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {totalDurationHours.toFixed(1)} hours on-demand video</li>
+                        {totalDurationMinutes > 0 && (
+                             <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {Math.floor(totalDurationMinutes / 60)}h {totalDurationMinutes % 60}m on-demand video</li>
                         )}
+                        {course.notes_url && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /><a href={course.notes_url} target="_blank" rel="noopener noreferrer" className="hover:underline">Downloadable notes</a></li>}
                     </ul>
                 </div>
                 <div className="flex justify-around pt-4 border-t border-border/50">
                     <Button variant="link" size="sm" className="text-muted-foreground" onClick={handleShare}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
-                    <Button variant="link" size="sm" className="text-muted-foreground"><Heart className="mr-2 h-4 w-4" /> Wishlist</Button>
+                    
+                    {user ? (
+                         <GiftCourseDialog courseId={course.id}>
+                            <Button variant="link" size="sm" className="text-muted-foreground"><Gift className="mr-2 h-4 w-4" /> Gift this course</Button>
+                        </GiftCourseDialog>
+                    ) : (
+                        <AuthRequiredDialog>
+                            <Button variant="link" size="sm" className="text-muted-foreground"><Gift className="mr-2 h-4 w-4" /> Gift this course</Button>
+                        </AuthRequiredDialog>
+                    )}
+
                     <Button variant="link" size="sm" className="text-muted-foreground"><GitCompareArrows className="mr-2 h-4 w-4" /> Compare</Button>
                 </div>
             </div>

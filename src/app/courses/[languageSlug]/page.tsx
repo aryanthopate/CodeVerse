@@ -6,12 +6,13 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Star } from 'lucide-react';
+import { Star, Globe2, Clock, RefreshCw } from 'lucide-react';
 import { getCourseBySlug } from '@/lib/supabase/queries';
 import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
 import { CourseActionCard, CourseContentAccordion, ReviewAndRatingSection } from '@/components';
 import Image from 'next/image';
+import { format } from 'date-fns';
 
 
 export default async function LanguagePage({ params }: { params: { languageSlug: string } }) {
@@ -42,7 +43,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                     <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
                     <p className="text-lg text-muted-foreground">{course.description}</p>
                     
-                    <div className="flex items-center gap-4 text-sm flex-wrap p-3 bg-muted/30 rounded-lg border border-border/30 w-fit">
+                    <div className="flex items-center gap-4 text-sm flex-wrap">
                         {course.is_bestseller && <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-300 border-none">Bestseller</Badge>}
                         <div className="flex items-center gap-1.5">
                             <span className="font-bold text-yellow-400">{course.rating?.toFixed(1) || 'N/A'}</span>
@@ -50,6 +51,10 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                         </div>
                         <p className="text-muted-foreground">(1,234 ratings)</p>
                         <p className="text-muted-foreground">{course.students_enrolled || 0} students</p>
+                    </div>
+                     <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                        {course.language && <div className="flex items-center gap-2"><Globe2 className="w-4 h-4" /><span>{course.language}</span></div>}
+                        <div className="flex items-center gap-2"><RefreshCw className="w-4 h-4" /><span>Last updated {format(new Date(course.created_at), 'MM/yyyy')}</span></div>
                     </div>
                 </div>
             </div>

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
 import { getAllCoursesMinimal } from '@/lib/supabase/queries';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Clock } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, File, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -165,10 +165,10 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     
     if (!quiz) {
         return (
-            <div class="pt-2 px-4 flex flex-col gap-2">
+            <div className="pt-2 px-4 flex flex-col gap-2">
                 <Label className="text-sm font-medium">Quiz Management</Label>
-                <div class="p-4 border-dashed border-2 rounded-lg text-center">
-                    <p class="text-sm text-muted-foreground">No quiz exists for this topic.</p>
+                <div className="p-4 border-dashed border-2 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">No quiz exists for this topic.</p>
                     <Button variant="link" onClick={handleAddQuiz}>Create a Manual Quiz</Button>
                 </div>
             </div>
@@ -176,9 +176,9 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     }
 
     return (
-         <div class="pt-2 px-4 flex flex-col gap-4">
+         <div className="pt-2 px-4 flex flex-col gap-4">
             <Label className="text-sm font-medium">Quiz Management</Label>
-            <div class="p-4 bg-muted/30 rounded-lg space-y-4">
+            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
                 {quiz.questions.map((q, qIndex) => (
                     <Card key={q.id}>
                         <CardHeader className='flex-row items-center justify-between p-4'>
@@ -267,6 +267,8 @@ export default function NewCoursePage() {
     const [isBestseller, setIsBestseller] = useState(false);
     const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
     const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
+    const [language, setLanguage] = useState('');
+    const [notesUrl, setNotesUrl] = useState('');
     
     useEffect(() => {
         const fetchCourses = async () => {
@@ -335,6 +337,18 @@ export default function NewCoursePage() {
         }));
     };
     
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'notes_url') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+         toast({
+            variant: 'destructive',
+            title: 'Create the course first',
+            description: 'Please save the course before uploading files. You can edit the course to add them later.',
+        });
+        e.target.value = ''; // Reset file input
+    };
+
     const handleVideoFileChange = async (chapterId: string, topicId: string, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -402,6 +416,8 @@ export default function NewCoursePage() {
             is_bestseller: isBestseller,
             students_enrolled: Number(studentsEnrolled),
             related_courses: relatedCourses,
+            language,
+            notes_url: notesUrl,
             chapters: chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id,
                 title: chapter.title,
@@ -409,7 +425,6 @@ export default function NewCoursePage() {
                 topics: chapter.topics.map((topic, topicIndex) => ({
                     ...topic,
                     id: topic.id,
-                    duration_minutes: Number(topic.duration_minutes),
                     order: topicIndex + 1,
                 }))
             }))
@@ -492,6 +507,30 @@ export default function NewCoursePage() {
                                     <div className="space-y-2">
                                         <Label htmlFor="preview-video-url">Preview Video URL</Label>
                                         <Input id="preview-video-url" value={previewVideoUrl} onChange={e => setPreviewVideoUrl(e.target.value)} placeholder="e.g., https://www.youtube.com/watch?v=..." />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="language">Language of Teaching</Label>
+                                        <Input id="language" value={language} onChange={e => setLanguage(e.target.value)} placeholder="e.g., English" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Course Notes</Label>
+                                         <div className="flex items-center gap-2">
+                                            <Input 
+                                                value={notesUrl} 
+                                                onChange={e => setNotesUrl(e.target.value)} 
+                                                placeholder="Paste a direct file link"
+                                                className="flex-grow"
+                                            />
+                                            <Button type="button" variant="outline" size="icon" asChild>
+                                                <Label htmlFor="notes-upload" className="cursor-pointer">
+                                                    <File className="h-4 w-4" />
+                                                    <span className="sr-only">Upload Notes</span>
+                                                </Label>
+                                            </Button>
+                                            <Input id="notes-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'notes_url')} />
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -614,7 +653,7 @@ export default function NewCoursePage() {
                                                                     </div>
                                                                      <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-duration-${chapter.id}-${topic.id}`}>Duration (minutes)</Label>
-                                                                        <Input id={`topic-duration-${chapter.id}-${topic.id}`} type="number" value={topic.duration_minutes} onChange={e => handleTopicChange(chapter.id, topic.id, 'duration_minutes', e.target.value)} placeholder="e.g., 10" required />
+                                                                        <Input id={`topic-duration-${chapter.id}-${topic.id}`} type="number" value={topic.duration_minutes} onChange={e => handleTopicChange(chapter.id, topic.id, 'duration_minutes', e.target.value)} placeholder="e.g., 10" />
                                                                     </div>
                                                                     <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Video URL or Upload</Label>

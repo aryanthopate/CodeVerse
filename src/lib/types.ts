@@ -16,18 +16,28 @@ export interface UserProfile {
 // Re-exporting Supabase generated types for convenience
 export type Course = Database['public']['Tables']['courses']['Row'] & {
     preview_video_url?: string | null;
+    what_you_will_learn?: string[] | null;
+    is_bestseller?: boolean | null;
+    students_enrolled?: number | null;
+    language?: string | null;
+    notes_url?: string | null;
 };
 export type Chapter = Database['public']['Tables']['chapters']['Row'];
-export type Topic = Database['public']['Tables']['topics']['Row'];
+export type Topic = Database['public']['Tables']['topics']['Row'] & {
+    duration_minutes?: number | null;
+};
 export type Quiz = Database['public']['Tables']['quizzes']['Row'];
 export type Question = Database['public']['Tables']['questions']['Row'];
 export type QuestionOption = Database['public']['Tables']['question_options']['Row'] & {
     explanation?: string | null;
 };
-export type UserEnrollment = Database['public']['Tables']['user_enrollments']['Row'];
+export type UserEnrollment = Database['public']['Tables']['user_enrollments']['Row'] & {
+  is_gifted?: boolean;
+};
 export type CourseReview = Database['public']['Tables']['course_reviews']['Row'] & {
     profiles: Pick<UserProfile, 'full_name' | 'avatar_url'> | null;
 };
+export type CourseGift = Database['public']['Tables']['course_gifts']['Row'];
 
 
 // Custom combined types for nested data fetching
@@ -40,7 +50,6 @@ export type QuizWithQuestions = Quiz & {
 export type TopicWithContent = Topic & {
     quizzes: QuizWithQuestions[] | null; // A topic can have one quiz, represented as an array of 1
     explanation?: string | null;
-    duration_minutes?: number | null;
 }
 export type ChapterWithTopics = Chapter & {
   topics: TopicWithContent[];

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
 import { getCourseBySlug, getAllCoursesMinimal, getRelatedCourseIds } from '@/lib/supabase/queries';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Clock } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Globe, File } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
@@ -167,10 +167,10 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     
     if (!quiz) {
         return (
-            <div class="pt-2 px-4 flex flex-col gap-2">
+            <div className="pt-2 px-4 flex flex-col gap-2">
                 <Label className="text-sm font-medium">Quiz Management</Label>
-                <div class="p-4 border-dashed border-2 rounded-lg text-center">
-                    <p class="text-sm text-muted-foreground">No quiz exists for this topic.</p>
+                <div className="p-4 border-dashed border-2 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">No quiz exists for this topic.</p>
                     <Button variant="link" onClick={handleAddQuiz}>Create a Manual Quiz</Button>
                 </div>
             </div>
@@ -178,9 +178,9 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
     }
 
     return (
-         <div class="pt-2 px-4 flex flex-col gap-4">
+         <div className="pt-2 px-4 flex flex-col gap-4">
             <Label className="text-sm font-medium">Quiz Management</Label>
-            <div class="p-4 bg-muted/30 rounded-lg space-y-4">
+            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
                 {quiz.questions.map((q, qIndex) => (
                     <Card key={q.id}>
                         <CardHeader className='flex-row items-center justify-between p-4'>
@@ -291,6 +291,9 @@ export default function EditCoursePage() {
     const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
     const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
     const [allCourses, setAllCourses] = useState<{ id: string; name: string }[]>([]);
+    const [language, setLanguage] = useState('');
+    const [notesUrl, setNotesUrl] = useState('');
+    const [notesUploadProgress, setNotesUploadProgress] = useState<number | undefined>();
     
     const [chapters, setChapters] = useState<ChapterState[]>([]);
 
@@ -304,10 +307,10 @@ export default function EditCoursePage() {
 
 
     // A ref to hold the latest state, used for debounced saving
-    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters });
+    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters, language, notesUrl });
     useEffect(() => {
-        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters };
-    }, [courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters]);
+        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters, language, notesUrl };
+    }, [courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters, language, notesUrl]);
 
 
     const handleStateChange = (setter: Function) => (...args: any[]) => {
@@ -357,6 +360,8 @@ export default function EditCoursePage() {
                 setIsBestseller(course.is_bestseller || false);
                 setStudentsEnrolled(course.students_enrolled || 0);
                 setRelatedCourses(relatedIds);
+                setLanguage(course.language || '');
+                setNotesUrl(course.notes_url || '');
 
                 setChapters((course as any).chapters.map((c: any) => ({
                     id: c.id,
@@ -415,6 +420,8 @@ export default function EditCoursePage() {
             is_bestseller: currentState.isBestseller,
             students_enrolled: Number(currentState.studentsEnrolled),
             related_courses: currentState.relatedCourses,
+            language: currentState.language,
+            notes_url: currentState.notesUrl,
             chapters: currentState.chapters.map((chapter, chapterIndex) => ({
                 id: chapter.id?.startsWith('ch-') ? undefined : chapter.id,
                 title: chapter.title,
@@ -523,6 +530,36 @@ export default function EditCoursePage() {
         });
         setChapters(newChapters);
     };
+
+     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'notes_url') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const filePath = `${courseId}/notes/${file.name}`;
+
+        setNotesUploadProgress(0);
+
+        const { error: uploadError } = await supabase.storage
+            .from('course_materials')
+            .upload(filePath, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+
+        if (uploadError) {
+            toast({ variant: 'destructive', title: 'Notes Upload Failed', description: uploadError.message });
+            setNotesUploadProgress(undefined);
+            return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('course_materials').getPublicUrl(filePath);
+
+        if (field === 'notes_url') {
+            setNotesUrl(publicUrl);
+        }
+        setNotesUploadProgress(100);
+        setSaveStatus('unsaved');
+        toast({ title: 'Upload Complete!', description: 'The notes have been successfully uploaded and linked.' });
+        
+        setTimeout(() => setNotesUploadProgress(undefined), 2000);
+    };
     
     const handleVideoFileChange = async (chapterId: string, topicId: string, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -603,6 +640,8 @@ export default function EditCoursePage() {
      const handlePriceChange = handleStateChange(setPrice);
      const handleIsBestsellerChange = handleStateChange(setIsBestseller);
      const handleStudentsEnrolledChange = handleStateChange(setStudentsEnrolled);
+     const handleLanguageChange = handleStateChange(setLanguage);
+     const handleNotesUrlChange = handleStateChange(setNotesUrl);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSaveStatus('unsaved');
@@ -694,6 +733,36 @@ export default function EditCoursePage() {
                                      <div className="space-y-2">
                                         <Label htmlFor="preview-video-url">Preview Video URL</Label>
                                         <Input id="preview-video-url" value={previewVideoUrl} onChange={e => handlePreviewVideoUrlChange(e.target.value)} placeholder="e.g., https://www.youtube.com/watch?v=..." />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="language">Language of Teaching</Label>
+                                        <Input id="language" value={language} onChange={e => handleLanguageChange(e.target.value)} placeholder="e.g., English" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Course Notes</Label>
+                                         <div className="flex items-center gap-2">
+                                            <Input 
+                                                value={notesUrl} 
+                                                onChange={e => handleNotesUrlChange(e.target.value)} 
+                                                placeholder="Upload a file or paste a link"
+                                                className="flex-grow"
+                                            />
+                                            <Button type="button" variant="outline" size="icon" asChild>
+                                                <Label htmlFor="notes-upload" className="cursor-pointer">
+                                                    <Upload className="h-4 w-4" />
+                                                    <span className="sr-only">Upload Notes</span>
+                                                </Label>
+                                            </Button>
+                                            <Input id="notes-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'notes_url')} />
+                                        </div>
+                                         {notesUploadProgress !== undefined && (
+                                            <div className="mt-2 space-y-1">
+                                                <Progress value={notesUploadProgress} className="h-2" />
+                                                <p className="text-xs text-muted-foreground text-center">{notesUploadProgress === 100 ? "Upload complete!" : `Uploading... ${notesUploadProgress}%`}</p>
+                                            </div>
+                                        )}
                                     </div>
 
                                      <div className="space-y-2">
@@ -816,7 +885,7 @@ export default function EditCoursePage() {
                                                                     </div>
                                                                      <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-duration-${chapter.id}-${topic.id}`}>Duration (minutes)</Label>
-                                                                        <Input id={`topic-duration-${chapter.id}-${topic.id}`} type="number" value={topic.duration_minutes} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'duration_minutes', e.target.value)} placeholder="e.g., 10" required />
+                                                                        <Input id={`topic-duration-${chapter.id}-${topic.id}`} type="number" value={topic.duration_minutes} onChange={e => handleTopicChange(chapter.id!, topic.id!, 'duration_minutes', e.target.value)} placeholder="e.g., 10" />
                                                                     </div>
                                                                     <div className="space-y-2 sm:col-span-2">
                                                                         <Label htmlFor={`topic-video-${chapter.id}-${topic.id}`}>Topic Video File or URL</Label>
