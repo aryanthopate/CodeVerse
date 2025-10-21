@@ -1,14 +1,23 @@
 
 'use server';
 
-import { AppLayout } from '@/components/app-layout';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
+import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
+import { CourseWithChaptersAndTopics } from '@/lib/types';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: string } }) {
     if (!topic.video_url) {
@@ -62,6 +71,48 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
     );
 }
 
+async function CourseSidebar({ activeCourseSlug, activeTopicSlug }: { activeCourseSlug: string, activeTopicSlug: string }) {
+    const courses = await getCoursesWithChaptersAndTopics() || [];
+    const course = courses.find(c => c.slug === activeCourseSlug);
+
+    if (!course) return null;
+
+    return (
+        <div className="sticky top-24 w-full h-[calc(100vh-7rem)]">
+            <div className="p-1 mb-4">
+                <Button variant="ghost" asChild className="w-full justify-start">
+                    <Link href="/courses"><Home className="mr-2" /> All Courses</Link>
+                </Button>
+            </div>
+            <h2 className="text-lg font-semibold px-4 mb-2 truncate">{course.name}</h2>
+            <Accordion type="single" collapsible defaultValue={course.chapters.find(c => c.topics.some(t => t.slug === activeTopicSlug))?.id} className="w-full h-full overflow-y-auto pr-4">
+                {course.chapters.map((chapter) => (
+                <AccordionItem key={chapter.id} value={chapter.id} className="border-none mb-1">
+                    <AccordionTrigger className="p-3 text-base font-semibold hover:no-underline hover:bg-muted/50 rounded-md">
+                        <span className="truncate">{chapter.title}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-4">
+                        <ul className="space-y-1 mt-2 border-l border-border/50">
+                            {chapter.topics.map(topic => (
+                            <li key={topic.id} className="ml-4">
+                                <Link href={`/courses/${course.slug}/${topic.slug}`}>
+                                <div className={`flex items-center p-2 rounded-md transition-colors text-sm 
+                                    ${topic.slug === activeTopicSlug ? 'bg-primary/20 text-primary-foreground font-semibold' : 'hover:bg-muted/50'}
+                                `}>
+                                    <span className="flex-grow truncate">{topic.title}</span>
+                                </div>
+                                </Link>
+                            </li>
+                            ))}
+                        </ul>
+                    </AccordionContent>
+                </AccordionItem>
+                ))}
+          </Accordion>
+        </div>
+    )
+}
+
 
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const { course, chapter, topic, prevTopic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug, params.topicSlug);
@@ -71,82 +122,78 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     }
     
     return (
-        <AppLayout>
-            <div className="max-w-7xl mx-auto">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                    <Link href={`/courses/${course.slug}`} className="hover:text-primary">{course.name}</Link>
-                    <ChevronRight className="w-4 h-4" />
-                    <span>{chapter?.title}</span>
-                    <ChevronRight className="w-4 h-4" />
-                    <span className="text-foreground">{topic.title}</span>
-                </div>
-                
-                <h1 className="text-4xl font-bold mb-6">{topic.title}</h1>
-                
-                <div className="grid lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Video Player */}
-                        <VideoPlayer topic={topic} />
-
-                         {/* Player Actions */}
-                        <div className="flex flex-wrap gap-4">
-                            <Button variant="outline"><Clock className="mr-2" /> Add Bookmark</Button>
-                            <Button variant="outline"><Edit className="mr-2" /> Take Note</Button>
-                            <Button variant="outline"><Mic className="mr-2" /> Record Audio Note</Button>
-                            <Button variant="destructive" className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300">
-                                <Bot className="mr-2"/> Didn't get it?
-                            </Button>
+    <div className="flex flex-col min-h-screen bg-background">
+        <Header />
+        <main className="flex-grow pt-16">
+            <div className="flex">
+                <aside className="hidden lg:block w-80 xl:w-96 p-4 border-r border-border/50">
+                   <CourseSidebar activeCourseSlug={params.languageSlug} activeTopicSlug={params.topicSlug} />
+                </aside>
+                <div className="flex-1 p-4 md:p-6 lg:p-8">
+                     <div className="max-w-4xl mx-auto">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                            <Link href={`/courses/${course.slug}`} className="hover:text-primary">{course.name}</Link>
+                            <ChevronRight className="w-4 h-4" />
+                            <span>{chapter?.title}</span>
+                            <ChevronRight className="w-4 h-4" />
+                            <span className="text-foreground">{topic.title}</span>
                         </div>
-                    </div>
-                    
-                    {/* Notes & Transcript Panel */}
-                    <div className="lg:col-span-1">
-                        <Tabs defaultValue="notes" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="notes"><Edit className="mr-2 w-4 h-4"/> Notes</TabsTrigger>
-                                <TabsTrigger value="transcript"><Book className="mr-2 w-4 h-4"/> Summary</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="notes" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50">
-                                <div className="space-y-4">
-                                    <h3 className="font-semibold">My Notes</h3>
-                                    <Textarea placeholder="Add a timestamped note..."/>
-                                    <Button className="w-full">Save Note</Button>
-                                    <div className="text-sm text-center text-muted-foreground">Your notes will be saved here.</div>
-                                </div>
-                            </TabsContent>
-                            <TabsContent value="transcript" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 h-96 overflow-y-auto">
-                                <h3 className="font-semibold mb-2">Video Summary</h3>
-                                <p className="text-sm text-muted-foreground whitespace-pre-line">
-                                    {topic.summary || 'Summary not available.'}
-                                </p>
-                            </TabsContent>
-                        </Tabs>
-                    </div>
-                </div>
+                        
+                        <h1 className="text-3xl md:text-4xl font-bold mb-6">{topic.title}</h1>
+                        
+                        <div className="space-y-6">
+                            {/* Video Player */}
+                            <VideoPlayer topic={topic} />
 
-                <div className="flex justify-between mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
-                    {prevTopic ? (
-                         <Button variant="outline" asChild>
-                            <Link href={`/courses/${course.slug}/${prevTopic.slug}`}>
-                               <ArrowLeft className="mr-2"/> Previous Topic
-                            </Link>
-                         </Button>
-                    ) : <div></div>}
-                   
-                    <div className="flex gap-4">
-                        <Button variant="secondary" className="bg-accent/80 hover:bg-accent">Take Quiz</Button>
-                        {nextTopic ? (
-                             <Button asChild>
-                                <Link href={`/courses/${course.slug}/${nextTopic.slug}`}>
-                                    Next Topic <ArrowRight className="ml-2"/>
-                                </Link>
-                             </Button>
-                        ): (
-                            <Button>Finish Course</Button>
-                        )}
+                            <Tabs defaultValue="summary" className="w-full">
+                                <TabsList>
+                                    <TabsTrigger value="summary"><Book className="mr-2 w-4 h-4"/> Summary</TabsTrigger>
+                                    <TabsTrigger value="notes"><Edit className="mr-2 w-4 h-4"/> My Notes</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="summary" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
+                                    <h3 className="font-semibold mb-2">Video Summary</h3>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                        {topic.summary || 'Summary not available.'}
+                                    </p>
+                                </TabsContent>
+                                <TabsContent value="notes" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
+                                    <div className="space-y-4">
+                                        <h3 className="font-semibold">My Notes</h3>
+                                        <Textarea placeholder="Add a timestamped note..."/>
+                                        <Button className="w-full">Save Note</Button>
+                                        <div className="text-sm text-center text-muted-foreground">Your notes will be saved here.</div>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+
+                        <div className="flex justify-between mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
+                            {prevTopic ? (
+                                <Button variant="outline" asChild>
+                                    <Link href={`/courses/${course.slug}/${prevTopic.slug}`}>
+                                    <ArrowLeft className="mr-2"/> Previous Topic
+                                    </Link>
+                                </Button>
+                            ) : <div></div>}
+                        
+                            <div className="flex gap-4">
+                                <Button variant="secondary" className="bg-accent/80 hover:bg-accent">Take Quiz</Button>
+                                {nextTopic ? (
+                                    <Button asChild>
+                                        <Link href={`/courses/${course.slug}/${nextTopic.slug}`}>
+                                            Next Topic <ArrowRight className="ml-2"/>
+                                        </Link>
+                                    </Button>
+                                ): (
+                                    <Button>Finish Course</Button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </main>
+        <Footer />
+    </div>
     );
 }
