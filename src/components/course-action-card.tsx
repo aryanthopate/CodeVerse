@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
 import { giftCourseToUser, enrollInCourse } from '@/lib/supabase/actions';
-import { getIsUserEnrolled } from '@/lib/supabase/queries';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { useRouter } from 'next/navigation';
@@ -169,25 +168,16 @@ function GiftCourseDialog({ courseId, children }: { courseId: string, children: 
     );
 }
 
-export function CourseActionCard({ course, user }: { course: CourseWithChaptersAndTopics, user: User | null }) {
+export function CourseActionCard({ course, user, isEnrolledInitial }: { course: CourseWithChaptersAndTopics, user: User | null, isEnrolledInitial: boolean }) {
     const { toast } = useToast();
     const router = useRouter();
-    const [isEnrolled, setIsEnrolled] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [isEnrolled, setIsEnrolled] = useState(isEnrolledInitial);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const checkEnrollment = async () => {
-            if (user && course) {
-                setLoading(true);
-                const enrolled = await getIsUserEnrolled(course.id, user.id);
-                setIsEnrolled(enrolled);
-                setLoading(false);
-            } else {
-                setLoading(false);
-            }
-        };
-        checkEnrollment();
-    }, [user, course]);
+        setIsEnrolled(isEnrolledInitial);
+    }, [isEnrolledInitial]);
+
 
     if (!course) return null;
     const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
@@ -208,6 +198,7 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
                 description: `You can now start "${course.name}" from your dashboard.`
             });
             setIsEnrolled(true);
+            router.refresh();
         } else {
             toast({
                 variant: 'destructive',
@@ -299,7 +290,12 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
                             {totalDurationMinutes > 0 && (
                                 <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {Math.floor(totalDurationMinutes / 60)}h {totalDurationMinutes % 60}m on-demand video</li>
                             )}
-                            {course.notes_url && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /><span>Downloadable Materials</span></li>}
+                            {course.notes_url && 
+                                <li className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-primary" />
+                                    <span>Downloadable Materials</span>
+                                </li>
+                            }
                         </ul>
                     </div>
                     <div className="flex justify-around pt-4 border-t border-border/50">

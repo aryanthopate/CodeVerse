@@ -7,7 +7,7 @@ import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Star, Globe2, Clock, RefreshCw } from 'lucide-react';
-import { getCourseBySlug } from '@/lib/supabase/queries';
+import { getCourseBySlug, getIsUserEnrolled } from '@/lib/supabase/queries';
 import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
 import { CourseActionCard, CourseContentAccordion, ReviewAndRatingSection } from '@/components';
@@ -26,6 +26,8 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
     notFound();
   }
   
+  const isEnrolled = user ? await getIsUserEnrolled(course.id, user.id) : false;
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -115,7 +117,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
             
             <div className="lg:col-span-1 relative">
                 <div className="sticky top-24 w-full">
-                    <CourseActionCard course={course} user={user} />
+                    <CourseActionCard course={course} user={user} isEnrolledInitial={isEnrolled} />
                 </div>
             </div>
 
