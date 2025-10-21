@@ -109,7 +109,7 @@ export default async function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow">
-        <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05] -z-10 animate-grid-pan"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05] -z-10"></div>
         
         {/* Hero Section */}
         <section className="pt-32 pb-20 text-center container mx-auto">
