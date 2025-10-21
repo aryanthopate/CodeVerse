@@ -65,7 +65,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
                     )
                 )
             ),
-            related_courses!inner (
+            related_courses (
                 course_id,
                 related_course_id,
                 courses!related_course_id (
@@ -85,29 +85,12 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
     
     if (error) {
         console.error("Error fetching course by slug:", error.message);
-        // If the error is because there are no related courses, we can still return the course
-        if (error.code === 'PGRST116') {
-             const { data: courseWithoutRelations, error: courseError } = await supabase
-                .from('courses')
-                .select(`*, chapters(*, topics(*, quizzes(*, questions(*, question_options(*)))))`)
-                .eq('slug', slug)
-                .order('order', { foreignTable: 'chapters', ascending: true })
-                .order('order', { foreignTable: 'chapters.topics', ascending: true })
-                .order('order', { foreignTable: 'chapters.topics.quizzes.questions', ascending: true })
-                .single();
-            if (courseError) {
-                 console.error("Error fetching course without relations:", courseError.message);
-                 return null;
-            }
-            return courseWithoutRelations as unknown as CourseWithChaptersAndTopics;
-        }
-
         return null;
     }
     
     const transformedCourse = {
         ...course,
-        related_courses: course.related_courses.map((rc: any) => rc.courses)
+        related_courses: course.related_courses?.map((rc: any) => rc.courses) || []
     };
 
     return transformedCourse as unknown as CourseWithChaptersAndTopics;
