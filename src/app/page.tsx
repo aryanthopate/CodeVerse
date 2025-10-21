@@ -166,21 +166,26 @@ export default async function Home() {
 
         {/* New Play & Learn Section */}
         <section className="py-20 container mx-auto">
-            <div className="bg-gradient-to-br from-card/50 via-card/30 to-transparent border border-primary/30 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-1 text-center md:text-left">
-                     <Badge variant="outline" className="mb-4 border-accent text-accent animate-float">
-                        New Feature!
-                    </Badge>
-                    <h2 className="text-4xl md:text-5xl font-bold">Play & Learn</h2>
-                    <p className="mt-4 text-lg text-muted-foreground">
-                        Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
-                    </p>
-                    <Button size="lg" asChild className="mt-8 shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/40 transform hover:-translate-y-1 transition-all duration-300">
-                        <Link href="/playground">Enter the Playground <Gamepad2 className="ml-2" /></Link>
-                    </Button>
-                </div>
-                <div className="flex-1 w-full max-w-sm">
-                    <Image src="https://picsum.photos/seed/gamer/600/600" width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20" data-ai-hint="neon abstract" />
+            <div className="relative rounded-2xl overflow-hidden p-8 md:p-12 border border-primary/30 bg-gradient-to-b from-card/80 to-background">
+                 <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
+                <div className="flex flex-col lg:flex-row items-center gap-8">
+                    <div className="flex-1 text-center lg:text-left z-10">
+                        <Badge variant="outline" className="mb-4 border-accent text-accent animate-float text-sm">
+                            New Feature!
+                        </Badge>
+                        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
+                            Play & Learn
+                        </h2>
+                        <p className="mt-4 text-lg text-muted-foreground max-w-xl">
+                            Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
+                        </p>
+                        <Button size="lg" asChild className="mt-8 bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/40 transform hover:-translate-y-1 transition-all duration-300">
+                            <Link href="/playground">Enter the Playground <Gamepad2 className="ml-2" /></Link>
+                        </Button>
+                    </div>
+                    <div className="flex-1 w-full max-w-md lg:max-w-none z-10">
+                        <Image src="https://picsum.photos/seed/gamer/600/600" width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20 transform hover:scale-105 transition-transform duration-500" data-ai-hint="neon abstract" />
+                    </div>
                 </div>
             </div>
         </section>
