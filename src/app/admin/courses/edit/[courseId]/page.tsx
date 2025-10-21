@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { AdminLayout } from '@/components/admin-layout';
@@ -273,9 +272,11 @@ function AutoSaveStatus({ status }: { status: SaveStatus }) {
 
 export default function EditCoursePage() {
     const params = useParams();
-    const courseId = params.courseId as string;
+    const courseSlugFromUrl = params.courseId as string;
     const { toast } = useToast();
     const supabase = createClient();
+    
+    const [actualCourseId, setActualCourseId] = useState<string | null>(null);
 
     const [initialLoading, setInitialLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
@@ -308,11 +309,12 @@ export default function EditCoursePage() {
 
     useEffect(() => {
         const fetchAllCourses = async () => {
+            if (!actualCourseId) return;
             const courses = await getAllCoursesMinimal();
-            setAllCourses(courses.filter(c => c.id !== courseId)); // Exclude self
+            setAllCourses(courses.filter(c => c.id !== actualCourseId)); // Exclude self
         };
         fetchAllCourses();
-    }, [courseId]);
+    }, [actualCourseId]);
 
 
     // A ref to hold the latest state, used for debounced saving
@@ -383,14 +385,17 @@ export default function EditCoursePage() {
     }, []);
 
     const fetchCourse = useCallback(async () => {
-        if (!courseId) return;
+        if (!courseSlugFromUrl) return;
         setInitialLoading(true);
         try {
-            const courseResult = await getCourseBySlug(courseId);
-            const relatedIds = await getRelatedCourseIds(courseId);
-
+            const courseResult = await getCourseBySlug(courseSlugFromUrl);
+            
             if (courseResult) {
-                const course = courseResult as unknown as Course;
+                const course = courseResult as unknown as CourseWithChaptersAndTopics;
+                setActualCourseId(course.id); // Store the actual UUID
+                
+                const relatedIds = await getRelatedCourseIds(course.id);
+
                 setCourseName(course.name);
                 setCourseSlug(course.slug);
                 setCourseDescription(course.description || '');
@@ -441,13 +446,23 @@ export default function EditCoursePage() {
         } finally {
             setInitialLoading(false);
         }
-    }, [courseId, toast]);
+    }, [courseSlugFromUrl, toast]);
 
     useEffect(() => {
         fetchCourse();
     }, [fetchCourse]);
 
     const saveChanges = useCallback(async (showToast = false) => {
+        if (!actualCourseId) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Save",
+                description: "The course ID is missing. Please reload the page.",
+            });
+            setSaveStatus('unsaved');
+            return;
+        }
+
         setSaveStatus('saving');
         const currentState = stateRef.current;
         
@@ -501,7 +516,7 @@ export default function EditCoursePage() {
         };
         
         try {
-            const result = await updateCourse(courseId, courseData as any);
+            const result = await updateCourse(actualCourseId, courseData as any);
             if (result.success) {
                 if (showToast) {
                     toast({
@@ -522,7 +537,7 @@ export default function EditCoursePage() {
             });
             setSaveStatus('unsaved');
         }
-    }, [courseId, toast, fetchCourse]);
+    }, [actualCourseId, toast, fetchCourse]);
 
 
     const debouncedSave = useDebouncedCallback(() => {
@@ -576,10 +591,14 @@ export default function EditCoursePage() {
     };
 
      const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'notes_url') => {
+        if (!actualCourseId) {
+            toast({ variant: 'destructive', title: 'Course not yet saved', description: 'Please save the course before uploading files.' });
+            return;
+        }
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const filePath = `${courseId}/notes/${file.name}`;
+        const filePath = `${actualCourseId}/notes/${file.name}`;
 
         setNotesUploadProgress(0);
 
@@ -606,6 +625,10 @@ export default function EditCoursePage() {
     };
     
     const handleVideoFileChange = async (chapterId: string, topicId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!actualCourseId) {
+            toast({ variant: 'destructive', title: 'Course not yet saved', description: 'Please save the course before uploading files.' });
+            return;
+        }
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -613,7 +636,7 @@ export default function EditCoursePage() {
         const topic = chapter?.topics.find(t => t.id === topicId);
         if (!topic) return;
 
-        const filePath = `${courseId}/${topic.slug}-${file.name}`;
+        const filePath = `${actualCourseId}/${topic.slug}-${file.name}`;
 
         handleTopicChange(chapterId, topicId, 'uploadProgress', 0);
         
@@ -1096,3 +1119,5 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
+
+    
