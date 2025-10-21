@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows } from 'lucide-react';
+import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -164,7 +164,10 @@ export default function CoursesShopPage() {
                                                 <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
                                             </div>
                                         </div>
-                                        <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
+                                        <div className="flex gap-2">
+                                            <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
+                                            <Button variant="secondary" className="w-full"><Zap className="mr-2 h-4 w-4"/> Buy Now</Button>
+                                        </div>
                                     </div>
                                 )}
                             </CardFooter>
