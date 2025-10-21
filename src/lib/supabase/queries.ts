@@ -65,7 +65,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
                     )
                 )
             ),
-            related_courses (
+            related_courses!course_id(
                 course_id,
                 related_course_id,
                 courses!related_course_id (
@@ -88,6 +88,10 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
         return null;
     }
     
+    if (!course) {
+        return null;
+    }
+
     const transformedCourse = {
         ...course,
         related_courses: course.related_courses?.map((rc: any) => rc.courses) || []
