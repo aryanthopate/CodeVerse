@@ -31,6 +31,7 @@ import { useDebounce } from 'use-debounce';
 import { enrollInCourse } from '@/lib/supabase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     return (
@@ -155,12 +156,16 @@ export default function CoursesShopPage() {
         };
 
         const enrollButton = (
-            <Button className="w-full max-w-xs" onClick={handleEnroll}>Enroll Now</Button>
+             <Button className="w-full max-w-xs" onClick={handleEnroll}>Enroll Now</Button>
         );
 
-        if (!user && !course.is_paid) {
-            return <AuthRequiredDialog>{enrollButton}</AuthRequiredDialog>;
-        }
+        const freeActions = (
+            <div className='text-center space-y-2'>
+                <p className='text-xl font-bold text-primary'>Free</p>
+                {user ? enrollButton : <AuthRequiredDialog>{enrollButton}</AuthRequiredDialog>}
+            </div>
+        );
+
 
         const paidActions = (
             <div className="w-full flex flex-col gap-2">
@@ -179,7 +184,7 @@ export default function CoursesShopPage() {
             return user ? paidActions : <AuthRequiredDialog>{paidActions}</AuthRequiredDialog>;
         }
         
-        return user ? enrollButton : <AuthRequiredDialog>{enrollButton}</AuthRequiredDialog>;
+        return freeActions;
     }
 
 
@@ -264,7 +269,7 @@ export default function CoursesShopPage() {
                                         {tag}
                                     </Badge>
                                 ))}
-                                {!user ? <AuthRequiredDialog>{wishlistButton}</AuthRequiredDialog> : wishlistButton}
+                                {user ? wishlistButton : <AuthRequiredDialog>{wishlistButton}</AuthRequiredDialog>}
                             </CardHeader>
                             <CardContent className="p-6 flex-grow">
                                 <div className="flex items-center text-sm text-muted-foreground gap-4 mb-2">
