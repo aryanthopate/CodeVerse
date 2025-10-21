@@ -11,7 +11,9 @@ import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ListFilter } from 'lucide-react';
+import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function CoursesShopPage() {
   const [courses, setCourses] = useState<CourseWithChaptersAndTopics[]>([]);
@@ -127,37 +129,46 @@ export default function CoursesShopPage() {
                     filteredAndSortedCourses.map(course => {
                         const userProgress: UserCourseProgress | null = null; // This will be replaced with user progress data
                         return (
-                        <Link href={`/courses/${course.slug}`} key={course.id}>
-                            <Card className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
-                            <CardHeader className="p-0 relative">
-                                <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/300`} alt={course.name} width={600} height={300} className="w-full h-40 object-cover rounded-t-lg" data-ai-hint="abstract code" />
-                                {course.is_paid && (
-                                    <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
-                                        PRO
-                                    </div>
-                                )}
-                            </CardHeader>
-                            <CardContent className="p-6 flex-grow">
-                                <CardTitle className="text-2xl font-bold">{course.name}</CardTitle>
-                                <CardDescription className="mt-2 text-sm">
-                                   {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
-                                </CardDescription>
-                            </CardContent>
-                            <CardFooter className="p-6 pt-0">
+                        <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 overflow-hidden">
+                            <Link href={`/courses/${course.slug}`} className="block">
+                                <CardHeader className="p-0 relative">
+                                    <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/300`} alt={course.name} width={600} height={300} className="w-full h-40 object-cover" data-ai-hint="abstract code" />
+                                    {course.is_paid && (
+                                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
+                                            PRO
+                                        </div>
+                                    )}
+                                </CardHeader>
+                                <CardContent className="p-6 flex-grow">
+                                    <CardTitle className="text-xl font-bold">{course.name}</CardTitle>
+                                    <CardDescription className="mt-2 text-sm">
+                                    {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
+                                    </CardDescription>
+                                </CardContent>
+                            </Link>
+                            <CardFooter className="p-6 pt-0 mt-auto bg-muted/30">
                                 {userProgress ? (
-                                <div className="w-full">
-                                    <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm text-muted-foreground">Progress</span>
-                                    <span className="text-sm font-bold text-primary">{userProgress.progress_percentage}%</span>
+                                    <div className="w-full">
+                                        <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm text-muted-foreground">Progress</span>
+                                        <span className="text-sm font-bold text-primary">{userProgress.progress_percentage}%</span>
+                                        </div>
+                                        <Progress value={userProgress.progress_percentage} className="h-2" />
                                     </div>
-                                    <Progress value={userProgress.progress_percentage} className="h-2" />
-                                </div>
                                 ) : (
-                                <p className="text-sm text-accent font-semibold">{course.is_paid ? `₹${course.price}` : 'Start Learning'}</p>
+                                    <div className="w-full flex flex-col gap-2">
+                                        <div className="flex justify-between items-center">
+                                            <p className="text-xl text-primary font-bold">{course.is_paid ? `₹${course.price}` : 'Free'}</p>
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon"><Heart className="h-5 w-5 text-muted-foreground hover:text-red-500"/></Button>
+                                                <Button variant="ghost" size="icon"><GitCompareArrows className="h-5 w-5 text-muted-foreground hover:text-primary"/></Button>
+                                            </div>
+                                        </div>
+                                        <Button className="w-full"><ShoppingCart className="mr-2 h-4 w-4"/> Add to Cart</Button>
+                                    </div>
                                 )}
                             </CardFooter>
-                            </Card>
-                        </Link>
+                        </Card>
                         );
                     })
                 ) : (

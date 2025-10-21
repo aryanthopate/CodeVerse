@@ -1,10 +1,11 @@
+
 "use client"
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, X, Shield } from 'lucide-react';
+import { Menu, X, Shield, ShoppingCart, Heart } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { UserProfile } from '@/lib/types';
@@ -71,7 +72,14 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-2">
+           <Button variant="ghost" size="icon" asChild>
+                <Link href="/wishlist"><Heart className="h-5 w-5" /></Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
+                <Link href="/cart"><ShoppingCart className="h-5 w-5" /></Link>
+            </Button>
+            <div className="w-px h-6 bg-border mx-2"></div>
           {loading ? null : user ? (
             <>
               {user.role === 'admin' && (
@@ -97,7 +105,13 @@ export function Header() {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
+            <Button variant="ghost" size="icon" asChild>
+                <Link href="/wishlist"><Heart className="h-5 w-5" /></Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
+                <Link href="/cart"><ShoppingCart className="h-5 w-5" /></Link>
+            </Button>
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
