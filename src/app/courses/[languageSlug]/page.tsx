@@ -6,7 +6,7 @@ import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
-import { Lock, PlayCircle, ArrowRight, LogIn, Star, Edit } from 'lucide-react';
+import { Lock, PlayCircle, ArrowRight, LogIn, Star, Edit, Heart, GitCompareArrows, ShoppingCart, Zap, Book, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { getCourseBySlug } from '@/lib/supabase/queries';
@@ -23,14 +23,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ReviewAndRatingSection } from '@/components/review-rating-section';
+import { Badge } from '@/components/ui/badge';
 
-function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
+function AuthRequiredDialog({ children, fullWidth = false }: { children: React.ReactNode, fullWidth?: boolean }) {
     return (
         <AlertDialog>
-            <AlertDialogTrigger asChild>
+            <AlertDialogTrigger asChild className={fullWidth ? 'w-full' : ''}>
                 {children}
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -57,6 +56,77 @@ function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     );
 }
 
+async function CourseActionCard({ course, user }: { course: Awaited<ReturnType<typeof getCourseBySlug>>, user: any }) {
+  if (!course) return null;
+  const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
+  const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
+
+  const startCourseButton = (
+    <Button size="lg" asChild className="w-full">
+        <Link href={`/courses/${course.slug}/${firstTopicSlug}`}>
+            Start Course <ArrowRight className="ml-2"/>
+        </Link>
+    </Button>
+  );
+
+  const enrollButton = (
+    <Button size="lg" className="w-full">
+        Enroll Now
+    </Button>
+  );
+
+  const paidActions = (
+    <div className="space-y-2">
+        <div className="flex items-center gap-4">
+            <p className="text-3xl font-bold text-foreground">{`₹${course.price}`}</p>
+            {/* Optional: Discount price can go here */}
+        </div>
+        <div className="flex items-center gap-2">
+            <Button size="lg" className="flex-1"><ShoppingCart className="mr-2"/> Add to Cart</Button>
+            <Button size="icon" variant="outline"><Heart /></Button>
+        </div>
+        <Button size="lg" variant="outline" className="w-full">Buy Now</Button>
+    </div>
+  );
+
+  return (
+    <div className="sticky top-24 w-full">
+        <div className="rounded-xl border bg-card text-card-foreground shadow-lg backdrop-blur-lg bg-card/50">
+            <div className="relative w-full aspect-video rounded-t-xl overflow-hidden group">
+                <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/1280/720`} alt={course.name} fill style={{objectFit: 'cover'}} />
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <PlayCircle className="w-16 h-16 text-white" />
+                </div>
+            </div>
+            <div className="p-6 space-y-4">
+                {course.is_paid ? (
+                    user ? paidActions : <AuthRequiredDialog fullWidth>{paidActions}</AuthRequiredDialog>
+                ) : (
+                    firstTopicSlug ? (user ? startCourseButton : <AuthRequiredDialog fullWidth>{enrollButton}</AuthRequiredDialog>) : null
+                )}
+                
+                <p className="text-xs text-center text-muted-foreground">30-Day Money-Back Guarantee</p>
+                
+                <div className="border-t border-border/50 pt-4">
+                    <h3 className="font-semibold text-foreground mb-2">This course includes:</h3>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {course.chapters.length} chapters</li>
+                        <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {totalTopics} topics</li>
+                        {course.total_duration_hours && (
+                             <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {course.total_duration_hours} hours on-demand video</li>
+                        )}
+                    </ul>
+                </div>
+                <div className="flex justify-around pt-4 border-t border-border/50">
+                    <Button variant="link" size="sm" className="text-muted-foreground">Share</Button>
+                    <Button variant="link" size="sm" className="text-muted-foreground">Gift this course</Button>
+                </div>
+            </div>
+        </div>
+    </div>
+  )
+}
+
 export default async function LanguagePage({ params }: { params: { languageSlug: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -70,86 +140,101 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
   const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
   const completedTopics = 0; // Mock data for now, will be replaced with user progress
   const progressPercentage = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
-  const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
-
-  const startCourseButton = (
-    <Button size="lg" asChild className="mt-6 w-full sm:w-auto">
-        <Link href={`/courses/${course.slug}/${firstTopicSlug}`}>
-            {progressPercentage > 0 ? 'Continue Learning' : 'Start Course'} <ArrowRight className="ml-2"/>
-        </Link>
-    </Button>
-  );
-
+  
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-grow pt-24 pb-12">
-        <div className="container mx-auto">
-            <div className="grid lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 space-y-6">
-              <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
-              <p className="text-lg text-muted-foreground">{course.description}</p>
-              
-               <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/50">
-                    <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/1280/720`} alt={course.name} fill style={{objectFit: 'cover'}} />
-               </div>
 
-              <div className="p-6 bg-card/50 rounded-xl border border-border/50">
-                <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                    <span>Course Progress</span>
-                    <span>{Math.round(progressPercentage)}% Complete</span>
+      {/* Hero Section */}
+      <div className="bg-card/30 border-b border-border/50">
+        <div className="container mx-auto py-12">
+            <div className="grid lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-4">
+                    <nav className="text-sm text-muted-foreground">
+                        <Link href="/courses" className="hover:text-primary">Courses</Link>
+                        <span className="mx-2">&gt;</span>
+                        <span>{course.name}</span>
+                    </nav>
+                    
+                    <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
+                    <p className="text-lg text-muted-foreground">{course.description}</p>
+                    
+                    <div className="flex items-center gap-4 text-sm flex-wrap">
+                        <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-300 border-none">Bestseller</Badge>
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-yellow-400">{course.rating?.toFixed(1) || 'N/A'}</span>
+                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        </div>
+                        <p className="text-muted-foreground">(1,234 ratings)</p>
+                        <p className="text-muted-foreground">12,345 students</p>
+                    </div>
                 </div>
-                <Progress value={progressPercentage} />
-                {firstTopicSlug && (
-                    user ? startCourseButton : <AuthRequiredDialog>{startCourseButton}</AuthRequiredDialog>
-                )}
+            </div>
+        </div>
+      </div>
+
+      <main className="flex-grow py-12">
+        <div className="container mx-auto">
+            <div className="grid lg:grid-cols-3 gap-12 items-start">
+            
+            <div className="lg:col-span-2 space-y-12">
+              
+              {/* What you'll learn */}
+              <div className="p-6 bg-card/50 rounded-xl border border-border/50">
+                <h2 className="text-3xl font-bold mb-4">What you'll learn</h2>
+                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                    <li className="flex items-start gap-3"><span className="text-primary mt-1">✓</span><span>Key takeaway one for this amazing course.</span></li>
+                    <li className="flex items-start gap-3"><span className="text-primary mt-1">✓</span><span>Another important skill you will master.</span></li>
+                    <li className="flex items-start gap-3"><span className="text-primary mt-1">✓</span><span>Build real-world applications from scratch.</span></li>
+                    <li className="flex items-start gap-3"><span className="text-primary mt-1">✓</span><span>Understand the fundamental concepts of the language.</span></li>
+                </ul>
               </div>
 
-              <h2 className="text-3xl font-bold pt-6">Course Content</h2>
-              <Accordion type="single" collapsible defaultValue={course.chapters[0]?.id} className="w-full">
-                {course.chapters.map((chapter) => (
-                  <AccordionItem key={chapter.id} value={chapter.id} className="bg-card/50 border-border/50 backdrop-blur-sm rounded-xl mb-4">
-                    <AccordionTrigger className="p-6 text-xl font-semibold hover:no-underline">
-                      {chapter.title}
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                      <ul className="space-y-3">
-                        {chapter.topics.map(topic => (
-                          <li key={topic.id}>
-                            <Link href={topic.is_free ? `/courses/${course.slug}/${topic.slug}` : '#'}>
-                              <div className={`flex items-center p-4 rounded-lg transition-colors ${topic.is_free ? 'hover:bg-muted/50' : 'opacity-60 cursor-not-allowed'}`}>
-                                <div className={`mr-4 ${topic.is_free ? 'text-primary' : 'text-muted-foreground'}`}>
-                                  {topic.is_free ? <PlayCircle /> : <Lock />}
-                                </div>
-                                <span className="flex-grow">{topic.title}</span>
-                                {!topic.is_free && (
-                                    <Button size="sm" variant="secondary" className="bg-accent/80 text-accent-foreground hover:bg-accent">Subscribe</Button>
-                                )}
-                              </div>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-                <div className="pt-6">
-                    <ReviewAndRatingSection courseId={course.id} />
+              {/* Course Content Accordion */}
+              <div>
+                <h2 className="text-3xl font-bold">Course Content</h2>
+                <div className="flex justify-between items-baseline text-sm text-muted-foreground my-2">
+                    <span>{course.chapters.length} chapters • {totalTopics} topics</span>
+                    <Button variant="link" className="text-primary">Expand all sections</Button>
                 </div>
+                <Accordion type="single" collapsible defaultValue={course.chapters[0]?.id} className="w-full space-y-2">
+                    {course.chapters.map((chapter) => (
+                    <AccordionItem key={chapter.id} value={chapter.id} className="bg-card/50 border-border/50 backdrop-blur-sm rounded-xl">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline">
+                        {chapter.title}
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                        <ul className="space-y-2">
+                            {chapter.topics.map(topic => (
+                            <li key={topic.id}>
+                                <Link href={topic.is_free ? `/courses/${course.slug}/${topic.slug}` : '#'}>
+                                <div className={`flex items-center p-3 rounded-lg transition-colors ${topic.is_free ? 'hover:bg-muted/50' : 'opacity-60 cursor-not-allowed'}`}>
+                                    <div className={`mr-4 ${topic.is_free ? 'text-primary' : 'text-muted-foreground'}`}>
+                                    {topic.is_free ? <PlayCircle /> : <Lock />}
+                                    </div>
+                                    <span className="flex-grow">{topic.title}</span>
+                                    {!topic.is_free && (
+                                        <Button size="sm" variant="secondary" className="bg-accent/80 text-accent-foreground hover:bg-accent">Subscribe</Button>
+                                    )}
+                                </div>
+                                </Link>
+                            </li>
+                            ))}
+                        </ul>
+                        </AccordionContent>
+                    </AccordionItem>
+                    ))}
+                </Accordion>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="pt-6">
+                  <ReviewAndRatingSection courseId={course.id} />
+              </div>
             </div>
             
             <div className="lg:col-span-1">
-                <div className="sticky top-24 p-6 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 space-y-4">
-                  <h3 className="text-2xl font-bold">Unlock Full Access</h3>
-                  <p className="text-muted-foreground">Subscribe to unlock all topics, AI help, certificates, and more!</p>
-                  <ul className="space-y-2 text-sm">
-                      <li className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" /> All {course.name} Topics</li>
-                      <li className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" /> Unlimited AI Tutor Help</li>
-                      <li className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" /> Verified Certificate</li>
-                  </ul>
-                  <Button className="w-full" size="lg">Subscribe Now</Button>
-                </div>
+                <CourseActionCard course={course} user={user} />
             </div>
 
           </div>
