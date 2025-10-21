@@ -21,6 +21,8 @@ export type Course = Database['public']['Tables']['courses']['Row'] & {
     students_enrolled?: number | null;
     language?: string | null;
     notes_url?: string | null;
+    total_duration_hours?: number | null;
+    tags?: string[] | null;
 };
 export type Chapter = Database['public']['Tables']['chapters']['Row'];
 export type Topic = Database['public']['Tables']['topics']['Row'] & {
@@ -45,7 +47,7 @@ export type QuestionWithOptions = Question & {
     question_options: QuestionOption[];
 }
 export type QuizWithQuestions = Quiz & {
-    questions: QuestionWithOptions[];
+    quizzes: QuizWithQuestions[];
 }
 export type TopicWithContent = Topic & {
     quizzes: QuizWithQuestions[] | null; // A topic can have one quiz, represented as an array of 1

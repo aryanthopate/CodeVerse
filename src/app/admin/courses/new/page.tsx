@@ -11,9 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createCourse } from '@/lib/supabase/actions';
 import { getAllCoursesMinimal } from '@/lib/supabase/queries';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, File, Globe } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, File, Globe, Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
@@ -264,7 +264,8 @@ export default function NewCoursePage() {
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
     const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
-    const [isBestseller, setIsBestseller] = useState(false);
+    const [tags, setTags] = useState<string[]>([]);
+    const [currentTag, setCurrentTag] = useState('');
     const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
     const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
     const [language, setLanguage] = useState('');
@@ -282,6 +283,10 @@ export default function NewCoursePage() {
     const [chapters, setChapters] = useState<ChapterState[]>([
         { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0, content: '', summary: '', explanation: '', uploadProgress: undefined, quizzes: [] }] }
     ]);
+    
+    const freeTopics = useMemo(() => {
+        return chapters.flatMap(c => c.topics).filter(t => t.is_free && t.video_url);
+    }, [chapters]);
 
     const handleAddChapter = () => {
         setChapters([...chapters, { id: `ch-${Date.now()}`, title: '', topics: [{ id: `t-${Date.now()}`, title: '', slug: '', is_free: false, video_url: '', duration_minutes: 0, content: '', summary: '', explanation: '', quizzes: [] }] }]);
@@ -400,6 +405,20 @@ export default function NewCoursePage() {
     const handleRelatedCourseChange = (courseId: string) => {
         setRelatedCourses(prev => prev.includes(courseId) ? prev.filter(id => id !== courseId) : [...prev, courseId]);
     }
+    
+    const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && currentTag.trim() !== '') {
+            e.preventDefault();
+            if (!tags.includes(currentTag.trim())) {
+                setTags([...tags, currentTag.trim()]);
+            }
+            setCurrentTag('');
+        }
+    };
+
+    const removeTag = (tagToRemove: string) => {
+        setTags(tags.filter(tag => tag !== tagToRemove));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -414,7 +433,8 @@ export default function NewCoursePage() {
             is_paid: isPaid,
             price: Number(price),
             what_you_will_learn: whatYouWillLearn.filter(item => item.trim() !== ''),
-            is_bestseller: isBestseller,
+            is_bestseller: tags.includes('Bestseller'), // Kept for legacy compatibility if needed
+            tags: tags,
             students_enrolled: Number(studentsEnrolled),
             total_duration_hours: Number(totalDurationHours),
             related_courses: relatedCourses,
@@ -507,8 +527,21 @@ export default function NewCoursePage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="preview-video-url">Preview Video URL</Label>
-                                        <Input id="preview-video-url" value={previewVideoUrl} onChange={e => setPreviewVideoUrl(e.target.value)} placeholder="e.g., https://www.youtube.com/watch?v=..." />
+                                        <Label htmlFor="preview-video-url">Preview Video</Label>
+                                         <Select value={previewVideoUrl} onValueChange={setPreviewVideoUrl}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a free topic video..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {freeTopics.length > 0 ? (
+                                                    freeTopics.map(topic => (
+                                                        <SelectItem key={topic.id} value={topic.video_url}>{topic.title}</SelectItem>
+                                                    ))
+                                                ) : (
+                                                    <div className="p-2 text-sm text-muted-foreground">No free topic videos available.</div>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
                                     <div className="space-y-2">
@@ -560,12 +593,24 @@ export default function NewCoursePage() {
                                     </div>
                                     
                                     <div className="space-y-4">
-                                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                            <div className="space-y-0.5">
-                                                <Label>Bestseller Status</Label>
-                                                <CardDescription>Mark this course as a bestseller.</CardDescription>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="tags">Course Tags</Label>
+                                            <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px]">
+                                                {tags.map(tag => (
+                                                    <div key={tag} className="flex items-center gap-1 bg-primary/20 text-primary-foreground px-2 py-1 rounded-full text-xs">
+                                                        <span>{tag}</span>
+                                                        <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-primary-foreground hover:text-white"><X className="h-3 w-3"/></button>
+                                                    </div>
+                                                ))}
+                                                <Input
+                                                    id="tags"
+                                                    value={currentTag}
+                                                    onChange={(e) => setCurrentTag(e.target.value)}
+                                                    onKeyDown={handleTagKeyDown}
+                                                    placeholder="Add a tag and press Enter"
+                                                    className="flex-1 border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none min-w-[120px]"
+                                                />
                                             </div>
-                                            <Switch checked={isBestseller} onCheckedChange={setIsBestseller} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="students-enrolled">Students Enrolled (Fake)</Label>

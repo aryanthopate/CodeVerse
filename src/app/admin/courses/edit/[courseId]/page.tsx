@@ -11,9 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateCourse } from '@/lib/supabase/actions';
 import { getCourseBySlug, getAllCoursesMinimal, getRelatedCourseIds } from '@/lib/supabase/queries';
-import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Globe, File } from 'lucide-react';
+import { X, Plus, Book, FileText, Upload, IndianRupee, Trash2, Image as ImageIcon, Save, Loader2, Globe, File, Tag } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import type { CourseWithChaptersAndTopics, QuizWithQuestions, QuestionWithOptions, QuestionOption, Course } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
@@ -186,7 +186,7 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                         <CardHeader className='flex-row items-center justify-between p-4'>
                             <CardTitle className='text-lg'>Question {qIndex + 1}</CardTitle>
                             <div className='flex items-center gap-2'>
-                                 <Select value={q.question_type} onValueChange={(value: QuestionType) => handleQuestionChange(q.id, 'question_type', value)}>
+                                 <Select value={q.question_type} onValueChange={(value: QuestionType) => handleQuestionChange(q.id!, 'question_type', value)}>
                                     <SelectTrigger className="w-[180px] h-9">
                                         <SelectValue placeholder="Question Type" />
                                     </SelectTrigger>
@@ -195,14 +195,14 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                                         <SelectItem value="multiple">Multiple Choice</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id)}><Trash2 className="text-destructive h-4 w-4"/></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id!)}><Trash2 className="text-destructive h-4 w-4"/></Button>
                             </div>
                         </CardHeader>
                         <CardContent className="p-4 pt-0 space-y-4">
                             <Textarea 
                                 placeholder="Enter question text..." 
                                 value={q.question_text}
-                                onChange={e => handleQuestionChange(q.id, 'question_text', e.target.value)}
+                                onChange={e => handleQuestionChange(q.id!, 'question_text', e.target.value)}
                             />
                             <div className='space-y-2'>
                                 <Label className="text-xs">Options</Label>
@@ -212,7 +212,7 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                                         {q.question_type === 'single' ? (
                                             <RadioGroup
                                                 value={q.question_options.find(o => o.is_correct)?.id}
-                                                onValueChange={() => handleOptionChange(q.id, opt.id, 'is_correct', true)}
+                                                onValueChange={() => handleOptionChange(q.id!, opt.id, 'is_correct', true)}
                                             >
                                                 <RadioGroupItem value={opt.id} id={`rb-${opt.id}`} />
                                             </RadioGroup>
@@ -220,28 +220,28 @@ function ManualQuizEditor({ topic, onTopicChange, chapterId, topicId }: { topic:
                                             <Checkbox
                                                 id={`cb-${opt.id}`}
                                                 checked={opt.is_correct}
-                                                onCheckedChange={checked => handleOptionChange(q.id, opt.id, 'is_correct', checked)}
+                                                onCheckedChange={checked => handleOptionChange(q.id!, opt.id, 'is_correct', checked)}
                                             />
                                         )}
                                         </div>
                                         <div className='flex-grow space-y-2'>
                                             <Input 
                                                 value={opt.option_text}
-                                                onChange={(e) => handleOptionChange(q.id, opt.id, 'option_text', e.target.value)}
+                                                onChange={(e) => handleOptionChange(q.id!, opt.id, 'option_text', e.target.value)}
                                                 className="h-9"
                                                 placeholder="Option text..."
                                             />
                                             <Textarea 
                                                 value={opt.explanation || ''}
-                                                onChange={(e) => handleOptionChange(q.id, opt.id, 'explanation', e.target.value)}
+                                                onChange={(e) => handleOptionChange(q.id!, opt.id, 'explanation', e.target.value)}
                                                 className="min-h-[60px] text-xs"
                                                 placeholder="Explanation for this option..."
                                             />
                                         </div>
-                                        <Button variant="ghost" size="icon" className='mt-1' onClick={() => handleRemoveOption(q.id, opt.id)}><X className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className='mt-1' onClick={() => handleRemoveOption(q.id!, opt.id)}><X className="h-4 w-4"/></Button>
                                     </div>
                                 ))}
-                                <Button variant="outline" size="sm" onClick={() => handleAddOption(q.id)}><Plus className="mr-2 h-4 w-4"/>Add Option</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleAddOption(q.id!)}><Plus className="mr-2 h-4 w-4"/>Add Option</Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -287,7 +287,8 @@ export default function EditCoursePage() {
     const [isPaid, setIsPaid] = useState(false);
     const [price, setPrice] = useState<number | string>(0);
     const [whatYouWillLearn, setWhatYouWillLearn] = useState<string[]>(['']);
-    const [isBestseller, setIsBestseller] = useState(false);
+    const [tags, setTags] = useState<string[]>([]);
+    const [currentTag, setCurrentTag] = useState('');
     const [studentsEnrolled, setStudentsEnrolled] = useState<number | string>(0);
     const [relatedCourses, setRelatedCourses] = useState<string[]>([]);
     const [allCourses, setAllCourses] = useState<{ id: string; name: string }[]>([]);
@@ -297,6 +298,10 @@ export default function EditCoursePage() {
     const [totalDurationHours, setTotalDurationHours] = useState<number | string>(0);
     
     const [chapters, setChapters] = useState<ChapterState[]>([]);
+
+    const freeTopics = useMemo(() => {
+        return chapters.flatMap(c => c.topics).filter(t => t.is_free && t.video_url);
+    }, [chapters]);
 
     useEffect(() => {
         const fetchAllCourses = async () => {
@@ -308,10 +313,10 @@ export default function EditCoursePage() {
 
 
     // A ref to hold the latest state, used for debounced saving
-    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours });
+    const stateRef = useRef({ courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, tags, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours });
     useEffect(() => {
-        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours };
-    }, [courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, isBestseller, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours]);
+        stateRef.current = { courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, tags, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours };
+    }, [courseName, courseSlug, courseDescription, courseImageUrl, previewVideoUrl, isPaid, price, whatYouWillLearn, tags, studentsEnrolled, relatedCourses, chapters, language, notesUrl, totalDurationHours]);
 
 
     const handleStateChange = (setter: Function) => (...args: any[]) => {
@@ -358,7 +363,7 @@ export default function EditCoursePage() {
                 setIsPaid(course.is_paid || false);
                 setPrice(course.price || 0);
                 setWhatYouWillLearn(course.what_you_will_learn || ['']);
-                setIsBestseller(course.is_bestseller || false);
+                setTags(course.tags || []);
                 setStudentsEnrolled(course.students_enrolled || 0);
                 setRelatedCourses(relatedIds);
                 setLanguage(course.language || '');
@@ -419,7 +424,8 @@ export default function EditCoursePage() {
             is_paid: currentState.isPaid,
             price: Number(currentState.price),
             what_you_will_learn: currentState.whatYouWillLearn.filter(item => item.trim() !== ''),
-            is_bestseller: currentState.isBestseller,
+            is_bestseller: currentState.tags.includes('Bestseller'),
+            tags: currentState.tags,
             students_enrolled: Number(currentState.studentsEnrolled),
             total_duration_hours: Number(currentState.totalDurationHours),
             related_courses: currentState.relatedCourses,
@@ -638,14 +644,13 @@ export default function EditCoursePage() {
      const handleCourseNameChange = handleStateChange(setCourseName);
      const handleSlugChange = handleStateChange(setCourseSlug);
      const handleDescriptionChange = handleStateChange(setCourseDescription);
-     const handlePreviewVideoUrlChange = handleStateChange(setPreviewVideoUrl);
-     const handleIsPaidChange = handleStateChange(setIsPaid);
      const handlePriceChange = handleStateChange(setPrice);
-     const handleIsBestsellerChange = handleStateChange(setIsBestseller);
      const handleStudentsEnrolledChange = handleStateChange(setStudentsEnrolled);
      const handleLanguageChange = handleStateChange(setLanguage);
      const handleNotesUrlChange = handleStateChange(setNotesUrl);
      const handleTotalDurationChange = handleStateChange(setTotalDurationHours);
+     const handlePreviewVideoUrlChange = handleStateChange(setPreviewVideoUrl);
+     const handleIsPaidChange = handleStateChange(setIsPaid);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSaveStatus('unsaved');
@@ -658,6 +663,22 @@ export default function EditCoursePage() {
             };
             reader.readAsDataURL(file);
         }
+    };
+    
+     const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && currentTag.trim() !== '') {
+            e.preventDefault();
+            if (!tags.includes(currentTag.trim())) {
+                setTags([...tags, currentTag.trim()]);
+                setSaveStatus('unsaved');
+            }
+            setCurrentTag('');
+        }
+    };
+
+    const removeTag = (tagToRemove: string) => {
+        setTags(tags.filter(tag => tag !== tagToRemove));
+        setSaveStatus('unsaved');
     };
     
     const handleSubmit = async (e: React.FormEvent) => {
@@ -735,8 +756,21 @@ export default function EditCoursePage() {
                                     </div>
                                     
                                      <div className="space-y-2">
-                                        <Label htmlFor="preview-video-url">Preview Video URL</Label>
-                                        <Input id="preview-video-url" value={previewVideoUrl} onChange={e => handlePreviewVideoUrlChange(e.target.value)} placeholder="e.g., https://www.youtube.com/watch?v=..." />
+                                        <Label htmlFor="preview-video-url">Preview Video</Label>
+                                        <Select value={previewVideoUrl} onValueChange={handlePreviewVideoUrlChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a free topic video..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {freeTopics.length > 0 ? (
+                                                    freeTopics.map(topic => (
+                                                        <SelectItem key={topic.id} value={topic.video_url}>{topic.title}</SelectItem>
+                                                    ))
+                                                ) : (
+                                                    <div className="p-2 text-sm text-muted-foreground">No free topic videos available.</div>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
                                     <div className="space-y-2">
@@ -794,12 +828,24 @@ export default function EditCoursePage() {
                                     </div>
                                     
                                     <div className="space-y-4">
-                                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                            <div className="space-y-0.5">
-                                                <Label>Bestseller Status</Label>
-                                                <CardDescription>Mark this course as a bestseller.</CardDescription>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="tags">Course Tags</Label>
+                                            <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px]">
+                                                {tags.map(tag => (
+                                                    <div key={tag} className="flex items-center gap-1 bg-primary/20 text-primary-foreground px-2 py-1 rounded-full text-xs">
+                                                        <span>{tag}</span>
+                                                        <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-primary-foreground hover:text-white"><X className="h-3 w-3"/></button>
+                                                    </div>
+                                                ))}
+                                                <Input
+                                                    id="tags"
+                                                    value={currentTag}
+                                                    onChange={(e) => setCurrentTag(e.target.value)}
+                                                    onKeyDown={handleTagKeyDown}
+                                                    placeholder="Add a tag and press Enter"
+                                                    className="flex-1 border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none min-w-[120px]"
+                                                />
                                             </div>
-                                            <Switch checked={isBestseller} onCheckedChange={handleIsBestsellerChange} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="students-enrolled">Students Enrolled (Fake)</Label>

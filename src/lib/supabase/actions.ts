@@ -70,6 +70,8 @@ export async function createCourse(courseData: CourseData) {
             preview_video_url: restOfCourseData.preview_video_url,
             language: restOfCourseData.language,
             notes_url: restOfCourseData.notes_url,
+            total_duration_hours: restOfCourseData.total_duration_hours,
+            tags: restOfCourseData.tags,
         })
         .select()
         .single();
@@ -230,6 +232,8 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
             preview_video_url: restOfCourseData.preview_video_url,
             language: restOfCourseData.language,
             notes_url: restOfCourseData.notes_url,
+            total_duration_hours: restOfCourseData.total_duration_hours,
+            tags: restOfCourseData.tags,
         })
         .eq('id', courseId);
 
