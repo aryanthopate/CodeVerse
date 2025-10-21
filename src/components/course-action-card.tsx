@@ -299,7 +299,7 @@ export function CourseActionCard({ course, user }: { course: CourseWithChaptersA
                             {totalDurationMinutes > 0 && (
                                 <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {Math.floor(totalDurationMinutes / 60)}h {totalDurationMinutes % 60}m on-demand video</li>
                             )}
-                            {course.notes_url && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /><a href={course.notes_url} target="_blank" rel="noopener noreferrer" className="hover:underline">Downloadable notes</a></li>}
+                            {course.notes_url && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /><a href={course.notes_url} target="_blank" rel="noopener noreferrer" download className="hover:underline">Downloadable Materials</a></li>}
                         </ul>
                     </div>
                     <div className="flex justify-around pt-4 border-t border-border/50">
