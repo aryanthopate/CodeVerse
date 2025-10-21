@@ -51,7 +51,7 @@ export type QuestionWithOptions = Question & {
     question_options: QuestionOption[];
 }
 export type QuizWithQuestions = Quiz & {
-    quizzes: QuizWithQuestions[];
+    questions: QuestionWithOptions[];
 }
 export type TopicWithContent = Topic & {
     quizzes: QuizWithQuestions[] | null; // A topic can have one quiz, represented as an array of 1

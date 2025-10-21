@@ -2,11 +2,11 @@
 
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows, Share2, FileText, Gift } from 'lucide-react';
+import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows, Share2, FileText, Gift, CheckCircle } from 'lucide-react';
 import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -31,9 +31,11 @@ import {
   DialogFooter
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
-import { giftCourseToUser } from '@/lib/supabase/actions';
+import { giftCourseToUser, enrollInCourse } from '@/lib/supabase/actions';
+import { getIsUserEnrolled } from '@/lib/supabase/queries';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { useRouter } from 'next/navigation';
 
 function AuthRequiredDialog({ children, fullWidth = false }: { children: React.ReactNode, fullWidth?: boolean }) {
     return (
@@ -136,7 +138,7 @@ function GiftCourseDialog({ courseId, children }: { courseId: string, children: 
                 <DialogHeader>
                     <DialogTitle>Gift this Course</DialogTitle>
                     <DialogDescription>
-                        Enter the recipient's email address. They will receive an email notification if they have an account.
+                        Enter the recipient's email address. They will receive an email notification if they have a CodeVerse account.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -168,105 +170,155 @@ function GiftCourseDialog({ courseId, children }: { courseId: string, children: 
 }
 
 export function CourseActionCard({ course, user }: { course: CourseWithChaptersAndTopics, user: User | null }) {
-  const { toast } = useToast();
-  if (!course) return null;
-  const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
-  const firstTopicSlug = course.chapters[0]?.topics[0]?.slug;
+    const { toast } = useToast();
+    const router = useRouter();
+    const [isEnrolled, setIsEnrolled] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-  const totalDurationMinutes = course.chapters.reduce((total, chapter) => {
-    return total + chapter.topics.reduce((chapterTotal, topic) => {
-      return chapterTotal + (topic.duration_minutes || 0);
+    useEffect(() => {
+        const checkEnrollment = async () => {
+            if (user && course) {
+                setLoading(true);
+                const enrolled = await getIsUserEnrolled(course.id, user.id);
+                setIsEnrolled(enrolled);
+                setLoading(false);
+            } else {
+                setLoading(false);
+            }
+        };
+        checkEnrollment();
+    }, [user, course]);
+
+    if (!course) return null;
+    const totalTopics = course.chapters.reduce((acc, chapter) => acc + chapter.topics.length, 0);
+
+    const totalDurationMinutes = course.chapters.reduce((total, chapter) => {
+        return total + chapter.topics.reduce((chapterTotal, topic) => {
+        return chapterTotal + (topic.duration_minutes || 0);
+        }, 0);
     }, 0);
-  }, 0);
 
-  const startCourseButton = (
-    <Button size="lg" asChild className="w-full">
-        <Link href={`/courses/${course.slug}/${firstTopicSlug}`}>
-            Start Course <ArrowRight className="ml-2"/>
-        </Link>
-    </Button>
-  );
+    const handleEnroll = async () => {
+        if (!user) return; // Should not happen if button is visible
+        setLoading(true);
+        const result = await enrollInCourse(course.id);
+        if (result.success) {
+            toast({
+                title: "Enrollment Successful!",
+                description: `You can now start "${course.name}" from your dashboard.`
+            });
+            setIsEnrolled(true);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Enrollment Failed',
+                description: result.error,
+            });
+        }
+        setLoading(false);
+    };
 
-  const enrollButton = (
-    <Button size="lg" className="w-full">
-        Enroll Now
-    </Button>
-  );
+    const ContinueToDashboardButton = () => (
+        <Button size="lg" className="w-full" asChild>
+            <Link href="/dashboard">
+                <CheckCircle className="mr-2"/> Continue to Dashboard
+            </Link>
+        </Button>
+    );
 
-  const paidActions = (
-    <div className="space-y-2">
-        <div className="flex items-center gap-4">
-            <p className="text-3xl font-bold text-foreground">{`₹${course.price}`}</p>
-            {/* Optional: Discount price can go here */}
+    const FreeEnrollButton = () => (
+        <Button size="lg" className="w-full" onClick={handleEnroll} disabled={loading}>
+            Enroll for Free <ArrowRight className="ml-2"/>
+        </Button>
+    );
+
+    const PaidActions = () => (
+        <div className="space-y-2">
+            <div className="flex items-center gap-4">
+                <p className="text-3xl font-bold text-foreground">{`₹${course.price}`}</p>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button size="lg" className="flex-1"><ShoppingCart className="mr-2"/> Add to Cart</Button>
+                <Button size="icon" variant="outline"><Heart /></Button>
+            </div>
+            <Button size="lg" variant="outline" className="w-full">Buy Now</Button>
         </div>
-        <div className="flex items-center gap-2">
-            <Button size="lg" className="flex-1"><ShoppingCart className="mr-2"/> Add to Cart</Button>
-            <Button size="icon" variant="outline"><Heart /></Button>
+    );
+    
+    const handleShare = () => {
+        navigator.clipboard.writeText(window.location.href);
+        toast({
+            title: "Link Copied!",
+            description: "The course URL has been copied to your clipboard.",
+        })
+    }
+
+    const imagePreview = (
+        <div className="relative w-full aspect-video rounded-t-xl overflow-hidden group cursor-pointer">
+            <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/1280/720`} alt={course.name} fill style={{objectFit: 'cover'}} />
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <PlayCircle className="w-16 h-16 text-white" />
+            </div>
         </div>
-        <Button size="lg" variant="outline" className="w-full">Buy Now</Button>
-    </div>
-  );
-  
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast({
-        title: "Link Copied!",
-        description: "The course URL has been copied to your clipboard.",
-    })
-  }
+    )
 
-  const imagePreview = (
-    <div className="relative w-full aspect-video rounded-t-xl overflow-hidden group cursor-pointer">
-        <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/1280/720`} alt={course.name} fill style={{objectFit: 'cover'}} />
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <PlayCircle className="w-16 h-16 text-white" />
-        </div>
-    </div>
-  )
+    const ActionButtonDisplay = () => {
+        if (loading) {
+            return <Button size="lg" className="w-full" disabled>Loading...</Button>;
+        }
 
-  return (
-    <div className="sticky top-24 w-full">
-        <div className="rounded-xl border bg-card text-card-foreground shadow-lg backdrop-blur-lg bg-card/50">
-            <VideoPreviewDialog previewUrl={course.preview_video_url || ''}>
-                {imagePreview}
-            </VideoPreviewDialog>
+        if (isEnrolled) {
+            return <ContinueToDashboardButton />;
+        }
+        
+        if (course.is_paid) {
+             return user ? <PaidActions /> : <AuthRequiredDialog fullWidth><PaidActions /></AuthRequiredDialog>;
+        }
+        
+        // Free course, not enrolled
+        return user ? <FreeEnrollButton /> : <AuthRequiredDialog fullWidth><Button size="lg" className="w-full">Enroll for Free</Button></AuthRequiredDialog>;
+    };
 
-            <div className="p-6 space-y-4">
-                {course.is_paid 
-                    ? user ? paidActions : <AuthRequiredDialog fullWidth>{paidActions}</AuthRequiredDialog>
-                    : firstTopicSlug ? (user ? startCourseButton : <AuthRequiredDialog fullWidth>{enrollButton}</AuthRequiredDialog>) : null
-                }
-                
-                <p className="text-xs text-center text-muted-foreground">30-Day Money-Back Guarantee</p>
-                
-                <div className="border-t border-border/50 pt-4">
-                    <h3 className="font-semibold text-foreground mb-2">This course includes:</h3>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                        <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {course.chapters.length} chapters</li>
-                        <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {totalTopics} topics</li>
-                        {totalDurationMinutes > 0 && (
-                             <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {Math.floor(totalDurationMinutes / 60)}h {totalDurationMinutes % 60}m on-demand video</li>
-                        )}
-                        {course.notes_url && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /><a href={course.notes_url} target="_blank" rel="noopener noreferrer" className="hover:underline">Downloadable notes</a></li>}
-                    </ul>
-                </div>
-                <div className="flex justify-around pt-4 border-t border-border/50">
-                    <Button variant="link" size="sm" className="text-muted-foreground" onClick={handleShare}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+    return (
+        <div className="sticky top-24 w-full">
+            <div className="rounded-xl border bg-card text-card-foreground shadow-lg backdrop-blur-lg bg-card/50">
+                <VideoPreviewDialog previewUrl={course.preview_video_url || ''}>
+                    {imagePreview}
+                </VideoPreviewDialog>
+
+                <div className="p-6 space-y-4">
+                    <ActionButtonDisplay />
                     
-                    {user ? (
-                         <GiftCourseDialog courseId={course.id}>
-                            <Button variant="link" size="sm" className="text-muted-foreground"><Gift className="mr-2 h-4 w-4" /> Gift this course</Button>
-                        </GiftCourseDialog>
-                    ) : (
-                        <AuthRequiredDialog>
-                            <Button variant="link" size="sm" className="text-muted-foreground"><Gift className="mr-2 h-4 w-4" /> Gift this course</Button>
-                        </AuthRequiredDialog>
-                    )}
+                    <p className="text-xs text-center text-muted-foreground">30-Day Money-Back Guarantee</p>
+                    
+                    <div className="border-t border-border/50 pt-4">
+                        <h3 className="font-semibold text-foreground mb-2">This course includes:</h3>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                            <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {course.chapters.length} chapters</li>
+                            <li className="flex items-center gap-2"><Book className="w-4 h-4 text-primary" /> {totalTopics} topics</li>
+                            {totalDurationMinutes > 0 && (
+                                <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {Math.floor(totalDurationMinutes / 60)}h {totalDurationMinutes % 60}m on-demand video</li>
+                            )}
+                            {course.notes_url && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /><a href={course.notes_url} target="_blank" rel="noopener noreferrer" className="hover:underline">Downloadable notes</a></li>}
+                        </ul>
+                    </div>
+                    <div className="flex justify-around pt-4 border-t border-border/50">
+                        <Button variant="link" size="sm" className="text-muted-foreground" onClick={handleShare}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+                        
+                        {user ? (
+                            <GiftCourseDialog courseId={course.id}>
+                                <Button variant="link" size="sm" className="text-muted-foreground"><Gift className="mr-2 h-4 w-4" /> Gift this course</Button>
+                            </GiftCourseDialog>
+                        ) : (
+                            <AuthRequiredDialog>
+                                <Button variant="link" size="sm" className="text-muted-foreground"><Gift className="mr-2 h-4 w-4" /> Gift this course</Button>
+                            </AuthRequiredDialog>
+                        )}
 
-                    <Button variant="link" size="sm" className="text-muted-foreground"><GitCompareArrows className="mr-2 h-4 w-4" /> Compare</Button>
+                        <Button variant="link" size="sm" className="text-muted-foreground"><GitCompareArrows className="mr-2 h-4 w-4" /> Compare</Button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-  )
+    )
 }

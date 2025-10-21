@@ -3,7 +3,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -110,6 +110,7 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
             id,
             name,
             slug,
+            language,
             chapters (
                 id,
                 title,
@@ -159,7 +160,7 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
     return {
         course: typedCourse,
         chapter: currentChapter || null,
-        topic: currentTopic as Topic,
+        topic: currentTopic as Topic & { quizzes: QuizWithQuestions[] },
         prevTopic: prevTopic as Topic | null,
         nextTopic: nextTopic as Topic | null,
     };
@@ -211,4 +212,21 @@ export async function getRelatedCourseIds(courseId: string) {
         return [];
     }
     return data.map(r => r.related_course_id);
+}
+
+export async function getIsUserEnrolled(courseId: string, userId: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('user_enrollments')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('user_id', userId)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error("Error checking enrollment:", error);
+        return false;
+    }
+
+    return !!data;
 }

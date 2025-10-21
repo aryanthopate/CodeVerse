@@ -7,10 +7,9 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home } from 'lucide-react';
+import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home, Video, HelpCircle, FileCode2 } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
-import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
 import {
   Accordion,
@@ -81,7 +80,7 @@ async function CourseSidebar({ activeCourseSlug, activeTopicSlug }: { activeCour
         <div className="sticky top-24 w-full h-[calc(100vh-7rem)]">
             <div className="p-1 mb-4">
                 <Button variant="ghost" asChild className="w-full justify-start">
-                    <Link href="/courses"><Home className="mr-2" /> All Courses</Link>
+                    <Link href="/dashboard"><Home className="mr-2" /> Back to Dashboard</Link>
                 </Button>
             </div>
             <h2 className="text-lg font-semibold px-4 mb-2 truncate">{course.name}</h2>
@@ -93,17 +92,36 @@ async function CourseSidebar({ activeCourseSlug, activeTopicSlug }: { activeCour
                     </AccordionTrigger>
                     <AccordionContent className="pl-4">
                         <ul className="space-y-1 mt-2 border-l border-border/50">
-                            {chapter.topics.map(topic => (
-                            <li key={topic.id} className="ml-4">
-                                <Link href={`/courses/${course.slug}/${topic.slug}`}>
-                                <div className={`flex items-center p-2 rounded-md transition-colors text-sm 
-                                    ${topic.slug === activeTopicSlug ? 'bg-primary/20 text-primary-foreground font-semibold' : 'hover:bg-muted/50'}
-                                `}>
-                                    <span className="flex-grow truncate">{topic.title}</span>
-                                </div>
-                                </Link>
-                            </li>
-                            ))}
+                            {chapter.topics.map(topic => {
+                                const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
+                                const hasPractice = !!topic.content;
+                                return (
+                                <li key={topic.id} className="ml-4">
+                                    <div className={`flex flex-col p-2 rounded-md transition-colors text-sm 
+                                        ${topic.slug === activeTopicSlug ? 'bg-primary/20' : ''}
+                                    `}>
+                                        <Link href={`/courses/${course.slug}/${topic.slug}`} className={`flex items-center w-full p-1 rounded-md ${topic.slug === activeTopicSlug ? 'text-primary-foreground font-semibold' : 'hover:bg-muted/50'}`}>
+                                            <Video className="mr-2 w-4 h-4" />
+                                            <span className="flex-grow truncate">{topic.title}</span>
+                                        </Link>
+                                         <div className="pl-6 mt-1 space-y-1">
+                                             {hasQuiz && (
+                                                <Link href={`/courses/${course.slug}/${topic.slug}/quiz`} className="flex items-center text-xs p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                                                    <HelpCircle className="mr-2 w-3.5 h-3.5" />
+                                                    Quiz
+                                                </Link>
+                                             )}
+                                             {hasPractice && (
+                                                <Link href={`/courses/${course.slug}/${topic.slug}/practice`} className="flex items-center text-xs p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                                                    <FileCode2 className="mr-2 w-3.5 h-3.5" />
+                                                    Code Practice
+                                                </Link>
+                                             )}
+                                        </div>
+                                    </div>
+                                </li>
+                                )
+                            })}
                         </ul>
                     </AccordionContent>
                 </AccordionItem>
@@ -113,6 +131,19 @@ async function CourseSidebar({ activeCourseSlug, activeTopicSlug }: { activeCour
     )
 }
 
+function NotesSection() {
+    return (
+        <div className="space-y-4">
+            <h3 className="font-semibold">My Notes</h3>
+            <Textarea placeholder="Add a timestamped note... e.g., '03:15 - Explain this concept further'"/>
+            <div className="flex gap-2">
+                <Button className="w-full">Save Note</Button>
+                <Button variant="outline" className="w-full"><Mic className="mr-2" /> Record Voice Note</Button>
+            </div>
+            <div className="text-sm text-center text-muted-foreground">Your notes will be saved here.</div>
+        </div>
+    );
+}
 
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const { course, chapter, topic, prevTopic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug, params.topicSlug);
@@ -120,6 +151,9 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     if (!course || !topic || !chapter) {
         notFound();
     }
+
+    const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
+    const hasPractice = !!topic.content;
     
     return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -142,7 +176,6 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                         <h1 className="text-3xl md:text-4xl font-bold mb-6">{topic.title}</h1>
                         
                         <div className="space-y-6">
-                            {/* Video Player */}
                             <VideoPlayer topic={topic} />
 
                             <Tabs defaultValue="summary" className="w-full">
@@ -157,12 +190,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                     </p>
                                 </TabsContent>
                                 <TabsContent value="notes" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
-                                    <div className="space-y-4">
-                                        <h3 className="font-semibold">My Notes</h3>
-                                        <Textarea placeholder="Add a timestamped note..."/>
-                                        <Button className="w-full">Save Note</Button>
-                                        <div className="text-sm text-center text-muted-foreground">Your notes will be saved here.</div>
-                                    </div>
+                                   <NotesSection />
                                 </TabsContent>
                             </Tabs>
                         </div>
@@ -177,7 +205,16 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                             ) : <div></div>}
                         
                             <div className="flex gap-4">
-                                <Button variant="secondary" className="bg-accent/80 hover:bg-accent">Take Quiz</Button>
+                                {hasQuiz ? (
+                                    <Button variant="secondary" className="bg-accent/80 hover:bg-accent" asChild>
+                                        <Link href={`/courses/${course.slug}/${topic.slug}/quiz`}>Take Quiz</Link>
+                                    </Button>
+                                ) : hasPractice ? (
+                                     <Button variant="secondary" className="bg-accent/80 hover:bg-accent" asChild>
+                                        <Link href={`/courses/${course.slug}/${topic.slug}/practice`}>Start Practice</Link>
+                                    </Button>
+                                ) : null}
+
                                 {nextTopic ? (
                                     <Button asChild>
                                         <Link href={`/courses/${course.slug}/${nextTopic.slug}`}>
