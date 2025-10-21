@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Check, Lock, Play, Star, Swords } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 
 // Helper function to generate SVG path data and level positions
@@ -18,7 +19,6 @@ const generateLevelMap = (levelCount: number) => {
     let pathData = "M 150 150";
     let x = 150, y = 150;
     const segmentLength = 200;
-    const curveAmount = 100;
 
     for (let i = 0; i < levelCount; i++) {
         levels.push({ id: i, x, y });
@@ -50,15 +50,16 @@ export default async function GameDetailPage({ params }: { params: { gameId: str
         notFound();
     }
     
-    const { levels: levelPositions, pathData, width } = generateLevelMap(game.game_levels.length);
+    const allLevels = game.game_chapters.flatMap(chapter => chapter.game_levels);
+    const { levels: levelPositions, pathData, width } = generateLevelMap(allLevels.length);
 
     // This is a placeholder for user progress. In a real app, you'd fetch this.
     const userProgress = {
         completed_levels: [], // e.g. ['level_id_1', 'level_id_2']
     };
     
-    let currentLevelIndex = game.game_levels.findIndex(l => !userProgress.completed_levels.includes(l.id as never));
-    if (currentLevelIndex === -1) currentLevelIndex = game.game_levels.length; // All completed
+    let currentLevelIndex = allLevels.findIndex(l => !userProgress.completed_levels.includes(l.id as never));
+    if (currentLevelIndex === -1) currentLevelIndex = allLevels.length; // All completed
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
@@ -121,7 +122,7 @@ export default async function GameDetailPage({ params }: { params: { gameId: str
                             `}</style>
                         </svg>
 
-                        {game.game_levels.map((level, index) => {
+                        {allLevels.map((level, index) => {
                             const position = levelPositions[index];
                             if (!position) return null;
 
@@ -129,37 +130,40 @@ export default async function GameDetailPage({ params }: { params: { gameId: str
                             const isCurrent = index === currentLevelIndex;
                             const isLocked = index > currentLevelIndex;
                             
-                            const ChapterGate = ({ chapterNumber }: { chapterNumber: number}) => (
-                                <div style={{ left: `${position.x + 80}px`, top: '50%', transform: 'translateY(-50%)' }} className="absolute flex flex-col items-center">
-                                    <div className="h-24 w-1 bg-primary/50 rounded-full"></div>
-                                    <div className="p-2 bg-primary/20 border border-primary rounded-full my-2">
-                                        <Swords className="text-primary"/>
-                                    </div>
-                                    <p className="text-xs text-primary font-bold">Chapter {chapterNumber}</p>
-                                    <div className="h-24 w-1 bg-primary/50 rounded-full"></div>
-                                </div>
-                            );
+                            // Find which chapter this level belongs to
+                            const chapterForLevel = game.game_chapters.find(c => c.game_levels.some(l => l.id === level.id));
+                            const isFirstLevelOfChapter = chapterForLevel?.game_levels[0]?.id === level.id;
+
 
                             return (
                                 <React.Fragment key={level.id}>
-                                <Link
-                                    href={isLocked ? '#' : `/playground/${game.id}/${level.id}`}
-                                    className={cn(
-                                        "absolute w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-300",
-                                        "border-4 hover:border-primary",
-                                        isCurrent ? "border-primary scale-110 animate-pulse bg-primary/20" : "border-border/50 bg-card",
-                                        isCompleted ? "border-green-500" : "",
-                                        isLocked ? "border-muted-foreground/30 bg-muted/50 cursor-not-allowed" : "cursor-pointer hover:scale-110"
+                                    {isFirstLevelOfChapter && index > 0 && (
+                                        <div style={{ left: `${position.x - 100}px`, top: '50%', transform: 'translateY(-50%)' }} className="absolute flex flex-col items-center z-10">
+                                            <div className="h-24 w-1 bg-primary/50 rounded-full"></div>
+                                            <div className="p-2 bg-primary/20 border border-primary rounded-full my-2">
+                                                <Swords className="text-primary"/>
+                                            </div>
+                                            <p className="text-xs text-primary font-bold w-32 text-center">{chapterForLevel?.title}</p>
+                                            <div className="h-24 w-1 bg-primary/50 rounded-full"></div>
+                                        </div>
                                     )}
-                                    style={{ left: `${position.x - 48}px`, top: `${position.y - 48}px` }}
-                                >
-                                    {isLocked ? <Lock className="w-8 h-8 text-muted-foreground" /> :
-                                     isCompleted ? <Check className="w-8 h-8 text-green-500" /> :
-                                     <Play className="w-8 h-8 text-primary" />
-                                    }
-                                    <p className="text-xs font-bold mt-1 text-center truncate w-full px-1">{level.title}</p>
-                                </Link>
-                                 {(index + 1) % 5 === 0 && index < game.game_levels.length - 1 && <ChapterGate chapterNumber={(index + 1) / 5 + 1} />}
+                                    <Link
+                                        href={isLocked ? '#' : `/playground/${game.id}/${level.id}`}
+                                        className={cn(
+                                            "absolute w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-300 z-20",
+                                            "border-4 hover:border-primary",
+                                            isCurrent ? "border-primary scale-110 animate-pulse bg-primary/20" : "border-border/50 bg-card",
+                                            isCompleted ? "border-green-500" : "",
+                                            isLocked ? "border-muted-foreground/30 bg-muted/50 cursor-not-allowed" : "cursor-pointer hover:scale-110"
+                                        )}
+                                        style={{ left: `${position.x - 48}px`, top: `${position.y - 48}px` }}
+                                    >
+                                        {isLocked ? <Lock className="w-8 h-8 text-muted-foreground" /> :
+                                        isCompleted ? <Check className="w-8 h-8 text-green-500" /> :
+                                        <Play className="w-8 h-8 text-primary" />
+                                        }
+                                        <p className="text-xs font-bold mt-1 text-center truncate w-full px-1">{level.title}</p>
+                                    </Link>
                                 </React.Fragment>
                             );
                         })}
