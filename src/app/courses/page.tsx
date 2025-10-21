@@ -264,11 +264,13 @@ export default function CoursesShopPage() {
                                         </div>
                                     </div>
                                 </Link>
-                                {(course.tags || []).map(tag => (
-                                    <Badge key={tag} variant="secondary" className="absolute top-2 left-2 bg-primary/80 text-primary-foreground border-none z-10 capitalize">
-                                        {tag}
-                                    </Badge>
-                                ))}
+                                <div className="absolute top-2 left-2 z-10 flex gap-2">
+                                    {(course.tags || []).map(tag => (
+                                        <Badge key={tag} variant="secondary" className="capitalize bg-primary/80 text-primary-foreground border-none">
+                                            {tag}
+                                        </Badge>
+                                    ))}
+                                </div>
                                 {user ? wishlistButton : <AuthRequiredDialog>{wishlistButton}</AuthRequiredDialog>}
                             </CardHeader>
                             <CardContent className="p-6 flex-grow">

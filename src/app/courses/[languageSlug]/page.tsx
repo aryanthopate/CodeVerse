@@ -44,7 +44,13 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                     <p className="text-lg text-muted-foreground">{course.description}</p>
                     
                     <div className="flex items-center gap-4 text-sm flex-wrap">
-                        {course.is_bestseller && <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-300 border-none">Bestseller</Badge>}
+                        <div className="flex items-center gap-2">
+                           {(course.tags || []).map(tag => (
+                                <Badge key={tag} variant="secondary" className="capitalize bg-yellow-400/20 text-yellow-300 border-none">
+                                    {tag}
+                                </Badge>
+                           ))}
+                        </div>
                         <div className="flex items-center gap-1.5">
                             <span className="font-bold text-yellow-400">{course.rating?.toFixed(1) || 'N/A'}</span>
                             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { AdminLayout } from '@/components/admin-layout';
@@ -894,10 +895,10 @@ export default function EditCoursePage() {
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="tags">Course Tags</Label>
-                                            <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px]">
+                                            <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px] items-center">
                                                 {tags.map(tag => (
                                                     <div key={tag} className="flex items-center gap-1 bg-primary/20 text-primary-foreground px-2 py-1 rounded-full text-xs">
-                                                        <span>{tag}</span>
+                                                        <span className="capitalize">{tag}</span>
                                                         <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-primary-foreground hover:text-white"><X className="h-3 w-3"/></button>
                                                     </div>
                                                 ))}
@@ -907,7 +908,7 @@ export default function EditCoursePage() {
                                                     onChange={(e) => setCurrentTag(e.target.value)}
                                                     onKeyDown={handleTagKeyDown}
                                                     placeholder="Add a tag and press Enter"
-                                                    className="flex-1 border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none min-w-[120px]"
+                                                    className="flex-1 border-0 bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none min-w-[120px]"
                                                 />
                                             </div>
                                         </div>
@@ -1119,5 +1120,3 @@ export default function EditCoursePage() {
         </AdminLayout>
     );
 }
-
-    
