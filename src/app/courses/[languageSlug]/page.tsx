@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { Header } from '@/components/header';
@@ -6,7 +7,7 @@ import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
-import { Lock, PlayCircle, ArrowRight, LogIn } from 'lucide-react';
+import { Lock, PlayCircle, ArrowRight, LogIn, Star, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { getCourseBySlug } from '@/lib/supabase/queries';
@@ -23,6 +24,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     return (
@@ -52,6 +55,61 @@ function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
             </AlertDialogContent>
         </AlertDialog>
     );
+}
+
+function ReviewAndRatingSection({ courseId }: { courseId: string }) {
+    // This would fetch reviews for the course
+    const reviews = [
+        { id: '1', author: 'Anika S.', rating: 5, text: "Absolutely fantastic course! The instructor explains everything so clearly. The hands-on projects were the best part.", avatar: `https://picsum.photos/seed/${Math.random()}/40/40` },
+        { id: '2', author: 'Rohan M.', rating: 4, text: "Great content and well-structured. A few topics could use more depth, but overall, a solid learning experience.", avatar: `https://picsum.photos/seed/${Math.random()}/40/40` },
+        { id: '3', author: 'Priya K.', rating: 5, text: "I'm a complete beginner, and this course made me feel confident. The AI tutor feature is a game-changer!", avatar: `https://picsum.photos/seed/${Math.random()}/40/40` },
+    ];
+    
+    const averageRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
+
+    return (
+        <div className="p-6 bg-card/50 rounded-xl border border-border/50">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                <div>
+                    <h3 className="text-2xl font-bold">Ratings & Reviews</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Star className="w-5 h-5 text-yellow-400 fill-yellow-400"/>
+                        <span className="text-lg font-bold">{averageRating.toFixed(1)}</span>
+                        <span className="text-sm text-muted-foreground">({reviews.length} reviews)</span>
+                    </div>
+                </div>
+                <AuthRequiredDialog>
+                    <Button variant="outline" className="mt-4 sm:mt-0">
+                        <Edit className="mr-2 h-4 w-4"/>
+                        Rate & Review
+                    </Button>
+                </AuthRequiredDialog>
+            </div>
+            <div className="space-y-6">
+                {reviews.map(review => (
+                    <Card key={review.id} className="bg-muted/30 border-0">
+                        <CardHeader className="flex-row gap-4 items-center p-4">
+                            <Avatar>
+                                <AvatarImage src={review.avatar} alt={review.author} />
+                                <AvatarFallback>{review.author.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                                <p className="font-semibold">{review.author}</p>
+                                <div className="flex text-yellow-400 mt-1">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'text-muted-foreground fill-transparent'}`} />
+                                    ))}
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                             <p className="text-sm text-muted-foreground">{review.text}</p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    )
 }
 
 export default async function LanguagePage({ params }: { params: { languageSlug: string } }) {
@@ -131,6 +189,9 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                   </AccordionItem>
                 ))}
               </Accordion>
+                <div className="pt-6">
+                    <ReviewAndRatingSection courseId={course.id} />
+                </div>
             </div>
             
             <div className="lg:col-span-1">

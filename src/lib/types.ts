@@ -23,6 +23,7 @@ export type QuestionOption = Database['public']['Tables']['question_options']['R
     explanation?: string | null;
 };
 export type UserEnrollment = Database['public']['Tables']['user_enrollments']['Row'];
+export type CourseReview = Database['public']['Tables']['course_reviews']['Row'];
 
 
 // Custom combined types for nested data fetching
