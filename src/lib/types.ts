@@ -27,6 +27,7 @@ export type Course = Database['public']['Tables']['courses']['Row'] & {
     notes_url?: string | null;
     total_duration_hours?: number | null;
     tags?: Tag[] | null;
+    game_id?: string | null; // Added to link to a game
 };
 export type Chapter = Database['public']['Tables']['chapters']['Row'];
 export type Topic = Database['public']['Tables']['topics']['Row'] & {
@@ -46,9 +47,14 @@ export type CourseReview = Database['public']['Tables']['course_reviews']['Row']
 export type CourseGift = Database['public']['Tables']['course_gifts']['Row'];
 export type Game = Database['public']['Tables']['games']['Row'] & {
     language?: string;
+    course_id?: string | null;
 };
 export type GameChapter = Database['public']['Tables']['game_chapters']['Row'];
-export type GameLevel = Database['public']['Tables']['game_levels']['Row'];
+export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
+    intro_text?: string | null;
+    correct_feedback?: string | null;
+    incorrect_feedback?: string | null;
+};
 
 
 // Custom combined types for nested data fetching
@@ -69,6 +75,7 @@ export type ChapterWithTopics = Chapter & {
 export type CourseWithChaptersAndTopics = Course & {
   chapters: ChapterWithTopics[];
   related_courses?: Course[];
+  games?: Game | null;
 };
 
 export interface UserCourseProgress {
@@ -94,5 +101,8 @@ export type GameWithLevels = Game & {
 declare module 'next/navigation' {
     interface Params {
         gameSlug?: string;
+        levelSlug?: string;
     }
 }
+
+    

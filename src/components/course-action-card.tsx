@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows, Share2, FileText, Gift, CheckCircle } from 'lucide-react';
+import { PlayCircle, ArrowRight, ShoppingCart, Heart, LogIn, Book, Clock, GitCompareArrows, Share2, FileText, Gift, CheckCircle, Gamepad2 } from 'lucide-react';
 import type { CourseWithChaptersAndTopics } from '@/lib/types';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -210,11 +210,21 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
     };
 
     const ContinueToDashboardButton = () => (
-        <Button size="lg" className="w-full" asChild>
-            <Link href="/dashboard">
-                <CheckCircle className="mr-2"/> Continue to Dashboard
-            </Link>
-        </Button>
+        <div className="space-y-4">
+            <Button size="lg" className="w-full" asChild>
+                <Link href="/dashboard">
+                    <CheckCircle className="mr-2"/> Go to Dashboard
+                </Link>
+            </Button>
+            {course.games && (
+                <Button size="lg" variant="secondary" className="w-full" asChild>
+                    <Link href={`/playground/${course.games.slug}`}>
+                        <Gamepad2 className="mr-2"/> Play the Game
+                    </Link>
+                </Button>
+            )}
+        </div>
+
     );
 
     const FreeEnrollButton = () => (
@@ -296,6 +306,12 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
                                     <span>Downloadable Materials</span>
                                 </li>
                             }
+                            {course.games && (
+                                <li className="flex items-center gap-2">
+                                    <Gamepad2 className="w-4 h-4 text-primary" />
+                                    <span>Interactive Coding Game</span>
+                                </li>
+                            )}
                         </ul>
                     </div>
                     <div className="flex justify-around pt-4 border-t border-border/50">
@@ -318,3 +334,5 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
         </div>
     )
 }
+
+    

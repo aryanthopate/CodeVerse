@@ -1,6 +1,6 @@
 
 
-'use server'
+'use server';
 
 import { createClient } from "@/lib/supabase/server";
 import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel } from "../types";
@@ -28,6 +28,11 @@ export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChapt
                         )
                     )
                 )
+            ),
+            games (
+                id,
+                slug,
+                title
             )
         `)
         .order('created_at', { ascending: true })
@@ -75,6 +80,11 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
                   image_url,
                   description
                 )
+            ),
+            games (
+                id,
+                slug,
+                title
             )
         `)
         .eq('slug', slug)
@@ -178,6 +188,11 @@ export async function getUserEnrollments(userId: string): Promise<{ enrolledCour
                 chapters (
                     *,
                     topics (*)
+                ),
+                games (
+                    id,
+                    slug,
+                    title
                 )
             )
         `)
@@ -264,7 +279,9 @@ export async function getGameBySlug(slug: string): Promise<GameWithChaptersAndLe
             *,
             game_chapters (
                 *,
-                game_levels (*)
+                game_levels (
+                    *
+                )
             )
         `)
         .eq('slug', slug)
@@ -280,7 +297,7 @@ export async function getGameBySlug(slug: string): Promise<GameWithChaptersAndLe
     return data as GameWithChaptersAndLevels;
 }
 
-export async function getGameAndLevelDetails(gameSlug: string, levelId: string) {
+export async function getGameAndLevelDetails(gameSlug: string, levelSlug: string) {
     const supabase = createClient();
     
     const { data: gameData, error: gameError } = await supabase
@@ -289,7 +306,9 @@ export async function getGameAndLevelDetails(gameSlug: string, levelId: string) 
             *,
             game_chapters (
                 *,
-                game_levels (*)
+                game_levels (
+                    *
+                )
             )
         `)
         .eq('slug', gameSlug)
@@ -304,9 +323,11 @@ export async function getGameAndLevelDetails(gameSlug: string, levelId: string) 
     
     const game = gameData as GameWithChaptersAndLevels;
     const allLevels = game.game_chapters.flatMap(c => c.game_levels);
-    const currentLevelIndex = allLevels.findIndex(l => l.id === levelId);
+    
+    const currentLevelIndex = allLevels.findIndex(l => l.slug === levelSlug);
 
     if (currentLevelIndex === -1) {
+        console.error(`Level with slug "${levelSlug}" not found in game "${gameSlug}"`);
         return { game: game, level: null, prevLevel: null, nextLevel: null };
     }
 
@@ -316,3 +337,5 @@ export async function getGameAndLevelDetails(gameSlug: string, levelId: string) 
 
     return { game, level: currentLevel, prevLevel, nextLevel };
 }
+
+    
