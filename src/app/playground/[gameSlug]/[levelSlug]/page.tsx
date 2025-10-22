@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
@@ -100,7 +100,7 @@ function CodeBubbleGame({ level, onCodeUpdate, onCorrectBubble, onIncorrectBubbl
   // Controls
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      const rect = e.currentTarget.getBoundingClientRect();
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const newX = ((e.clientX - rect.left) / rect.width) * 100;
       setRocketX(Math.max(5, Math.min(95, newX)));
     };
@@ -412,5 +412,7 @@ export default function GameLevelPage() {
     );
 }
 
+
+    
 
     
