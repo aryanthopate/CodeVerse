@@ -270,7 +270,7 @@ export async function getGameBySlug(slug: string): Promise<GameWithChaptersAndLe
         .eq('slug', slug)
         .order('order', { foreignTable: 'game_chapters', ascending: true })
         .order('order', { foreignTable: 'game_chapters.game_levels', ascending: true })
-        .single();
+        .maybeSingle();
     
     if (error) {
         console.error("Error fetching game by slug:", error.message);
