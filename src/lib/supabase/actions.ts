@@ -500,9 +500,10 @@ export async function giftCourseToUser(courseId: string, recipientEmail: string)
     return { success: true, message: `Successfully gifted the course to ${recipientEmail}!` };
 }
 
-interface LevelData extends Omit<GameLevel, 'id' | 'created_at' | 'chapter_id' | 'order'> {
+interface LevelData extends Omit<GameLevel, 'id' | 'created_at' | 'chapter_id' | 'order' | 'slug'> {
     id: string; // Temporary client-side ID
     order: number;
+    slug: string;
 }
 interface GameChapterData extends Omit<GameChapter, 'id' | 'created_at' | 'game_id' | 'order'> {
     id: string; // Temporary client-side ID
@@ -618,6 +619,7 @@ export async function seedDemoGames() {
 
             const levelsToInsert = levels.map((level: any, index: number) => ({
                 ...level,
+                slug: level.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
                 chapter_id: newChapter.id,
                 order: index + 1
             }));
@@ -651,6 +653,16 @@ export async function deleteGame(gameId: string) {
     return { success: true };
 }
 
+export async function deleteMultipleGames(gameIds: string[]) {
+    const supabase = createClient();
+    const { error } = await supabase.from('games').delete().in('id', gameIds);
+    if (error) {
+        return { success: false, error: `Failed to delete games: ${error.message}` };
+    }
+    revalidatePath('/admin/games');
+    revalidatePath('/playground');
+    return { success: true };
+}
     
 
     

@@ -6,14 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MoreHorizontal, PlusCircle, Gamepad2, Loader2, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getAllGames } from '@/lib/supabase/queries';
-import { seedDemoGames, deleteGame } from '@/lib/supabase/actions';
+import { seedDemoGames, deleteGame, deleteMultipleGames } from '@/lib/supabase/actions';
 import type { GameWithChaptersAndLevels } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 function DeleteGameDialog({ game, onConfirm }: { game: GameWithChaptersAndLevels, onConfirm: () => void }) {
@@ -59,10 +60,58 @@ function DeleteGameDialog({ game, onConfirm }: { game: GameWithChaptersAndLevels
     )
 }
 
+function DeleteMultipleGamesDialog({ games, onConfirm, onCancel }: { games: GameWithChaptersAndLevels[], onConfirm: () => void, onCancel: () => void }) {
+    const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
+
+    const handleDelete = async () => {
+        setLoading(true);
+        const gameIds = games.map(g => g.id);
+        const result = await deleteMultipleGames(gameIds);
+        if (result.success) {
+            toast({
+                title: 'Games Deleted',
+                description: `${games.length} games have been successfully deleted.`
+            });
+            onConfirm();
+        } else {
+            toast({
+                variant: "destructive",
+                title: 'Deletion Failed',
+                description: result.error || 'An unknown error occurred.'
+            });
+        }
+        setLoading(false);
+    };
+
+    return (
+        <AlertDialog open={games.length > 0} onOpenChange={(open) => !open && onCancel()}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Delete {games.length} Games?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the selected games and all their data.
+                        <ul>
+                            {games.map(g => <li key={g.id} className="font-bold mt-1"> - {g.title}</li>)}
+                        </ul>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} disabled={loading} className="bg-destructive hover:bg-destructive/90">
+                        {loading ? 'Deleting...' : 'Yes, delete games'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
 export default function AdminGamesPage() {
     const [games, setGames] = useState<GameWithChaptersAndLevels[]>([]);
     const [loading, setLoading] = useState(true);
     const [seeding, setSeeding] = useState(false);
+    const [selectedGames, setSelectedGames] = useState<string[]>([]);
     const { toast } = useToast();
 
     const fetchGames = async () => {
@@ -97,6 +146,32 @@ export default function AdminGamesPage() {
         setSeeding(false);
     }
 
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedGames(games.map(g => g.id));
+        } else {
+            setSelectedGames([]);
+        }
+    };
+
+    const handleSelectRow = (gameId: string, checked: boolean) => {
+        if (checked) {
+            setSelectedGames(prev => [...prev, gameId]);
+        } else {
+            setSelectedGames(prev => prev.filter(id => id !== gameId));
+        }
+    };
+    
+    const gamesToDelete = useMemo(() => {
+        return games.filter(g => selectedGames.includes(g.id));
+    }, [selectedGames, games]);
+
+    const handleConfirmDelete = () => {
+        fetchGames();
+        setSelectedGames([]);
+    };
+    
+
     return (
         <AdminLayout>
              <div className="space-y-8">
@@ -121,7 +196,24 @@ export default function AdminGamesPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Existing Games</CardTitle>
-                        <CardDescription>A list of all games on the platform.</CardDescription>
+                        <div className="flex justify-between items-center">
+                            <CardDescription>A list of all games on the platform.</CardDescription>
+                            {selectedGames.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                     <span className="text-sm text-muted-foreground">{selectedGames.length} selected</span>
+                                     <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                             <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4"/> Delete Selected</Button>
+                                        </AlertDialogTrigger>
+                                        <DeleteMultipleGamesDialog 
+                                            games={gamesToDelete}
+                                            onConfirm={handleConfirmDelete}
+                                            onCancel={() => {}}
+                                        />
+                                     </AlertDialog>
+                                </div>
+                            )}
+                        </div>
                     </CardHeader>
                     <CardContent>
                          {loading ? (
@@ -130,6 +222,13 @@ export default function AdminGamesPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-[50px]">
+                                            <Checkbox
+                                                checked={selectedGames.length === games.length}
+                                                onCheckedChange={handleSelectAll}
+                                                aria-label="Select all"
+                                            />
+                                        </TableHead>
                                         <TableHead>Game Title</TableHead>
                                         <TableHead>Language</TableHead>
                                         <TableHead>Chapters</TableHead>
@@ -140,7 +239,14 @@ export default function AdminGamesPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {games.map(game => (
-                                        <TableRow key={game.id}>
+                                        <TableRow key={game.id} data-state={selectedGames.includes(game.id) && "selected"}>
+                                            <TableCell>
+                                                <Checkbox
+                                                    checked={selectedGames.includes(game.id)}
+                                                    onCheckedChange={(checked) => handleSelectRow(game.id, !!checked)}
+                                                    aria-label={`Select ${game.title}`}
+                                                />
+                                            </TableCell>
                                             <TableCell className="font-medium">{game.title}</TableCell>
                                             <TableCell>{game.language}</TableCell>
                                             <TableCell>{game.game_chapters.length}</TableCell>
