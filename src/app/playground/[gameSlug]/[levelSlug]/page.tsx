@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
@@ -25,137 +25,139 @@ import Confetti from 'react-confetti';
 interface Bubble {
   id: number;
   text: string;
-  isCorrect: boolean;
   isTarget: boolean;
   x: number;
-  y: number;
-  vy: number; // vertical velocity
+  duration: number;
+  delay: number;
 }
 
 function CodeBubbleGame({ level, onCorrectBubble, onIncorrectBubble }: { level: GameLevel, onCorrectBubble: (text: string) => void, onIncorrectBubble: () => void }) {
-  const [rocketX, setRocketX] = useState(50);
+  const rocketRef = useRef<HTMLDivElement>(null);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [targetIndex, setTargetIndex] = useState(0);
+  const [bubbleKey, setBubbleKey] = useState(0); // Used to re-trigger bubble generation
 
   const correctSnippets = useMemo(() => {
-      // Split by spaces or punctuation, but keep delimiters
       return level.expected_output?.match(/([a-zA-Z0-9_]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}])/g) || [];
   }, [level.expected_output]);
 
   // Bubble generation logic
   useEffect(() => {
+    if (correctSnippets.length === 0 || targetIndex >= correctSnippets.length) return;
+
     const generateBubbles = () => {
       const newBubbles: Bubble[] = [];
-      const incorrectSnippets = ['var', 'func', 'err', '=>', 'const', 'let', 'x', 'y', 'z', '123'];
+      const incorrectSnippets = ['var', 'func', 'err', '=>', 'const', 'let', 'x', 'y', 'z', '123', 'error', 'null', 'undefined'];
       
-      const allSnippets = [...correctSnippets, ...incorrectSnippets.slice(0, correctSnippets.length * 2)];
-      const shuffledSnippets = allSnippets.sort(() => Math.random() - 0.5);
+      const allSnippets = new Set<string>();
+      
+      // Add the target snippet
+      allSnippets.add(correctSnippets[targetIndex]);
+
+      // Add other correct snippets
+      correctSnippets.forEach(s => allSnippets.add(s));
+
+      // Add incorrect snippets to ensure variety
+      for (let i = 0; allSnippets.size < 15 && i < incorrectSnippets.length; i++) {
+        allSnippets.add(incorrectSnippets[i]);
+      }
+      
+      const shuffledSnippets = Array.from(allSnippets).sort(() => Math.random() - 0.5);
 
       shuffledSnippets.forEach((text, i) => {
-        const isCorrectSnippet = correctSnippets.includes(text);
         newBubbles.push({
           id: Date.now() + i,
           text,
-          isCorrect: isCorrectSnippet,
-          isTarget: isCorrectSnippet && correctSnippets.indexOf(text) === targetIndex,
+          isTarget: text === correctSnippets[targetIndex],
           x: Math.random() * 90 + 5, // %
-          y: -10 - (Math.random() * 50), // Start off-screen
-          vy: 0.5 + Math.random() * 0.5,
+          duration: 5 + Math.random() * 5, // 5-10 seconds
+          delay: Math.random() * 5, // 0-5 second delay
         });
       });
       setBubbles(newBubbles);
     };
 
-    if (correctSnippets.length > 0) {
-      generateBubbles();
-    }
-  }, [correctSnippets, targetIndex]);
+    generateBubbles();
+  }, [correctSnippets, targetIndex, bubbleKey]);
 
-  // Game loop
-  useEffect(() => {
-    let animationFrameId: number;
-
-    const gameLoop = () => {
-        setBubbles(prev =>
-            prev.map(b => {
-                let newY = b.y + b.vy;
-                // Collision detection with rocket
-                if (newY > 85 && newY < 95 && Math.abs(b.x - rocketX) < 5) {
-                    if (b.text === correctSnippets[targetIndex]) {
-                        onCorrectBubble(b.text);
-                        setTargetIndex(i => i + 1);
-                        return { ...b, y: 110 }; // Remove bubble
-                    } else {
-                        onIncorrectBubble();
-                        return { ...b, y: 110 }; // Remove bubble
-                    }
-                }
-                if (newY > 100) return { ...b, y: -10, x: Math.random() * 90 + 5 }; // Reset bubble
-                return { ...b, y: newY };
-            }).filter(b => b.y < 105) // Cleanup bubbles that have been hit
-        );
-        animationFrameId = requestAnimationFrame(gameLoop);
-    };
-
-    animationFrameId = requestAnimationFrame(gameLoop);
-    return () => cancelAnimationFrame(animationFrameId);
-}, [rocketX, correctSnippets, targetIndex, onCorrectBubble, onIncorrectBubble]);
+  const handleBubbleCollision = (bubble: Bubble) => {
+      if (bubble.isTarget) {
+          onCorrectBubble(bubble.text);
+          setTargetIndex(i => i + 1);
+      } else {
+          onIncorrectBubble();
+      }
+      // Re-generate bubbles for the next target or to reshuffle
+      setBubbleKey(k => k + 1);
+  };
   
   // Controls
   useEffect(() => {
+    const gameArea = document.getElementById('game-area');
+    const rocket = rocketRef.current;
+    if (!gameArea || !rocket) return;
+
     const handleMouseMove = (e: MouseEvent) => {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const newX = ((e.clientX - rect.left) / rect.width) * 100;
-      setRocketX(Math.max(5, Math.min(95, newX)));
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        setRocketX(x => Math.max(5, x - 3));
-      } else if (e.key === 'ArrowRight') {
-        setRocketX(x => Math.min(95, x + 3));
-      }
+      const rect = gameArea.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
     };
     
-    const gameArea = document.getElementById('game-area');
-    gameArea?.addEventListener('mousemove', handleMouseMove as EventListener);
-    window.addEventListener('keydown', handleKeyDown);
+    gameArea.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      gameArea?.removeEventListener('mousemove', handleMouseMove as EventListener);
-      window.removeEventListener('keydown', handleKeyDown);
+      gameArea.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
   return (
     <div id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border">
        <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
-      {bubbles.map(b => (
+      {bubbles.map(bubble => (
         <div
-          key={b.id}
-          className={cn("absolute px-3 py-1 rounded-full text-white font-mono text-sm transition-all",
-             b.text === correctSnippets[targetIndex] ? "bg-primary/80 shadow-lg shadow-primary/50" : "bg-muted/80"
+          key={bubble.id}
+          className={cn(
+              "absolute px-3 py-1 rounded-full text-white font-mono text-sm cursor-pointer",
+              bubble.isTarget ? "bg-primary/80 shadow-lg shadow-primary/50" : "bg-muted/80",
+              "animate-fall"
           )}
-          style={{ left: `${b.x}%`, top: `${b.y}%`, transform: 'translateX(-50%)' }}
+          style={{ 
+              left: `${bubble.x}%`, 
+              animationDuration: `${bubble.duration}s`, 
+              animationDelay: `${bubble.delay}s`,
+           }}
+           onAnimationEnd={() => setBubbles(b => b.filter(b => b.id !== bubble.id))} // remove when off-screen
+           onClick={() => handleBubbleCollision(bubble)}
         >
-          {b.text}
+          {bubble.text}
         </div>
       ))}
-      <div className="absolute bottom-4 h-12 w-10" style={{ left: `${rocketX}%`, transform: 'translateX(-50%)' }}>
+      <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform">
         <Rocket className="w-full h-full text-primary" />
         <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-8 bg-gradient-to-t from-yellow-400 to-orange-500 rounded-b-full blur-sm" />
       </div>
+      <style>{`
+        @keyframes fall {
+          from { transform: translate(-50%, -100px); }
+          to { transform: translate(-50%, 100vh); }
+        }
+        .animate-fall {
+          animation-name: fall;
+          animation-timing-function: linear;
+        }
+      `}</style>
     </div>
   )
 }
 
-function CodeEditor({ onCodeUpdate, onCodeChange, level }: { onCodeUpdate: (cb: (text: string) => void) => void, onCodeChange: (code: string) => void, level: GameLevel }) {
+const CodeEditor = forwardRef(({ level, onCodeChange }: { level: GameLevel, onCodeChange: (code: string) => void }, ref) => {
     const [code, setCode] = useState(level.starter_code || '');
 
-    useEffect(() => {
-        onCodeUpdate((text: string) => {
+    useImperativeHandle(ref, () => ({
+        appendCode: (text: string) => {
             setCode(prev => {
                 let newCode = prev;
-                if (!newCode) {
+                if (!newCode.trim()) {
                     newCode = text;
                 } else {
                     const lastChar = prev.slice(-1);
@@ -168,8 +170,9 @@ function CodeEditor({ onCodeUpdate, onCodeChange, level }: { onCodeUpdate: (cb: 
                 onCodeChange(newCode);
                 return newCode;
             });
-        });
-    }, [onCodeUpdate, onCodeChange]);
+        },
+        getCode: () => code,
+    }));
 
     return (
         <div
@@ -178,7 +181,9 @@ function CodeEditor({ onCodeUpdate, onCodeChange, level }: { onCodeUpdate: (cb: 
           <pre>{code}<span className="animate-pulse">_</span></pre>
         </div>
     );
-}
+});
+CodeEditor.displayName = 'CodeEditor';
+
 
 function OutputConsole({ output, isError }: { output: string, isError: boolean }) {
      return (
@@ -213,16 +218,11 @@ export default function GameLevelPage() {
     const [showConfetti, setShowConfetti] = useState(false);
     const [incorrectBubbleHits, setIncorrectBubbleHits] = useState(0);
 
-    const codeUpdateCallback = useRef<(text: string) => void>();
+    const editorRef = useRef<{ appendCode: (text: string) => void, getCode: () => string }>(null);
 
-    const onCodeUpdate = useCallback((cb: (text: string) => void) => {
-        codeUpdateCallback.current = cb;
-    }, []);
 
     const handleCorrectBubble = useCallback((text: string) => {
-        if (codeUpdateCallback.current) {
-            codeUpdateCallback.current(text);
-        }
+        editorRef.current?.appendCode(text);
     }, []);
 
     const handleIncorrectBubble = useCallback(() => {
@@ -252,14 +252,16 @@ export default function GameLevelPage() {
     }, [params, supabase, router]);
     
     const handleRunCode = async () => {
-        if (!level) return;
+        if (!level || !editorRef.current) return;
         setIsChecking(true);
         setFeedback('');
         setHint('');
         setRunOutput('Running code...');
         setRunOutputIsError(false);
 
-        const isSolutionCorrect = userCode.trim().replace(/\s+/g, ' ') === level.expected_output?.trim().replace(/\s+/g, ' ');
+        const currentCode = editorRef.current.getCode();
+
+        const isSolutionCorrect = currentCode.trim().replace(/\s+/g, ' ') === level.expected_output?.trim().replace(/\s+/g, ' ');
 
         if (isSolutionCorrect) {
             setIsCorrect(true);
@@ -275,7 +277,7 @@ export default function GameLevelPage() {
              try {
                 // Check for alignment/syntax issues even if output is not perfect
                 const result = await reviewCodeAndProvideFeedback({
-                    code: userCode,
+                    code: currentCode,
                     solution: level.expected_output || '',
                     programmingLanguage: game?.language || 'code',
                 });
@@ -289,13 +291,14 @@ export default function GameLevelPage() {
     }
     
     const handleGetHint = async () => {
-        if (!level) return;
+        if (!level || !editorRef.current) return;
         setIsGettingHint(true);
         setHint('');
+        const currentCode = editorRef.current.getCode();
          try {
             const result = await provideHintForCodePractice({
                 problemStatement: level.objective,
-                userCode: userCode,
+                userCode: currentCode,
             });
             setHint(result.hint);
         } catch (e: any) {
@@ -387,7 +390,7 @@ export default function GameLevelPage() {
                                         </Button>
                                     </div>
                                     <div className="flex-grow p-2">
-                                        <CodeEditor onCodeUpdate={onCodeUpdate} onCodeChange={setUserCode} level={level} />
+                                        <CodeEditor ref={editorRef} level={level} onCodeChange={setUserCode} />
                                     </div>
                                 </div>
                             </ResizablePanel>
@@ -438,3 +441,5 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
+    
