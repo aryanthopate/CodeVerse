@@ -90,3 +90,9 @@ export type GameWithChaptersAndLevels = Game & {
 export type GameWithLevels = Game & {
     game_levels: GameLevel[];
 };
+
+declare module 'next/navigation' {
+    interface Params {
+        gameSlug?: string;
+    }
+}

@@ -1,4 +1,5 @@
 
+
 'use client';
 import { AdminLayout } from '@/components/admin-layout';
 import { Button } from '@/components/ui/button';
@@ -155,7 +156,7 @@ export default function AdminGamesPage() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuItem asChild>
-                                                                <Link href={`/admin/games/edit/${game.id}`}><Edit className="mr-2 h-4 w-4"/>Edit</Link>
+                                                                <Link href={`/admin/games/edit/${game.slug}`}><Edit className="mr-2 h-4 w-4"/>Edit</Link>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator/>
                                                             <AlertDialogTrigger asChild>

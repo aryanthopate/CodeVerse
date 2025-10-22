@@ -59,7 +59,7 @@ export default function GameLevelPage() {
 
     useEffect(() => {
         const fetchDetails = async () => {
-            const { game, level, nextLevel } = await getGameAndLevelDetails(params.gameId as string, params.levelId as string);
+            const { game, level, nextLevel } = await getGameAndLevelDetails(params.gameSlug as string, params.levelId as string);
             const { data: { user } } = await supabase.auth.getUser();
             
             setUser(user);

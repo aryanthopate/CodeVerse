@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { Header } from '@/components/header';
@@ -35,7 +36,7 @@ export default async function PlaygroundPage() {
                                 return (
                                <Card key={game.id} className="bg-card/50 border-border/50 backdrop-blur-sm h-full flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 overflow-hidden group">
                                     <CardHeader className="p-0 relative">
-                                        <Link href={`/playground/${game.id}`} className="block">
+                                        <Link href={`/playground/${game.slug}`} className="block">
                                             <Image 
                                                 src={game.thumbnail_url || `https://picsum.photos/seed/${game.id}/600/400`} 
                                                 alt={game.title} 
@@ -53,7 +54,7 @@ export default async function PlaygroundPage() {
                                     </CardHeader>
                                     <CardContent className="p-6 flex-grow flex flex-col">
                                         <CardTitle className="text-xl font-bold mb-2">
-                                            <Link href={`/playground/${game.id}`} className="hover:text-primary">{game.title}</Link>
+                                            <Link href={`/playground/${game.slug}`} className="hover:text-primary">{game.title}</Link>
                                         </CardTitle>
                                         <CardDescription className="text-sm flex-grow">
                                             {game.description}

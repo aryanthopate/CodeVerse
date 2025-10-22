@@ -44,8 +44,8 @@ const generateLevelMap = (levelCount: number) => {
 };
 
 
-export default async function GameDetailPage({ params }: { params: { gameId: string } }) {
-    const game = await getGameBySlug(params.gameId);
+export default async function GameDetailPage({ params }: { params: { gameSlug: string } }) {
+    const game = await getGameBySlug(params.gameSlug);
 
     if (!game) {
         notFound();

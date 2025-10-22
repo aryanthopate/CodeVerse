@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { AdminLayout } from '@/components/admin-layout';
@@ -14,7 +15,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { createClient } from '@/lib/supabase/client';
-import { getGameById } from '@/lib/supabase/queries';
+import { getGameBySlug } from '@/lib/supabase/queries';
 import type { GameWithChaptersAndLevels, GameChapter, GameLevel } from '@/lib/types';
 
 
@@ -39,13 +40,15 @@ interface GameChapterState extends Partial<GameChapter> {
 export default function EditGamePage() {
     const router = useRouter();
     const params = useParams();
-    const gameId = params.gameId as string;
+    const gameSlug = params.gameId as string;
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const supabase = createClient();
-
+    
+    const [gameId, setGameId] = useState<string | null>(null);
     const [title, setTitle] = useState('');
+    const [slug, setSlug] = useState('');
     const [description, setDescription] = useState('');
     const [language, setLanguage] = useState('');
     const [thumbnailUrl, setThumbnailUrl] = useState('');
@@ -55,11 +58,13 @@ export default function EditGamePage() {
     const [chapters, setChapters] = useState<GameChapterState[]>([]);
 
     const fetchGame = useCallback(async () => {
-        if (!gameId) return;
+        if (!gameSlug) return;
         setInitialLoading(true);
-        const gameData = await getGameById(gameId);
+        const gameData = await getGameBySlug(gameSlug);
         if (gameData) {
+            setGameId(gameData.id);
             setTitle(gameData.title);
+            setSlug(gameData.slug);
             setDescription(gameData.description || '');
             setLanguage(gameData.language || '');
             setThumbnailUrl(gameData.thumbnail_url || '');
@@ -72,7 +77,7 @@ export default function EditGamePage() {
             notFound();
         }
         setInitialLoading(false);
-    }, [gameId]);
+    }, [gameSlug]);
 
     useEffect(() => {
         fetchGame();
@@ -140,6 +145,13 @@ export default function EditGamePage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        if (!gameId) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Game ID is missing.' });
+            setLoading(false);
+            return;
+        }
+
         let finalThumbnailUrl = thumbnailUrl;
 
         if (thumbnailFile) {
@@ -156,7 +168,7 @@ export default function EditGamePage() {
         }
 
         const { error: gameError } = await supabase.from('games').update({
-            title, description, language, thumbnail_url: finalThumbnailUrl, is_free
+            title, slug, description, language, thumbnail_url: finalThumbnailUrl, is_free
         }).eq('id', gameId);
 
         if (gameError) {
@@ -222,7 +234,14 @@ export default function EditGamePage() {
                                 <CardContent className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="game-title">Game Title</Label>
-                                        <Input id="game-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Python Basics Adventure" required />
+                                        <Input id="game-title" value={title} onChange={(e) => {
+                                            setTitle(e.target.value);
+                                            setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                                        }} placeholder="e.g., Python Basics Adventure" required />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="game-slug">Game Slug</Label>
+                                        <Input id="game-slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g., python-basics-adventure" required />
                                     </div>
                                      <div className="space-y-2">
                                         <Label htmlFor="game-language">Language</Label>

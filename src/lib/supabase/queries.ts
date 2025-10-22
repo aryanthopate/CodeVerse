@@ -256,7 +256,7 @@ export async function getAllGames(): Promise<GameWithChaptersAndLevels[] | null>
 }
 
 
-export async function getGameById(gameId: string): Promise<GameWithChaptersAndLevels | null> {
+export async function getGameBySlug(slug: string): Promise<GameWithChaptersAndLevels | null> {
     const supabase = createClient();
     const { data, error } = await supabase
         .from('games')
@@ -267,20 +267,20 @@ export async function getGameById(gameId: string): Promise<GameWithChaptersAndLe
                 game_levels (*)
             )
         `)
-        .eq('id', gameId)
+        .eq('slug', slug)
         .order('order', { foreignTable: 'game_chapters', ascending: true })
         .order('order', { foreignTable: 'game_chapters.game_levels', ascending: true })
         .single();
     
     if (error) {
-        console.error("Error fetching game by id:", error.message);
+        console.error("Error fetching game by slug:", error.message);
         return null;
     }
 
     return data as GameWithChaptersAndLevels;
 }
 
-export async function getGameAndLevelDetails(gameId: string, levelId: string) {
+export async function getGameAndLevelDetails(gameSlug: string, levelId: string) {
     const supabase = createClient();
     
     const { data: gameData, error: gameError } = await supabase
@@ -292,7 +292,7 @@ export async function getGameAndLevelDetails(gameId: string, levelId: string) {
                 game_levels (*)
             )
         `)
-        .eq('id', gameId)
+        .eq('slug', gameSlug)
         .order('order', { foreignTable: 'game_chapters', ascending: true })
         .order('order', { foreignTable: 'game_chapters.game_levels', ascending: true })
         .single();
