@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
@@ -148,20 +148,23 @@ function CodeBubbleGame({ level, onCorrectBubble, onIncorrectBubble }: { level: 
   )
 }
 
-function CodeEditor({ onCodeUpdate, onCodeChange }: { onCodeUpdate: (cb: (text: string) => void) => void, onCodeChange: (code: string) => void }) {
-    const [code, setCode] = useState('');
+function CodeEditor({ onCodeUpdate, onCodeChange, level }: { onCodeUpdate: (cb: (text: string) => void) => void, onCodeChange: (code: string) => void, level: GameLevel }) {
+    const [code, setCode] = useState(level.starter_code || '');
 
     useEffect(() => {
         onCodeUpdate((text: string) => {
             setCode(prev => {
-                if (!prev) return text;
-                const lastChar = prev.slice(-1);
-                if (['(', '[', '{', '.'].includes(lastChar) || text === ')') {
-                    const newCode = prev + text;
-                    onCodeChange(newCode);
-                    return newCode;
+                let newCode = prev;
+                if (!newCode) {
+                    newCode = text;
+                } else {
+                    const lastChar = prev.slice(-1);
+                    if (['(', '[', '{', '.'].includes(lastChar) || text === ')') {
+                        newCode = prev + text;
+                    } else {
+                        newCode = prev + ' ' + text;
+                    }
                 }
-                const newCode = prev + ' ' + text;
                 onCodeChange(newCode);
                 return newCode;
             });
@@ -241,6 +244,7 @@ export default function GameLevelPage() {
                 setGame(game);
                 setLevel(level);
                 setNextLevel(nextLevel);
+                setUserCode(level.starter_code || '');
             }
             setLoading(false);
         };
@@ -383,7 +387,7 @@ export default function GameLevelPage() {
                                         </Button>
                                     </div>
                                     <div className="flex-grow p-2">
-                                        <CodeEditor onCodeUpdate={onCodeUpdate} onCodeChange={setUserCode} />
+                                        <CodeEditor onCodeUpdate={onCodeUpdate} onCodeChange={setUserCode} level={level} />
                                     </div>
                                 </div>
                             </ResizablePanel>
