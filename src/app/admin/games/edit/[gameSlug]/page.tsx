@@ -192,7 +192,7 @@ export default function EditGamePage() {
             language, 
             thumbnail_url: finalThumbnailUrl, 
             is_free: isFree, 
-            course_id: courseId || null // Ensure null is sent for empty course_id
+            course_id: courseId || null
         };
 
         const { error: gameError } = await supabase.from('games').update(gamePayload).eq('id', gameId);
@@ -202,10 +202,6 @@ export default function EditGamePage() {
             setLoading(false);
             return;
         }
-
-        // The deletion logic is removed to prevent foreign key constraint errors.
-        // This means chapters/levels removed from the UI will not be deleted from the DB on save.
-        // They must be deleted manually from the Supabase dashboard if needed.
 
         for (const chapter of chapters) {
             const isNewChapter = chapter.id.startsWith('chap-');
