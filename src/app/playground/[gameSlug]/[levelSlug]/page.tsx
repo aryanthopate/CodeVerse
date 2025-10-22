@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { getGameAndLevelDetails, getIsUserEnrolled } from '@/lib/supabase/queries';
+import { getGameAndLevelDetails } from '@/lib/supabase/queries';
 import { GameWithLevels, GameLevel, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowLeft, Bot, Lightbulb, Loader2, Play, Sparkles, CheckCircle, ArrowRight, X, Rocket, Award } from 'lucide-react';
@@ -32,7 +32,7 @@ interface Bubble {
   vy: number; // vertical velocity
 }
 
-function CodeBubbleGame({ level, onCodeUpdate, onCorrectBubble, onIncorrectBubble }: { level: GameLevel, onCodeUpdate: (code: string) => void, onCorrectBubble: (text: string) => void, onIncorrectBubble: () => void }) {
+function CodeBubbleGame({ level, onCorrectBubble, onIncorrectBubble }: { level: GameLevel, onCorrectBubble: (text: string) => void, onIncorrectBubble: () => void }) {
   const [rocketX, setRocketX] = useState(50);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [targetIndex, setTargetIndex] = useState(0);
@@ -73,29 +73,33 @@ function CodeBubbleGame({ level, onCodeUpdate, onCorrectBubble, onIncorrectBubbl
 
   // Game loop
   useEffect(() => {
-    const gameLoop = setInterval(() => {
-      setBubbles(prev =>
-        prev.map(b => {
-          let newY = b.y + b.vy;
-          // Collision detection with rocket
-          if (newY > 85 && newY < 95 && Math.abs(b.x - rocketX) < 5) {
-            if (b.text === correctSnippets[targetIndex]) {
-              onCorrectBubble(b.text);
-              setTargetIndex(i => i + 1);
-              return { ...b, y: 110 }; // Remove bubble
-            } else {
-              onIncorrectBubble();
-              return { ...b, y: 110 }; // Remove bubble
-            }
-          }
-          if (newY > 100) return { ...b, y: -10, x: Math.random() * 90 + 5 }; // Reset bubble
-          return { ...b, y: newY };
-        }).filter(b => b.y < 105) // Cleanup bubbles that have been hit
-      );
-    }, 1000 / 60);
+    let animationFrameId: number;
 
-    return () => clearInterval(gameLoop);
-  }, [rocketX, onCorrectBubble, onIncorrectBubble, correctSnippets, targetIndex]);
+    const gameLoop = () => {
+        setBubbles(prev =>
+            prev.map(b => {
+                let newY = b.y + b.vy;
+                // Collision detection with rocket
+                if (newY > 85 && newY < 95 && Math.abs(b.x - rocketX) < 5) {
+                    if (b.text === correctSnippets[targetIndex]) {
+                        onCorrectBubble(b.text);
+                        setTargetIndex(i => i + 1);
+                        return { ...b, y: 110 }; // Remove bubble
+                    } else {
+                        onIncorrectBubble();
+                        return { ...b, y: 110 }; // Remove bubble
+                    }
+                }
+                if (newY > 100) return { ...b, y: -10, x: Math.random() * 90 + 5 }; // Reset bubble
+                return { ...b, y: newY };
+            }).filter(b => b.y < 105) // Cleanup bubbles that have been hit
+        );
+        animationFrameId = requestAnimationFrame(gameLoop);
+    };
+
+    animationFrameId = requestAnimationFrame(gameLoop);
+    return () => cancelAnimationFrame(animationFrameId);
+}, [rocketX, correctSnippets, targetIndex, onCorrectBubble, onIncorrectBubble]);
   
   // Controls
   useEffect(() => {
@@ -144,14 +148,33 @@ function CodeBubbleGame({ level, onCodeUpdate, onCorrectBubble, onIncorrectBubbl
   )
 }
 
-function CodeEditor({ value }: { value: string }) {
+function CodeEditor({ onCodeUpdate, onCodeChange }: { onCodeUpdate: (cb: (text: string) => void) => void, onCodeChange: (code: string) => void }) {
+    const [code, setCode] = useState('');
+
+    useEffect(() => {
+        onCodeUpdate((text: string) => {
+            setCode(prev => {
+                if (!prev) return text;
+                const lastChar = prev.slice(-1);
+                if (['(', '[', '{', '.'].includes(lastChar) || text === ')') {
+                    const newCode = prev + text;
+                    onCodeChange(newCode);
+                    return newCode;
+                }
+                const newCode = prev + ' ' + text;
+                onCodeChange(newCode);
+                return newCode;
+            });
+        });
+    }, [onCodeUpdate, onCodeChange]);
+
     return (
         <div
             className="w-full h-full p-4 bg-gray-900 text-white font-mono rounded-lg border border-gray-700"
         >
-          <pre>{value}<span className="animate-pulse">_</span></pre>
+          <pre>{code}<span className="animate-pulse">_</span></pre>
         </div>
-    )
+    );
 }
 
 function OutputConsole({ output, isError }: { output: string, isError: boolean }) {
@@ -187,6 +210,22 @@ export default function GameLevelPage() {
     const [showConfetti, setShowConfetti] = useState(false);
     const [incorrectBubbleHits, setIncorrectBubbleHits] = useState(0);
 
+    const codeUpdateCallback = useRef<(text: string) => void>();
+
+    const onCodeUpdate = useCallback((cb: (text: string) => void) => {
+        codeUpdateCallback.current = cb;
+    }, []);
+
+    const handleCorrectBubble = useCallback((text: string) => {
+        if (codeUpdateCallback.current) {
+            codeUpdateCallback.current(text);
+        }
+    }, []);
+
+    const handleIncorrectBubble = useCallback(() => {
+        setIncorrectBubbleHits(c => c + 1);
+    }, []);
+
     useEffect(() => {
         const fetchDetails = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -202,28 +241,12 @@ export default function GameLevelPage() {
                 setGame(game);
                 setLevel(level);
                 setNextLevel(nextLevel);
-                // We don't set userCode from starter code anymore, it's built via the game
             }
             setLoading(false);
         };
         fetchDetails();
     }, [params, supabase, router]);
-
-    const handleCorrectBubble = useCallback((text: string) => {
-        // Add a space if the last char isn't a separator
-        setUserCode(prev => {
-            if (!prev) return text;
-            const lastChar = prev.slice(-1);
-            if (['(', '[', '{', '.'].includes(lastChar) || text === ')') return prev + text;
-            return prev + ' ' + text;
-        });
-    }, []);
-
-    const handleIncorrectBubble = useCallback(() => {
-      setIncorrectBubbleHits(c => c + 1);
-      // Could add a screen shake or sound effect here
-    }, []);
-
+    
     const handleRunCode = async () => {
         if (!level) return;
         setIsChecking(true);
@@ -337,7 +360,7 @@ export default function GameLevelPage() {
                         <div className="flex flex-col h-full p-4">
                            <h2 className="text-lg font-semibold mb-2">Game Arena</h2>
                            <div className="flex-grow">
-                             <CodeBubbleGame level={level} onCodeUpdate={setUserCode} onCorrectBubble={handleCorrectBubble} onIncorrectBubble={handleIncorrectBubble} />
+                             <CodeBubbleGame level={level} onCorrectBubble={handleCorrectBubble} onIncorrectBubble={handleIncorrectBubble} />
                            </div>
                         </div>
                     </ResizablePanel>
@@ -360,7 +383,7 @@ export default function GameLevelPage() {
                                         </Button>
                                     </div>
                                     <div className="flex-grow p-2">
-                                        <CodeEditor value={userCode} />
+                                        <CodeEditor onCodeUpdate={onCodeUpdate} onCodeChange={setUserCode} />
                                     </div>
                                 </div>
                             </ResizablePanel>
