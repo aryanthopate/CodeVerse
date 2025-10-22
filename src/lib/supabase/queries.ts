@@ -239,7 +239,7 @@ export async function getAllGames(): Promise<GameWithChaptersAndLevels[] | null>
             *,
             game_chapters (
                 *,
-                game_levels (*)
+                game_levels (id, slug, title, order, reward_xp)
             )
         `)
         .order('created_at', { ascending: true })
@@ -264,9 +264,7 @@ export async function getGameBySlug(slug: string): Promise<GameWithChaptersAndLe
             *,
             game_chapters (
                 *,
-                game_levels (
-                    *
-                )
+                game_levels (id, chapter_id, created_at, title, slug, objective, starter_code, expected_output, reward_xp, order, intro_text, correct_feedback, incorrect_feedback)
             )
         `)
         .eq('slug', slug)
@@ -291,9 +289,7 @@ export async function getGameAndLevelDetails(gameSlug: string, levelSlug: string
             *,
             game_chapters (
                 *,
-                game_levels (
-                    *
-                )
+                game_levels (id, chapter_id, created_at, title, slug, objective, starter_code, expected_output, reward_xp, order, intro_text, correct_feedback, incorrect_feedback)
             )
         `)
         .eq('slug', gameSlug)
@@ -322,5 +318,3 @@ export async function getGameAndLevelDetails(gameSlug: string, levelSlug: string
 
     return { game, level: currentLevel, prevLevel, nextLevel };
 }
-
-    
