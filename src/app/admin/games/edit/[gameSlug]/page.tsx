@@ -185,6 +185,7 @@ export default function EditGamePage() {
             }
         }
         
+        // Update game details first, without course_id to avoid cache issues
         const gamePayload = {
             title, 
             slug, 
@@ -192,7 +193,6 @@ export default function EditGamePage() {
             language, 
             thumbnail_url: finalThumbnailUrl, 
             is_free: isFree, 
-            course_id: courseId || null
         };
 
         const { error: gameError } = await supabase.from('games').update(gamePayload).eq('id', gameId);
@@ -202,6 +202,15 @@ export default function EditGamePage() {
             setLoading(false);
             return;
         }
+
+        // Now, update course_id in a separate query
+        const { error: courseLinkError } = await supabase.from('games').update({ course_id: courseId || null }).eq('id', gameId);
+        
+        if (courseLinkError) {
+             toast({ variant: 'destructive', title: 'Course Link Failed', description: courseLinkError.message });
+            // Not returning here, as the main data was saved.
+        }
+
 
         for (const chapter of chapters) {
             const isNewChapter = chapter.id.startsWith('chap-');
