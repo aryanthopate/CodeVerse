@@ -28,11 +28,6 @@ export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChapt
                         )
                     )
                 )
-            ),
-            games (
-                id,
-                slug,
-                title
             )
         `)
         .order('created_at', { ascending: true })
@@ -80,11 +75,6 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
                   image_url,
                   description
                 )
-            ),
-            games (
-                id,
-                slug,
-                title
             )
         `)
         .eq('slug', slug)
@@ -188,11 +178,6 @@ export async function getUserEnrollments(userId: string): Promise<{ enrolledCour
                 chapters (
                     *,
                     topics (*)
-                ),
-                games (
-                    id,
-                    slug,
-                    title
                 )
             )
         `)
