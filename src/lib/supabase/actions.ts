@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from './server';
@@ -547,11 +548,13 @@ export async function createGame(gameData: GameData) {
         }
 
         if (game_levels && game_levels.length > 0) {
-            const levelsToInsert = game_levels.map(level => ({
-                ...level,
-                id: undefined, // Let Supabase generate UUID
-                chapter_id: newChapter.id
-            }));
+             const levelsToInsert = game_levels.map(level => {
+                const { id, ...restOfLevel } = level; // Exclude the temporary client-side id
+                return {
+                    ...restOfLevel,
+                    chapter_id: newChapter.id,
+                };
+            });
             const { error: levelsError } = await supabase.from('game_levels').insert(levelsToInsert as any);
 
             if (levelsError) {
@@ -647,5 +650,7 @@ export async function deleteGame(gameId: string) {
     revalidatePath('/playground');
     return { success: true };
 }
+
+    
 
     
