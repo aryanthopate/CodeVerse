@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { X, Plus, Trash2, Gamepad2, Upload, Image as ImageIcon, Book } from 'lucide-react';
+import { X, Plus, Trash2, Gamepad2, Upload, Image as ImageIcon, Book, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
 import { useRouter, useParams, notFound } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
@@ -22,11 +22,15 @@ import type { GameWithChaptersAndLevels, GameChapter, GameLevel } from '@/lib/ty
 interface GameLevelState extends Partial<GameLevel> {
     id: string;
     title: string;
+    slug: string;
     objective: string;
     starter_code?: string | null;
     expected_output?: string | null;
     reward_xp: number | string;
     order: number;
+    intro_text?: string | null;
+    correct_feedback?: string | null;
+    incorrect_feedback?: string | null;
 }
 
 interface GameChapterState extends Partial<GameChapter> {
@@ -54,6 +58,7 @@ export default function EditGamePage() {
     const [thumbnailUrl, setThumbnailUrl] = useState('');
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [isFree, setIsFree] = useState(true);
+    const [courseId, setCourseId] = useState<string | null>(null);
     
     const [chapters, setChapters] = useState<GameChapterState[]>([]);
 
@@ -69,9 +74,13 @@ export default function EditGamePage() {
             setLanguage(gameData.language || '');
             setThumbnailUrl(gameData.thumbnail_url || '');
             setIsFree(gameData.is_free);
+            setCourseId(gameData.course_id);
             setChapters(gameData.game_chapters.map(c => ({
                 ...c,
-                game_levels: c.game_levels as GameLevelState[]
+                game_levels: (c.game_levels as GameLevelState[]).map(l => ({
+                    ...l,
+                    slug: l.slug || ''
+                }))
             })));
         } else {
             notFound();
@@ -90,7 +99,7 @@ export default function EditGamePage() {
             id: `chap-${Date.now()}`,
             title: `Chapter ${newOrder}`,
             order: newOrder,
-            game_levels: [{ id: `lvl-${Date.now()}`, title: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100, order: 1 }]
+            game_levels: [{ id: `lvl-${Date.now()}`, title: '', slug: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100, order: 1 }]
         }]);
     };
 
@@ -106,7 +115,7 @@ export default function EditGamePage() {
         setChapters(prev => prev.map(c => {
             if (c.id === chapterId) {
                 const newOrder = c.game_levels.length + 1;
-                return { ...c, game_levels: [...c.game_levels, { id: `lvl-${Date.now()}`, title: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100, order: newOrder }] };
+                return { ...c, game_levels: [...c.game_levels, { id: `lvl-${Date.now()}`, title: '', slug: '', objective: '', starter_code: '', expected_output: '', reward_xp: 100, order: newOrder }] };
             }
             return c;
         }));
@@ -124,7 +133,16 @@ export default function EditGamePage() {
     const handleLevelChange = (chapterId: string, levelId: string, field: keyof GameLevelState, value: any) => {
         setChapters(prev => prev.map(c => {
             if (c.id === chapterId) {
-                return { ...c, game_levels: c.game_levels.map(l => l.id === levelId ? { ...l, [field]: value } : l) };
+                return { ...c, game_levels: c.game_levels.map(l => {
+                    if (l.id === levelId) {
+                        const updatedLevel = { ...l, [field]: value };
+                        if (field === 'title' && typeof value === 'string') {
+                            updatedLevel.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                        }
+                        return updatedLevel;
+                    }
+                    return l;
+                }) };
             }
             return c;
         }));
@@ -166,10 +184,18 @@ export default function EditGamePage() {
                 finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
             }
         }
+        
+        const gamePayload = {
+            title, 
+            slug, 
+            description, 
+            language, 
+            thumbnail_url: finalThumbnailUrl, 
+            is_free: isFree, 
+            course_id: courseId || null // Ensure null is sent for empty course_id
+        };
 
-        const { error: gameError } = await supabase.from('games').update({
-            title, slug, description, language, thumbnail_url: finalThumbnailUrl, is_free
-        }).eq('id', gameId);
+        const { error: gameError } = await supabase.from('games').update(gamePayload).eq('id', gameId);
 
         if (gameError) {
             toast({ variant: 'destructive', title: 'Update Failed', description: gameError.message });
@@ -177,33 +203,53 @@ export default function EditGamePage() {
             return;
         }
 
-        // ... Logic to upsert chapters and levels ...
+        // The deletion logic is removed to prevent foreign key constraint errors.
+        // This means chapters/levels removed from the UI will not be deleted from the DB on save.
+        // They must be deleted manually from the Supabase dashboard if needed.
+
         for (const chapter of chapters) {
             const isNewChapter = chapter.id.startsWith('chap-');
-            const { data: upsertedChapter, error: chapterError } = await supabase.from('game_chapters').upsert({
-                id: isNewChapter ? undefined : chapter.id,
+            const chapterPayload: any = {
                 game_id: gameId,
                 title: chapter.title,
                 order: chapter.order,
-            }).select().single();
+            };
+            if (!isNewChapter) {
+                chapterPayload.id = chapter.id;
+            }
 
-            if (chapterError) { console.error('Chapter upsert failed:', chapterError); continue; }
+            const { data: upsertedChapter, error: chapterError } = await supabase.from('game_chapters').upsert(chapterPayload).select().single();
+            if (chapterError) { 
+                console.error('Chapter upsert failed:', chapterError);
+                toast({ variant: 'destructive', title: 'Chapter Save Failed', description: chapterError.message });
+                continue; // Continue to next chapter
+            }
 
             for (const level of chapter.game_levels) {
                 const isNewLevel = level.id.startsWith('lvl-');
-                await supabase.from('game_levels').upsert({
-                    id: isNewLevel ? undefined : level.id,
+                const levelPayload: any = {
                     chapter_id: upsertedChapter!.id,
                     title: level.title,
+                    slug: level.slug,
                     objective: level.objective,
                     starter_code: level.starter_code,
                     expected_output: level.expected_output,
                     reward_xp: Number(level.reward_xp),
                     order: level.order,
-                });
+                    intro_text: level.intro_text,
+                    correct_feedback: level.correct_feedback,
+                    incorrect_feedback: level.incorrect_feedback,
+                };
+                 if (!isNewLevel) {
+                    levelPayload.id = level.id;
+                }
+                const { error: levelError } = await supabase.from('game_levels').upsert(levelPayload);
+                 if (levelError) {
+                    console.error('Level upsert failed:', levelError);
+                    toast({ variant: 'destructive', title: 'Level Save Failed', description: levelError.message });
+                }
             }
         }
-
 
         toast({ title: "Game Updated!", description: `${title} has been saved.` });
         router.push('/admin/games');
@@ -250,6 +296,10 @@ export default function EditGamePage() {
                                     <div className="space-y-2">
                                         <Label htmlFor="game-description">Description</Label>
                                         <Textarea id="game-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A brief summary of the game." className="min-h-[100px]"/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="course-id">Linked Course (Optional)</Label>
+                                        <Input id="course-id" value={courseId || ''} onChange={(e) => setCourseId(e.target.value)} placeholder="Enter Course UUID" />
                                     </div>
                                     
                                     <div className="space-y-2">
@@ -312,13 +362,21 @@ export default function EditGamePage() {
                                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveLevel(chapter.id, level.id)} disabled={chapter.game_levels.length === 1}><Trash2 className="text-destructive h-4 w-4"/></Button>
                                                 </CardHeader>
                                                 <CardContent className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="space-y-2 md:col-span-2">
+                                                    <div className="space-y-2">
                                                         <Label htmlFor={`level-title-${level.id}`}>Level Title</Label>
                                                         <Input id={`level-title-${level.id}`} value={level.title} onChange={e => handleLevelChange(chapter.id, level.id, 'title', e.target.value)} required />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor={`level-slug-${level.id}`}>Level Slug</Label>
+                                                        <Input id={`level-slug-${level.id}`} value={level.slug} onChange={e => handleLevelChange(chapter.id, level.id, 'slug', e.target.value)} required />
                                                     </div>
                                                     <div className="space-y-2 md:col-span-2">
                                                         <Label htmlFor={`level-objective-${level.id}`}>Objective</Label>
                                                         <Textarea id={`level-objective-${level.id}`} value={level.objective} onChange={e => handleLevelChange(chapter.id, level.id, 'objective', e.target.value)} placeholder="Describe the goal of this level." className="min-h-[80px]" />
+                                                    </div>
+                                                    <div className="space-y-2 md:col-span-2">
+                                                        <Label htmlFor={`level-intro-text-${level.id}`}>Intro Text (Robot Speech)</Label>
+                                                        <Textarea id={`level-intro-text-${level.id}`} value={level.intro_text || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'intro_text', e.target.value)} placeholder="Text for the robot to say at the start." className="min-h-[80px]" />
                                                     </div>
                                                     <div className="space-y-2 md:col-span-2">
                                                         <Label htmlFor={`level-starter-code-${level.id}`}>Starter Code</Label>
@@ -328,9 +386,17 @@ export default function EditGamePage() {
                                                         <Label htmlFor={`level-expected-output-${level.id}`}>Expected Output</Label>
                                                         <Textarea id={`level-expected-output-${level.id}`} value={level.expected_output || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'expected_output', e.target.value)} placeholder="What should the code output on success?" className="min-h-[60px] font-mono" />
                                                     </div>
-                                                    <div className="space-y-2">
+                                                     <div className="space-y-2">
                                                         <Label htmlFor={`level-reward-xp-${level.id}`}>Reward XP</Label>
                                                         <Input id={`level-reward-xp-${level.id}`} type="number" value={level.reward_xp} onChange={e => handleLevelChange(chapter.id, level.id, 'reward_xp', e.target.value)} placeholder="e.g., 100" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor={`level-correct-feedback-${level.id}`}>Correct Feedback</Label>
+                                                        <Textarea id={`level-correct-feedback-${level.id}`} value={level.correct_feedback || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'correct_feedback', e.target.value)} placeholder="e.g., 'Great job, recruit!'" className="min-h-[60px]" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor={`level-incorrect-feedback-${level.id}`}>Incorrect Feedback</Label>
+                                                        <Textarea id={`level-incorrect-feedback-${level.id}`} value={level.incorrect_feedback || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'incorrect_feedback', e.target.value)} placeholder="e.g., 'Not quite, try again!'" className="min-h-[60px]" />
                                                     </div>
                                                 </CardContent>
                                             </Card>
