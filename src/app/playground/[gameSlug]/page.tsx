@@ -152,7 +152,7 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
                                         </div>
                                     )}
                                     <Link
-                                        href={isLocked ? '#' : `/playground/${game.slug}/${level.id}`}
+                                        href={isLocked ? '#' : `/playground/${game.slug}/${level.slug}`}
                                         className={cn(
                                             "absolute w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-300 z-20",
                                             "border-4",
