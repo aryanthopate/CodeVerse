@@ -156,7 +156,7 @@ export default async function GameDetailPage({ params }: { params: { gameId: str
                                         className={cn(
                                             "absolute w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-300 z-20",
                                             "border-4",
-                                            isCurrent ? "border-primary scale-110 bg-primary/20 level-node-glow" : "border-border/50 bg-card",
+                                            isCurrent ? "border-primary scale-110 level-node-glow bg-primary/20" : "border-border/50 bg-card",
                                             isCompleted ? "border-green-500 bg-green-500/10" : "",
                                             isLocked ? "border-muted-foreground/30 bg-muted/50 cursor-not-allowed opacity-60" : "cursor-pointer hover:scale-110 hover:border-primary",
                                         )}
