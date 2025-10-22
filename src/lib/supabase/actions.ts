@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from './server';
@@ -529,9 +528,14 @@ export async function createGame(gameData: GameData) {
 
     for (const chapterData of game_chapters) {
         const { game_levels, ...restOfChapterData } = chapterData;
+        const chapterPayload: Omit<GameChapter, 'id' | 'created_at'> = {
+            title: restOfChapterData.title,
+            order: restOfChapterData.order,
+            game_id: newGame.id,
+        };
         const { data: newChapter, error: chapterError } = await supabase
             .from('game_chapters')
-            .insert({ ...restOfChapterData, game_id: newGame.id })
+            .insert(chapterPayload)
             .select()
             .single();
 
@@ -643,3 +647,5 @@ export async function deleteGame(gameId: string) {
     revalidatePath('/playground');
     return { success: true };
 }
+
+    
