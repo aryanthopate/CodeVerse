@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { getGameAndLevelDetails } from '@/lib/supabase/queries';
 import { GameWithLevels, GameLevel, UserProfile } from '@/lib/types';
 import Link from 'next/link';
-import { ArrowLeft, Bot, Lightbulb, Loader2, Play, Sparkles, CheckCircle, ArrowRight, X, Rocket, Award, Heart, ShieldX, ShieldCheck, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Bot, Lightbulb, Loader2, Play, Sparkles, CheckCircle, ArrowRight, X, Rocket, Award, Heart, ShieldX, ShieldCheck, RefreshCw, Code, BookOpen } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
 import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -30,6 +30,7 @@ interface Bubble {
   x: number; // Represents the column index (0-3)
   y: number;
   isTarget: boolean;
+  isBursting: boolean;
 }
 
 interface Bullet {
@@ -64,7 +65,7 @@ function CodeBubbleGame({
 
 
   const correctSnippets = useMemo(() => {
-    // FIX: Source snippets from expected_output which should contain the code to write.
+    // Correctly parse the expected output into code snippets
     return level.expected_output?.match(/([a-zA-Z0-9_]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}])/g) || [];
   }, [level.expected_output]);
 
@@ -129,6 +130,7 @@ function CodeBubbleGame({
                       x: targetLane,
                       y: -50,
                       isTarget: true,
+                      isBursting: false,
                   });
 
                   // Add distractor bubble
@@ -146,6 +148,7 @@ function CodeBubbleGame({
                       x: distractorLane,
                       y: -50,
                       isTarget: false,
+                      isBursting: false,
                   });
                   
                   setBubbles(prev => [...prev, ...newBubbles]);
@@ -161,7 +164,6 @@ function CodeBubbleGame({
           );
 
           let hitBulletIds = new Set<number>();
-          let hitBubbleIds = new Set<number>();
           
           setBubbles(prevBubbles => {
               const updatedBubbles = prevBubbles.map(bubble => ({ ...bubble, y: bubble.y + 0.25 }));
@@ -169,14 +171,14 @@ function CodeBubbleGame({
               // Collision detection
               for (const bullet of bullets) {
                 for (const bubble of updatedBubbles) {
-                  if (hitBulletIds.has(bullet.id) || hitBubbleIds.has(bubble.id)) continue;
+                  if (hitBulletIds.has(bullet.id) || bubble.isBursting) continue;
                   
                   const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
                   const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
 
                   if (distance < 40) {
                     hitBulletIds.add(bullet.id);
-                    hitBubbleIds.add(bubble.id);
+                    bubble.isBursting = true;
                     if (bubble.isTarget) {
                       onCorrectBubble(bubble.text);
                       setTargetIndex(i => i + 1);
@@ -188,8 +190,10 @@ function CodeBubbleGame({
               }
 
               return updatedBubbles.filter(bubble => {
-                // Remove bubbles that are hit
-                if (hitBubbleIds.has(bubble.id)) return false;
+                // Remove bubbles that are hit (after animation)
+                 if (bubble.isBursting) {
+                    setTimeout(() => setBubbles(b => b.filter(x => x.id !== bubble.id)), 300);
+                 }
                 // Remove bubbles that go off screen
                 if (bubble.y > gameAreaRef.current!.offsetHeight) {
                   if (bubble.isTarget) {
@@ -224,7 +228,7 @@ function CodeBubbleGame({
     const handleMouseMove = (e: MouseEvent) => {
       const rect = gameArea.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
+      rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px) rotate(0deg)`;
     };
 
     const handleClick = () => fireBullet();
@@ -264,14 +268,15 @@ function CodeBubbleGame({
         <div
           key={bubble.id}
           className={cn(
-              "absolute px-3 py-1 rounded-full text-white font-mono text-sm",
-               "bg-muted/80 backdrop-blur-sm border border-primary/20",
+              "absolute px-3 py-2 rounded-full text-white font-mono text-sm",
+               "bg-primary/50 backdrop-blur-sm border-2 border-primary/80 shadow-lg shadow-primary/20",
+               "transition-all duration-300",
+               bubble.isBursting && "animate-ping opacity-0 scale-150"
           )}
           style={{ 
               top: `${bubble.y}px`, 
               left: `${lanePositions[bubble.x]}%`,
               transform: `translateX(-50%)`,
-              transition: 'top 0.1s linear'
            }}
         >
           {bubble.text}
@@ -288,7 +293,7 @@ function CodeBubbleGame({
               }}
           />
       ))}
-      <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10">
+      <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10" style={{ transform: 'rotate(0deg)'}}>
         <Rocket className="w-full h-full text-primary" />
         <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-8 bg-gradient-to-t from-yellow-400 to-orange-500 rounded-b-full blur-sm" />
       </div>
@@ -349,6 +354,31 @@ function OutputConsole({ output, isError }: { output: string, isError: boolean }
     )
 }
 
+function ManualCodePractice({ level, onRunCode, onGetHint }: { level: GameLevel, onRunCode: (code: string) => void, onGetHint: (code: string) => void }) {
+  const [code, setCode] = useState(level.starter_code || '');
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-border/50 flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Manual Code Editor</h2>
+          <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => onGetHint(code)}>
+                  <Lightbulb className="mr-2"/> Hint
+              </Button>
+              <Button size="sm" onClick={() => onRunCode(code)}>
+                  <Play className="mr-2"/> Run Code
+              </Button>
+          </div>
+      </div>
+      <div className="flex-grow p-2">
+          <textarea
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="w-full h-full p-4 bg-gray-900 text-white font-mono rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          />
+      </div>
+    </div>
+  )
+}
 
 export default function GameLevelPage() {
     const params = useParams();
@@ -361,8 +391,9 @@ export default function GameLevelPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [showIntro, setShowIntro] = useState(true);
-    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver'>('playing');
-
+    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver' | 'manual'>('playing');
+    const [showSolution, setShowSolution] = useState(false);
+    
     const [feedback, setFeedback] = useState('');
     const [hint, setHint] = useState('');
     const [isChecking, setIsChecking] = useState(false);
@@ -389,6 +420,7 @@ export default function GameLevelPage() {
         setHint('');
         setIsCorrect(false);
         setRunOutput('');
+        setShowSolution(false);
         editorRef.current?.resetCode();
     }, []);
 
@@ -417,17 +449,15 @@ export default function GameLevelPage() {
         fetchDetails();
     }, [params, supabase, router]);
     
-    const handleRunCode = async () => {
-        if (!level || !editorRef.current) return;
+    const handleRunCode = async (codeToRun: string) => {
+        if (!level || !codeToRun) return;
         setIsChecking(true);
         setFeedback('');
         setHint('');
         setRunOutput('Running code...');
         setRunOutputIsError(false);
 
-        const codeFromEditor = editorRef.current.getCode();
-
-        const isSolutionCorrect = codeFromEditor.trim().replace(/\s+/g, ' ') === level.expected_output?.trim().replace(/\s+/g, ' ');
+        const isSolutionCorrect = codeToRun.trim().replace(/\s+/g, ' ') === level.expected_output?.trim().replace(/\s+/g, ' ');
 
         if (isSolutionCorrect) {
             setIsCorrect(true);
@@ -442,7 +472,7 @@ export default function GameLevelPage() {
             setRunOutput('Execution finished. Check AI feedback for details.');
              try {
                 const result = await reviewCodeAndProvideFeedback({
-                    code: codeFromEditor,
+                    code: codeToRun,
                     solution: level.expected_output || '',
                     programmingLanguage: game?.language || 'code',
                 });
@@ -455,15 +485,14 @@ export default function GameLevelPage() {
         setIsChecking(false);
     }
     
-    const handleGetHint = async () => {
-        if (!level || !editorRef.current) return;
+    const handleGetHint = async (codeForHint: string) => {
+        if (!level) return;
         setIsGettingHint(true);
         setHint('');
-        const codeFromEditor = editorRef.current.getCode();
          try {
             const result = await provideHintForCodePractice({
                 problemStatement: level.objective,
-                userCode: codeFromEditor,
+                userCode: codeForHint,
             });
             setHint(result.hint);
         } catch (e: any) {
@@ -480,6 +509,9 @@ export default function GameLevelPage() {
             <ShieldCheck className="w-24 h-24 text-green-400 mb-4" />
             <h3 className="text-2xl font-bold">Level Complete!</h3>
             <p className="text-muted-foreground mt-2">You've assembled the code. Now run it to check your solution!</p>
+             <Button onClick={() => handleRunCode(editorRef.current?.getCode() || '')} className="mt-6">
+                <Play className="mr-2"/> Run Final Code
+            </Button>
           </div>
         );
       }
@@ -489,7 +521,11 @@ export default function GameLevelPage() {
             <ShieldX className="w-24 h-24 text-red-400 mb-4" />
             <h3 className="text-2xl font-bold">Game Over</h3>
             <p className="text-muted-foreground mt-2">You've run out of lives.</p>
-            <Button onClick={handleRestart} className="mt-6"><RefreshCw className="mr-2"/>Try Again</Button>
+            <div className="flex gap-4 mt-6">
+                <Button onClick={handleRestart}><RefreshCw className="mr-2"/>Try Again</Button>
+                <Button variant="secondary" onClick={() => setShowSolution(true)}><BookOpen className="mr-2"/> Show Solution</Button>
+                <Button variant="outline" onClick={() => setGameState('manual')}><Code className="mr-2"/> Try Manual Mode</Button>
+            </div>
           </div>
         );
       }
@@ -554,15 +590,21 @@ export default function GameLevelPage() {
                     <ResizablePanel defaultSize={50} minSize={30}>
                         <div className="flex flex-col h-full">
                            <div className="flex-grow relative">
-                             <CodeBubbleGame 
-                               key={gameState} // Force re-render on restart
-                               level={level} 
-                               onCorrectBubble={handleCorrectBubble} 
-                               onLevelComplete={handleLevelComplete}
-                               onGameOver={handleGameOver}
-                               gameSlug={game.slug}
-                             />
-                             <GameStatusOverlay />
+                            {gameState === 'manual' ? (
+                                <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} />
+                            ) : (
+                             <>
+                                <CodeBubbleGame 
+                                  key={gameState} // Force re-render on restart
+                                  level={level} 
+                                  onCorrectBubble={handleCorrectBubble} 
+                                  onLevelComplete={handleLevelComplete}
+                                  onGameOver={handleGameOver}
+                                  gameSlug={game.slug}
+                                />
+                                <GameStatusOverlay />
+                             </>
+                            )}
                            </div>
                         </div>
                     </ResizablePanel>
@@ -580,7 +622,7 @@ export default function GameLevelPage() {
                                 <div className="flex flex-col h-full">
                                     <div className="p-4 border-b border-border/50 flex justify-between items-center">
                                         <h2 className="text-lg font-semibold">Code Editor</h2>
-                                         <Button size="sm" onClick={handleRunCode} disabled={isChecking}>
+                                         <Button size="sm" onClick={() => handleRunCode(editorRef.current?.getCode() || '')} disabled={isChecking}>
                                             {isChecking ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2"/>} Run Code
                                         </Button>
                                     </div>
@@ -600,6 +642,14 @@ export default function GameLevelPage() {
                                         <TabsContent value="feedback" className="flex-grow bg-muted/20 m-4 mt-0 rounded-lg">
                                              <ScrollArea className="h-full p-4">
                                                  {isChecking && <p className="text-muted-foreground">Analyzing your code...</p>}
+                                                 {showSolution && (
+                                                     <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm">
+                                                        <h3 className="font-semibold mb-2">Solution:</h3>
+                                                        <pre className="bg-black/50 p-2 rounded-md font-mono text-xs">{level.expected_output}</pre>
+                                                        {level.incorrect_feedback && <p className="mt-2 italic">{level.incorrect_feedback}</p>}
+                                                        <Button onClick={handleRestart} className="mt-4"><RefreshCw className="mr-2"/>Try Again</Button>
+                                                    </div>
+                                                 )}
                                                  {isCorrect && (
                                                      <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-300">
                                                         <p className="font-semibold mb-2 flex items-center gap-2"><CheckCircle /> Correct!</p>
@@ -620,7 +670,7 @@ export default function GameLevelPage() {
                                                     </div>
                                                  )}
                                                  {!isCorrect && feedback && <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300 whitespace-pre-wrap font-mono">{feedback}</div>}
-                                                 {!isChecking && !feedback && <p className="text-muted-foreground text-sm text-center pt-8">Run your code to get AI-powered feedback.</p>}
+                                                 {!isChecking && !feedback && !showSolution && <p className="text-muted-foreground text-sm text-center pt-8">Run your code to get AI-powered feedback.</p>}
                                              </ScrollArea>
                                         </TabsContent>
                                         <TabsContent value="output" className="flex-grow bg-muted/20 m-4 mt-0 rounded-lg">
@@ -636,3 +686,5 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
+    

@@ -588,7 +588,7 @@ export async function seedDemoGames() {
     const gamesToInsert = placeholderGames.filter(g => !existingTitles.includes(g.title));
 
     if (gamesToInsert.length === 0) {
-        return { success: false, error: 'Demo games have already been seeded.' };
+        return { success: true, message: 'Demo games have already been seeded.' };
     }
 
     for (const game of gamesToInsert) {
@@ -663,6 +663,8 @@ export async function deleteMultipleGames(gameIds: string[]) {
     revalidatePath('/playground');
     return { success: true };
 }
+    
+
     
 
     
