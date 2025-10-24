@@ -617,12 +617,17 @@ export async function seedDemoGames() {
                  return { success: false, error: `Failed to insert chapter for "${game.title}": ${chapterError.message}` };
             }
 
-            const levelsToInsert = levels.map((level: any, index: number) => ({
-                ...level,
-                slug: level.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-                chapter_id: newChapter.id,
-                order: index + 1
-            }));
+            const levelsToInsert = levels.map((level: any, index: number) => {
+                const baseSlug = level.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                // Append a short hash to ensure uniqueness, just in case titles are identical
+                const uniqueId = crypto.randomBytes(3).toString('hex');
+                return {
+                    ...level,
+                    slug: `${baseSlug}-${uniqueId}`,
+                    chapter_id: newChapter.id,
+                    order: index + 1
+                };
+            });
 
             if (levelsToInsert.length > 0) {
                 const { error: levelsError } = await supabase
