@@ -392,11 +392,15 @@ export default function GameLevelPage() {
     const [finalCode, setFinalCode] = useState('');
     
     const handleCodeAppend = useCallback((codeSnippet: string) => {
-        setFinalCode(prevCode => {
-            if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + codeSnippet;
-            const lastChar = prevCode.slice(-1);
-            if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(codeSnippet)) return prevCode + codeSnippet;
-            return prevCode + ' ' + codeSnippet;
+        // Use requestAnimationFrame to defer the state update,
+        // preventing updates during the render cycle of a child component.
+        requestAnimationFrame(() => {
+            setFinalCode(prevCode => {
+                if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + codeSnippet;
+                const lastChar = prevCode.slice(-1);
+                if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(codeSnippet)) return prevCode + codeSnippet;
+                return prevCode + ' ' + codeSnippet;
+            });
         });
     }, []);
 
