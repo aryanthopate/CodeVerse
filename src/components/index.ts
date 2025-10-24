@@ -9,3 +9,5 @@ export * from './footer';
 export * from './header';
 export * from './logo';
 export * from './review-rating-section';
+export * from './game-map-client';
+

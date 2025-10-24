@@ -124,7 +124,7 @@ function CodeBubbleGame({
                 newBubbles.push({ id: now + 1, text: distractorText, x: distractorLane, y: -50, isTarget: false, state: 'active' });
     
                 setBubbles(prev => [...prev, ...newBubbles]);
-                lastBubbleTimeRef.current = now;
+                lastBubbleTimeRef.current = Date.now();
             }
         }
     
@@ -682,5 +682,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
-    
