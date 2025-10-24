@@ -85,7 +85,9 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
                 </div>
 
                 {/* Levels Map */}
-                <div className="flex-grow w-full overflow-x-auto overflow-y-hidden">
+                <div className="flex-grow w-full overflow-x-auto overflow-y-hidden relative group">
+                    <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background to-transparent z-30 pointer-events-none group-hover:opacity-50 transition-opacity"></div>
+                    <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background to-transparent z-30 pointer-events-none group-hover:opacity-50 transition-opacity"></div>
                     <div className="relative w-full h-full flex items-center" style={{ minWidth: `${width}px`, minHeight: '400px' }}>
                         <svg width={width} height="400" className="absolute top-0 left-0">
                             <path 
@@ -181,3 +183,4 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
         </div>
     );
 }
+
