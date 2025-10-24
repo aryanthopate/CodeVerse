@@ -88,7 +88,6 @@ function CodeBubbleGame({
       const spawnBubble = () => {
           if (targetIndex >= correctSnippets.length) return;
           
-          // Only spawn if there is no current target bubble
           if (bubbles.some(b => b.isTarget)) return;
 
           const incorrectSnippets = ['var', 'func', 'err', '=>', 'const', 'let', 'x', 'y', 'z', '123', 'error', 'null'];
@@ -108,28 +107,30 @@ function CodeBubbleGame({
               isTarget: true,
           });
 
-          // Add 1 distractor bubble
-          const distractorLaneIndex = Math.floor(Math.random() * availableLanes.length);
-          const distractorLane = availableLanes.splice(distractorLaneIndex, 1)[0];
+          // Add 1 distractor bubble in a different lane
+          if (availableLanes.length > 0) {
+            const distractorLaneIndex = Math.floor(Math.random() * availableLanes.length);
+            const distractorLane = availableLanes.splice(distractorLaneIndex, 1)[0];
 
-          let distractorText;
-          do {
-            distractorText = incorrectSnippets[Math.floor(Math.random() * incorrectSnippets.length)];
-          } while (distractorText === targetText);
+            let distractorText;
+            do {
+              distractorText = incorrectSnippets[Math.floor(Math.random() * incorrectSnippets.length)];
+            } while (distractorText === targetText);
 
-          newBubbles.push({
-              id: Date.now() + 1,
-              text: distractorText,
-              x: distractorLane,
-              y: -50,
-              isTarget: false,
-          });
+            newBubbles.push({
+                id: Date.now() + 1,
+                text: distractorText,
+                x: distractorLane,
+                y: -50,
+                isTarget: false,
+            });
+          }
           
           setBubbles(prev => [...prev, ...newBubbles]);
       };
 
       const gameLoop = () => {
-          if (Date.now() - lastBubbleTime.current > 4000) { // Spawn every 4 seconds
+          if (Date.now() - lastBubbleTime.current > 5000) { // Spawn every 5 seconds
               spawnBubble();
               lastBubbleTime.current = Date.now();
           }
@@ -142,7 +143,7 @@ function CodeBubbleGame({
 
           setBubbles(prevBubbles => {
               let newBubbles = prevBubbles
-                  .map(bubble => ({ ...bubble, y: bubble.y + 0.25 })) // Slower falling speed
+                  .map(bubble => ({ ...bubble, y: bubble.y + 0.25 })) 
                   .filter(bubble => !gameAreaRef.current || bubble.y < gameAreaRef.current!.offsetHeight);
 
               // Collision detection
@@ -166,7 +167,15 @@ function CodeBubbleGame({
                       return true;
                   });
               });
-              return newBubbles;
+              
+              const bubblesThatHitBottom = newBubbles.filter(bubble => gameAreaRef.current && bubble.y >= gameAreaRef.current.offsetHeight - 20);
+              bubblesThatHitBottom.forEach(bubble => {
+                  if (bubble.isTarget) {
+                      onIncorrectBubble(); // Lose a life if target bubble is missed
+                  }
+              });
+
+              return newBubbles.filter(bubble => !gameAreaRef.current || bubble.y < gameAreaRef.current.offsetHeight - 20);
           });
 
           requestAnimationFrame(gameLoop);
@@ -253,7 +262,7 @@ function CodeBubbleGame({
         <div
           key={bubble.id}
           className={cn(
-              "absolute px-3 py-1 rounded-full text-white font-mono text-sm transition-transform duration-500 ease-linear",
+              "absolute px-3 py-1 rounded-full text-white font-mono text-sm",
                "bg-muted/80 backdrop-blur-sm border border-primary/20",
           )}
           style={{ 
@@ -601,3 +610,4 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
