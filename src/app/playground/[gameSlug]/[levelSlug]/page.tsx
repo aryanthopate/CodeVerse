@@ -42,26 +42,24 @@ const lanePositions = [15, 38, 61, 84]; // % for the center of each of the 4 lan
 function CodeBubbleGame({ 
     level, 
     onCorrectBubble, 
-    onIncorrectBubble, 
-    onRestart, 
+    onLevelComplete,
+    onGameOver,
     gameSlug, 
-    lives 
 }: { 
     level: GameLevel, 
     onCorrectBubble: (text: string) => void, 
-    onIncorrectBubble: () => void, 
-    onRestart: () => void,
+    onLevelComplete: () => void,
+    onGameOver: () => void,
     gameSlug: string,
-    lives: number
 }) {
   const rocketRef = useRef<HTMLDivElement>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [targetIndex, setTargetIndex] = useState(0);
-  const [isGameOver, setIsGameOver] = useState(false);
-  const lastBubbleTime = useRef(Date.now());
+  const [lives, setLives] = useState(3);
   const isMobile = useIsMobile();
+  const gameLoopRef = useRef<number>();
 
 
   const correctSnippets = useMemo(() => {
@@ -80,118 +78,141 @@ function CodeBubbleGame({
         setBullets(prev => [...prev, newBullet]);
     }
   }, []);
+  
+  const handleRestart = () => {
+    setBubbles([]);
+    setBullets([]);
+    setTargetIndex(0);
+    setLives(3);
+  };
+  
+  useEffect(() => {
+    if (lives <= 0) {
+      onGameOver();
+    }
+  }, [lives, onGameOver]);
+
+  useEffect(() => {
+    if (targetIndex >= correctSnippets.length && correctSnippets.length > 0) {
+      onLevelComplete();
+    }
+  }, [targetIndex, correctSnippets.length, onLevelComplete]);
+
 
   // Bubble and Game Loop Logic
   useEffect(() => {
-      if (isGameOver) return;
-
-      const spawnBubble = () => {
-          if (targetIndex >= correctSnippets.length) return;
-          
-          if (bubbles.some(b => b.isTarget)) return;
-
-          const incorrectSnippets = ['var', 'func', 'err', '=>', 'const', 'let', 'x', 'y', 'z', '123', 'error', 'null'];
-          const newBubbles: Bubble[] = [];
-          const targetText = correctSnippets[targetIndex];
-          
-          let availableLanes = [0, 1, 2, 3];
-          
-          // Add the target bubble
-          const targetLaneIndex = Math.floor(Math.random() * availableLanes.length);
-          const targetLane = availableLanes.splice(targetLaneIndex, 1)[0];
-          newBubbles.push({
-              id: Date.now(),
-              text: targetText,
-              x: targetLane,
-              y: -50,
-              isTarget: true,
-          });
-
-          // Add 1 distractor bubble in a different lane
-          if (availableLanes.length > 0) {
-            const distractorLaneIndex = Math.floor(Math.random() * availableLanes.length);
-            const distractorLane = availableLanes.splice(distractorLaneIndex, 1)[0];
-
-            let distractorText;
-            do {
-              distractorText = incorrectSnippets[Math.floor(Math.random() * incorrectSnippets.length)];
-            } while (distractorText === targetText);
-
-            newBubbles.push({
-                id: Date.now() + 1,
-                text: distractorText,
-                x: distractorLane,
-                y: -50,
-                isTarget: false,
-            });
-          }
-          
-          setBubbles(prev => [...prev, ...newBubbles]);
-      };
+      const lastBubbleTime = { current: Date.now() };
 
       const gameLoop = () => {
-          if (Date.now() - lastBubbleTime.current > 5000) { // Spawn every 5 seconds
-              spawnBubble();
-              lastBubbleTime.current = Date.now();
+          if (!gameAreaRef.current) {
+              gameLoopRef.current = requestAnimationFrame(gameLoop);
+              return;
           }
 
+          // Spawn new bubbles periodically
+          if (Date.now() - lastBubbleTime.current > 5000 && bubbles.length < 4) {
+              const currentTargetExists = bubbles.some(b => b.isTarget);
+              if (!currentTargetExists && targetIndex < correctSnippets.length) {
+                  const newBubbles: Bubble[] = [];
+                  const targetText = correctSnippets[targetIndex];
+                  
+                  const availableLanes = [0, 1, 2, 3];
+                  
+                  // Add the target bubble
+                  const targetLaneIndex = Math.floor(Math.random() * availableLanes.length);
+                  const targetLane = availableLanes.splice(targetLaneIndex, 1)[0];
+                  newBubbles.push({
+                      id: Date.now(),
+                      text: targetText,
+                      x: targetLane,
+                      y: -50,
+                      isTarget: true,
+                  });
+
+                  // Add distractor bubble
+                  const incorrectSnippets = ['var', 'func', 'err', '=>', 'const', 'let', 'x', 'y', 'z', '123', 'error', 'null'];
+                  const distractorLaneIndex = Math.floor(Math.random() * availableLanes.length);
+                  const distractorLane = availableLanes.splice(distractorLaneIndex, 1)[0];
+                  let distractorText;
+                  do {
+                    distractorText = incorrectSnippets[Math.floor(Math.random() * incorrectSnippets.length)];
+                  } while (distractorText === targetText);
+
+                  newBubbles.push({
+                      id: Date.now() + 1,
+                      text: distractorText,
+                      x: distractorLane,
+                      y: -50,
+                      isTarget: false,
+                  });
+                  
+                  setBubbles(prev => [...prev, ...newBubbles]);
+                  lastBubbleTime.current = Date.now();
+              }
+          }
+
+          // Move bullets and bubbles
           setBullets(prevBullets =>
               prevBullets
                   .map(bullet => ({ ...bullet, y: bullet.y - 10 }))
                   .filter(bullet => bullet.y > -20)
           );
 
+          let hitBulletIds = new Set<number>();
+          let hitBubbleIds = new Set<number>();
+          
           setBubbles(prevBubbles => {
-              let newBubbles = prevBubbles
-                  .map(bubble => ({ ...bubble, y: bubble.y + 0.25 })) 
-                  .filter(bubble => !gameAreaRef.current || bubble.y < gameAreaRef.current!.offsetHeight);
+              const updatedBubbles = prevBubbles.map(bubble => ({ ...bubble, y: bubble.y + 0.25 }));
 
               // Collision detection
-              bullets.forEach(bullet => {
-                  newBubbles = newBubbles.filter(bubble => {
-                      if (!gameAreaRef.current) return true;
-                      const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current.offsetWidth;
-                      const distance = Math.sqrt(
-                          Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2)
-                      );
-                      if (distance < 40) { // Collision radius
-                          if (bubble.isTarget) {
-                              onCorrectBubble(bubble.text);
-                              setTargetIndex(i => i + 1);
-                          } else {
-                              onIncorrectBubble();
-                          }
-                          setBullets(bs => bs.filter(b => b.id !== bullet.id)); // Remove bullet on hit
-                          return false; // Remove bubble
-                      }
-                      return true;
-                  });
-              });
-              
-              const bubblesThatHitBottom = newBubbles.filter(bubble => gameAreaRef.current && bubble.y >= gameAreaRef.current.offsetHeight - 20);
-              bubblesThatHitBottom.forEach(bubble => {
-                  if (bubble.isTarget) {
-                      onIncorrectBubble(); // Lose a life if target bubble is missed
+              for (const bullet of bullets) {
+                for (const bubble of updatedBubbles) {
+                  if (hitBulletIds.has(bullet.id) || hitBubbleIds.has(bubble.id)) continue;
+                  
+                  const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
+                  const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
+
+                  if (distance < 40) {
+                    hitBulletIds.add(bullet.id);
+                    hitBubbleIds.add(bubble.id);
+                    if (bubble.isTarget) {
+                      onCorrectBubble(bubble.text);
+                      setTargetIndex(i => i + 1);
+                    } else {
+                      setLives(l => l - 1);
+                    }
                   }
+                }
+              }
+
+              return updatedBubbles.filter(bubble => {
+                // Remove bubbles that are hit
+                if (hitBubbleIds.has(bubble.id)) return false;
+                // Remove bubbles that go off screen
+                if (bubble.y > gameAreaRef.current!.offsetHeight) {
+                  if (bubble.isTarget) {
+                    setLives(l => l - 1); // Lose a life if target is missed
+                  }
+                  return false;
+                }
+                return true;
               });
-
-              return newBubbles.filter(bubble => !gameAreaRef.current || bubble.y < gameAreaRef.current.offsetHeight - 20);
           });
-
-          requestAnimationFrame(gameLoop);
+          
+          setBullets(prev => prev.filter(b => !hitBulletIds.has(b.id)));
+          
+          gameLoopRef.current = requestAnimationFrame(gameLoop);
       };
 
-      const animationFrameId = requestAnimationFrame(gameLoop);
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
 
-      return () => cancelAnimationFrame(animationFrameId);
-  }, [bubbles, bullets, correctSnippets.length, onCorrectBubble, onIncorrectBubble, targetIndex, isGameOver]);
+      return () => {
+        if(gameLoopRef.current) {
+          cancelAnimationFrame(gameLoopRef.current);
+        }
+      }
+  }, [correctSnippets, onCorrectBubble, targetIndex, bullets]);
   
-  useEffect(() => {
-    if (lives <= 0) {
-      setIsGameOver(true);
-    }
-  }, [lives]);
-
   // Controls
   useEffect(() => {
     const gameArea = gameAreaRef.current;
@@ -217,27 +238,6 @@ function CodeBubbleGame({
     };
   }, [fireBullet]);
   
-  if (targetIndex >= correctSnippets.length && correctSnippets.length > 0) {
-      return (
-          <div className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-green-500 flex flex-col items-center justify-center text-center p-4">
-              <ShieldCheck className="w-24 h-24 text-green-400 mb-4" />
-              <h3 className="text-2xl font-bold">Level Complete!</h3>
-              <p className="text-muted-foreground mt-2">You've assembled the code. Now run it to check your solution!</p>
-          </div>
-      );
-  }
-
-  if (isGameOver) {
-      return (
-          <div className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-red-500 flex flex-col items-center justify-center text-center p-4">
-              <ShieldX className="w-24 h-24 text-red-400 mb-4" />
-              <h3 className="text-2xl font-bold">Game Over</h3>
-              <p className="text-muted-foreground mt-2">You've run out of lives.</p>
-              <Button onClick={onRestart} className="mt-6"><RefreshCw className="mr-2"/>Try Again</Button>
-          </div>
-      );
-  }
-
 
   return (
     <div ref={gameAreaRef} id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border cursor-crosshair">
@@ -252,7 +252,7 @@ function CodeBubbleGame({
                     ))}
                 </div>
             </div>
-             <Button variant="outline" size="sm" onClick={onRestart}><RefreshCw className="mr-2"/> Restart</Button>
+             <Button variant="outline" size="sm" onClick={handleRestart}><RefreshCw className="mr-2"/> Restart</Button>
              <Button variant="destructive" size="sm" asChild>
                 <Link href={`/playground/${gameSlug}`}><X className="mr-2"/> Quit</Link>
              </Button>
@@ -268,7 +268,8 @@ function CodeBubbleGame({
           style={{ 
               top: `${bubble.y}px`, 
               left: `${lanePositions[bubble.x]}%`,
-              transform: `translateX(-50%)`
+              transform: `translateX(-50%)`,
+              transition: 'top 0.1s linear'
            }}
         >
           {bubble.text}
@@ -286,7 +287,7 @@ function CodeBubbleGame({
           />
       ))}
       <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10" style={{ transform: 'rotate(0deg)' }}>
-        <Rocket className="w-full h-full text-primary" />
+        <Rocket className="w-full h-full text-primary -rotate-90" />
         <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-8 bg-gradient-to-t from-yellow-400 to-orange-500 rounded-b-full blur-sm" />
       </div>
       {isMobile && (
@@ -305,7 +306,6 @@ const CodeEditor = forwardRef(({ level, onCodeChange }: { level: GameLevel, onCo
         appendCode: (text: string) => {
             setCode(prev => {
                 let newCode = prev;
-                // Basic logic to handle spacing. A real implementation would be more complex.
                 if (!newCode.trim() || newCode.endsWith('\n')) {
                     newCode = prev + text;
                 } else {
@@ -359,6 +359,7 @@ export default function GameLevelPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [showIntro, setShowIntro] = useState(true);
+    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver'>('playing');
 
     const [feedback, setFeedback] = useState('');
     const [hint, setHint] = useState('');
@@ -369,23 +370,25 @@ export default function GameLevelPage() {
     const [runOutputIsError, setRunOutputIsError] = useState(false);
     
     const [showConfetti, setShowConfetti] = useState(false);
-    const [lives, setLives] = useState(3);
     const [currentCode, setCurrentCode] = useState('');
     const editorRef = useRef<{ appendCode: (text: string) => void, getCode: () => string, resetCode: () => void }>(null);
 
 
-    const handleIncorrectBubble = useCallback(() => {
-        setLives(l => Math.max(0, l - 1));
+    const handleLevelComplete = useCallback(() => {
+        setGameState('levelComplete');
+    }, []);
+
+    const handleGameOver = useCallback(() => {
+        setGameState('gameOver');
     }, []);
     
     const handleRestart = useCallback(() => {
-        setLives(3);
+        setGameState('playing');
         setFeedback('');
         setHint('');
         setIsCorrect(false);
         setRunOutput('');
         editorRef.current?.resetCode();
-        // A key change in the game component would be a cleaner way to force a full reset
     }, []);
 
     const handleCorrectBubble = useCallback((text: string) => {
@@ -470,6 +473,29 @@ export default function GameLevelPage() {
         }
     }
 
+    const GameStatusOverlay = () => {
+      if (gameState === 'levelComplete') {
+        return (
+          <div className="absolute inset-0 w-full h-full bg-gray-900/80 rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
+            <ShieldCheck className="w-24 h-24 text-green-400 mb-4" />
+            <h3 className="text-2xl font-bold">Level Complete!</h3>
+            <p className="text-muted-foreground mt-2">You've assembled the code. Now run it to check your solution!</p>
+          </div>
+        );
+      }
+      if (gameState === 'gameOver') {
+        return (
+          <div className="absolute inset-0 w-full h-full bg-gray-900/80 rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
+            <ShieldX className="w-24 h-24 text-red-400 mb-4" />
+            <h3 className="text-2xl font-bold">Game Over</h3>
+            <p className="text-muted-foreground mt-2">You've run out of lives.</p>
+            <Button onClick={handleRestart} className="mt-6"><RefreshCw className="mr-2"/>Try Again</Button>
+          </div>
+        );
+      }
+      return null;
+    };
+
 
     if (loading) {
         return <div className="flex items-center justify-center h-screen bg-background text-foreground">Loading Level...</div>;
@@ -529,14 +555,14 @@ export default function GameLevelPage() {
                         <div className="flex flex-col h-full">
                            <div className="flex-grow relative">
                              <CodeBubbleGame 
-                               key={lives} // Force re-render on restart
+                               key={gameState} // Force re-render on restart
                                level={level} 
                                onCorrectBubble={handleCorrectBubble} 
-                               onIncorrectBubble={handleIncorrectBubble}
-                               onRestart={handleRestart}
+                               onLevelComplete={handleLevelComplete}
+                               onGameOver={handleGameOver}
                                gameSlug={game.slug}
-                               lives={lives}
                              />
+                             <GameStatusOverlay />
                            </div>
                         </div>
                     </ResizablePanel>
