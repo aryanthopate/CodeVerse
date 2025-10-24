@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Confetti from 'react-confetti';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { completeGameLevel } from '@/lib/supabase/actions';
 
 
 interface Bubble {
@@ -66,6 +67,7 @@ function CodeBubbleGame({
 
 
     const correctSnippets = useMemo(() => {
+        // Use starter code to get snippets, providing a better game experience
         return level.expected_output?.match(/([a-zA-Z0-9_]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/])/g) || [];
     }, [level.expected_output]);
 
@@ -177,10 +179,10 @@ function CodeBubbleGame({
             );
 
             let hitBulletIds = new Set<number>();
-            let bubblesToBurst = new Set<number>();
             
             // Move bubbles down & detect collisions
             setBubbles(prevBubbles => {
+                let bubblesToBurstHere: number[] = [];
                 const updatedBubbles = prevBubbles.map(bubble => {
                     if (bubble.isBursting) return bubble;
                     
@@ -193,7 +195,7 @@ function CodeBubbleGame({
 
                         if (distance < 40) { // 40px collision radius
                             hitBulletIds.add(bullet.id);
-                            bubblesToBurst.add(bubble.id);
+                            bubblesToBurstHere.push(bubble.id);
 
                             if (bubble.isTarget) {
                                 onCorrectBubble(bubble.text);
@@ -206,27 +208,25 @@ function CodeBubbleGame({
                     }
                     return { ...bubble, y: bubble.y + 0.25 };
                 });
+                
+                 if (bubblesToBurstHere.length > 0) {
+                    setTimeout(() => {
+                        setBubbles(currentBubbles => currentBubbles.filter(b => !bubblesToBurstHere.includes(b.id)));
+                    }, 300);
+                }
 
-                return updatedBubbles;
-            });
-            
-            setBullets(prev => prev.filter(b => !hitBulletIds.has(b.id)));
-
-            // Cleanup burst and off-screen bubbles
-            setTimeout(() => {
-                 setBubbles(prevBubbles => prevBubbles.filter(bubble => {
-                    if (bubble.isBursting && bubblesToBurst.has(bubble.id)) {
-                        return false;
-                    }
-                     if (bubble.y > gameAreaHeight) {
+                return updatedBubbles.filter(bubble => {
+                    if (bubble.y > gameAreaHeight) {
                         if (bubble.isTarget) {
                              setLives(l => Math.max(0, l - 1)); // Lose a life if target is missed
                         }
                         return false;
                     }
                     return true;
-                }));
-            }, 300);
+                });
+            });
+            
+            setBullets(prev => prev.filter(b => !hitBulletIds.has(b.id)));
 
             gameLoopRef.current = requestAnimationFrame(gameLoop);
         };
@@ -238,7 +238,7 @@ function CodeBubbleGame({
                 cancelAnimationFrame(gameLoopRef.current);
             }
         }
-    }, [bullets, onCorrectBubble]);
+    }, [bullets, onCorrectBubble, correctSnippets, targetIndex, bubbles.length]);
 
     useEffect(() => {
         if (lives <= 0) {
@@ -302,7 +302,7 @@ function CodeBubbleGame({
                     }}
                 />
             ))}
-            <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10 -rotate-90">
+            <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10">
                 <Rocket className="w-full h-full text-primary" />
                 <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-8 bg-gradient-to-t from-yellow-400 to-orange-500 rounded-b-full blur-sm" />
             </div>
@@ -315,38 +315,7 @@ function CodeBubbleGame({
     )
 }
 
-const CodeEditor = forwardRef(({ onCodeChange, onCodeAppend }: { onCodeChange: (code: string) => void, onCodeAppend: (callback: (text: string) => void) => void }, ref) => {
-    const [code, setCode] = useState('');
-
-    useImperativeHandle(ref, () => ({
-        resetCode: (initialCode: string) => {
-            setCode(initialCode);
-            onCodeChange(initialCode);
-        }
-    }));
-    
-    useEffect(() => {
-        const cleanup = onCodeAppend((text: string) => {
-             setCode(prev => {
-                let newCode = prev;
-                if (!newCode.trim() || newCode.endsWith('\n')) {
-                    newCode = prev + text;
-                } else {
-                     const lastChar = prev.slice(-1);
-                    if (['(', '[', '{', '.', ';'].includes(lastChar) || text === ')' || text === ';') {
-                        newCode = prev + text;
-                    } else {
-                        newCode = prev + ' ' + text;
-                    }
-                }
-                onCodeChange(newCode);
-                return newCode;
-            });
-        });
-        return cleanup;
-    }, [onCodeAppend, onCodeChange]);
-
-
+function CodeEditor({ code }: { code: string }) {
     return (
         <div
             className="w-full h-full p-4 bg-gray-900 text-white font-mono rounded-lg border border-gray-700 whitespace-pre-wrap"
@@ -354,9 +323,7 @@ const CodeEditor = forwardRef(({ onCodeChange, onCodeAppend }: { onCodeChange: (
             {code}<span className="animate-pulse">_</span>
         </div>
     );
-});
-CodeEditor.displayName = 'CodeEditor';
-
+}
 
 function OutputConsole({ output, isError }: { output: string, isError: boolean }) {
     return (
@@ -415,24 +382,44 @@ export default function GameLevelPage() {
     const [runOutputIsError, setRunOutputIsError] = useState(false);
 
     const [showConfetti, setShowConfetti] = useState(false);
-    const editorRef = useRef<{ resetCode: (initialCode: string) => void }>(null);
     const [finalCode, setFinalCode] = useState('');
-    const appendCodeCallbacks = useRef<((text: string) => void)[]>([]);
-
-    const handleCorrectBubble = useCallback((text: string) => {
-        appendCodeCallbacks.current.forEach(cb => cb(text));
+    const codeQueue = useRef<string[]>([]);
+    
+    useEffect(() => {
+        const processQueue = () => {
+            if (codeQueue.current.length > 0) {
+                const text = codeQueue.current.shift();
+                if (text) {
+                     setFinalCode(prev => {
+                        let newCode = prev;
+                        if (!newCode.trim() || newCode.endsWith('\n')) {
+                            newCode = prev + text;
+                        } else {
+                             const lastChar = prev.slice(-1);
+                            if (['(', '[', '{', '.', ';'].includes(lastChar) || text === ')' || text === ';') {
+                                newCode = prev + text;
+                            } else {
+                                newCode = prev + ' ' + text;
+                            }
+                        }
+                        return newCode;
+                    });
+                }
+            }
+        };
+        const interval = setInterval(processQueue, 100);
+        return () => clearInterval(interval);
     }, []);
 
-    const handleSetAppendCallback = useCallback((callback: (text: string) => void) => {
-        appendCodeCallbacks.current.push(callback);
-        return () => {
-            appendCodeCallbacks.current = appendCodeCallbacks.current.filter(cb => cb !== callback);
-        };
+    const handleCorrectBubble = useCallback((text: string) => {
+        codeQueue.current.push(text);
     }, []);
 
     const handleLevelComplete = useCallback(() => {
+        if (!level) return;
+        completeGameLevel(level.id);
         setGameState('levelComplete');
-    }, []);
+    }, [level]);
 
     const handleGameOver = useCallback(() => {
         setGameState('gameOver');
@@ -445,7 +432,7 @@ export default function GameLevelPage() {
         setIsCorrect(false);
         setRunOutput('');
         setShowSolution(false);
-        editorRef.current?.resetCode(level?.starter_code || '');
+        setFinalCode(level?.starter_code || '');
     }, [level]);
 
     useEffect(() => {
@@ -464,7 +451,6 @@ export default function GameLevelPage() {
                 setLevel(level);
                 setNextLevel(nextLevel);
                 setFinalCode(level.starter_code || '');
-                editorRef.current?.resetCode(level.starter_code || '');
             }
             setLoading(false);
         };
@@ -487,7 +473,7 @@ export default function GameLevelPage() {
             setFeedback(level.correct_feedback || 'Great job! Your code is correct.');
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 5000);
-            setGameState('levelComplete');
+            handleLevelComplete();
         } else {
             setIsCorrect(false);
             setRunOutputIsError(true);
@@ -525,7 +511,7 @@ export default function GameLevelPage() {
     }
 
     const GameStatusOverlay = () => {
-        if (isCorrect) {
+        if (gameState === 'levelComplete') {
             return (
                  <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
                     <div className="flex gap-4 items-center">
@@ -637,7 +623,7 @@ export default function GameLevelPage() {
                                             key={gameState} // Force re-render on restart
                                             level={level}
                                             onCorrectBubble={handleCorrectBubble}
-                                            onLevelComplete={() => {}}
+                                            onLevelComplete={handleLevelComplete}
                                             onGameOver={handleGameOver}
                                             gameSlug={game.slug}
                                         />
@@ -666,11 +652,7 @@ export default function GameLevelPage() {
                                         </Button>
                                     </div>
                                     <div className="flex-grow p-2">
-                                        <CodeEditor 
-                                            ref={editorRef}
-                                            onCodeChange={setFinalCode}
-                                            onCodeAppend={handleSetAppendCallback}
-                                        />
+                                        <CodeEditor code={finalCode} />
                                     </div>
                                 </div>
                             </ResizablePanel>
@@ -712,3 +694,4 @@ export default function GameLevelPage() {
 }
 
     
+

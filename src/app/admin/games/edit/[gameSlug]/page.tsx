@@ -15,9 +15,10 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { createClient } from '@/lib/supabase/client';
-import { getGameBySlug } from '@/lib/supabase/queries';
-import type { GameWithChaptersAndLevels, GameChapter, GameLevel, Game } from '@/lib/types';
-
+import { getGameBySlug, getAllCoursesMinimal } from '@/lib/supabase/queries';
+import type { GameWithChaptersAndLevels, GameChapter, GameLevel, Game, Course } from '@/lib/types';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 interface GameLevelState extends Partial<GameLevel> {
     id: string;
@@ -59,8 +60,17 @@ export default function EditGamePage() {
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [isFree, setIsFree] = useState(true);
     const [courseId, setCourseId] = useState<string | null>(null);
+    const [allCourses, setAllCourses] = useState<{ id: string; name: string }[]>([]);
     
     const [chapters, setChapters] = useState<GameChapterState[]>([]);
+
+    useEffect(() => {
+        const fetchCourses = async () => {
+            const courses = await getAllCoursesMinimal();
+            setAllCourses(courses);
+        };
+        fetchCourses();
+    }, []);
 
     const fetchGame = useCallback(async () => {
         if (!gameSlug) return;
@@ -181,7 +191,6 @@ export default function EditGamePage() {
 
                 if (uploadError) {
                     toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
-                    // Decide if you want to proceed without the new thumbnail
                 } else {
                     finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
                 }
@@ -218,7 +227,7 @@ export default function EditGamePage() {
                 if (chapterError) { 
                     console.error('Chapter upsert failed:', chapterError);
                     toast({ variant: 'destructive', title: 'Chapter Save Failed', description: chapterError.message });
-                    continue; // Continue to next chapter
+                    continue; 
                 }
 
                 for (const level of chapter.game_levels) {
@@ -249,7 +258,6 @@ export default function EditGamePage() {
 
             toast({ title: "Game Updated!", description: `${title} has been saved.` });
             router.push('/admin/games');
-
         } catch (error: any) {
             toast({
                 variant: 'destructive',
@@ -304,7 +312,17 @@ export default function EditGamePage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="course-id">Linked Course (Optional)</Label>
-                                        <Input id="course-id" value={courseId || ''} onChange={(e) => setCourseId(e.target.value)} placeholder="Enter Course UUID" />
+                                        <Select value={courseId || ''} onValueChange={(value) => setCourseId(value)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a course to link..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="">None</SelectItem>
+                                                {allCourses.map(course => (
+                                                    <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     
                                     <div className="space-y-2">
@@ -359,53 +377,61 @@ export default function EditGamePage() {
                                             <X className="text-destructive"/>
                                         </Button>
                                     </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        {chapter.game_levels.map((level, levelIndex) => (
-                                            <Card key={level.id}>
-                                                <CardHeader className="flex-row items-center justify-between p-4">
-                                                    <CardTitle className='text-lg flex items-center gap-2'><Gamepad2/> Level {levelIndex + 1}</CardTitle>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveLevel(chapter.id, level.id)} disabled={chapter.game_levels.length === 1}><Trash2 className="text-destructive h-4 w-4"/></Button>
-                                                </CardHeader>
-                                                <CardContent className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor={`level-title-${level.id}`}>Level Title</Label>
-                                                        <Input id={`level-title-${level.id}`} value={level.title} onChange={e => handleLevelChange(chapter.id, level.id, 'title', e.target.value)} required />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor={`level-slug-${level.id}`}>Level Slug</Label>
-                                                        <Input id={`level-slug-${level.id}`} value={level.slug} onChange={e => handleLevelChange(chapter.id, level.id, 'slug', e.target.value)} required />
-                                                    </div>
-                                                    <div className="space-y-2 md:col-span-2">
-                                                        <Label htmlFor={`level-objective-${level.id}`}>Objective</Label>
-                                                        <Textarea id={`level-objective-${level.id}`} value={level.objective} onChange={e => handleLevelChange(chapter.id, level.id, 'objective', e.target.value)} placeholder="Describe the goal of this level." className="min-h-[80px]" />
-                                                    </div>
-                                                    <div className="space-y-2 md:col-span-2">
-                                                        <Label htmlFor={`level-intro-text-${level.id}`}>Intro Text (Robot Speech)</Label>
-                                                        <Textarea id={`level-intro-text-${level.id}`} value={level.intro_text || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'intro_text', e.target.value)} placeholder="Text for the robot to say at the start." className="min-h-[80px]" />
-                                                    </div>
-                                                    <div className="space-y-2 md:col-span-2">
-                                                        <Label htmlFor={`level-starter-code-${level.id}`}>Starter Code</Label>
-                                                        <Textarea id={`level-starter-code-${level.id}`} value={level.starter_code || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'starter_code', e.target.value)} placeholder="Provide some initial code for the user." className="min-h-[120px] font-mono" />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor={`level-expected-output-${level.id}`}>Expected Output</Label>
-                                                        <Textarea id={`level-expected-output-${level.id}`} value={level.expected_output || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'expected_output', e.target.value)} placeholder="What should the code output on success?" className="min-h-[60px] font-mono" />
-                                                    </div>
-                                                     <div className="space-y-2">
-                                                        <Label htmlFor={`level-reward-xp-${level.id}`}>Reward XP</Label>
-                                                        <Input id={`level-reward-xp-${level.id}`} type="number" value={level.reward_xp} onChange={e => handleLevelChange(chapter.id, level.id, 'reward_xp', e.target.value)} placeholder="e.g., 100" />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor={`level-correct-feedback-${level.id}`}>Correct Feedback</Label>
-                                                        <Textarea id={`level-correct-feedback-${level.id}`} value={level.correct_feedback || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'correct_feedback', e.target.value)} placeholder="e.g., 'Great job, recruit!'" className="min-h-[60px]" />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor={`level-incorrect-feedback-${level.id}`}>Incorrect Feedback</Label>
-                                                        <Textarea id={`level-incorrect-feedback-${level.id}`} value={level.incorrect_feedback || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'incorrect_feedback', e.target.value)} placeholder="e.g., 'Not quite, try again!'" className="min-h-[60px]" />
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
+                                    <CardContent className="space-y-4 pl-10">
+                                         <Accordion type="single" collapsible className="w-full">
+                                            {chapter.game_levels.map((level, levelIndex) => (
+                                                 <AccordionItem key={level.id} value={level.id} className="bg-background border rounded-lg mb-4">
+                                                    <AccordionTrigger className="p-4 text-base font-semibold hover:no-underline">
+                                                        <span>Level {levelIndex + 1}: {level.title || 'New Level'}</span>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent className="p-4 pt-0">
+                                                        <div className="flex flex-col gap-4 relative">
+                                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor={`level-title-${level.id}`}>Level Title</Label>
+                                                                    <Input id={`level-title-${level.id}`} value={level.title} onChange={e => handleLevelChange(chapter.id, level.id, 'title', e.target.value)} required />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor={`level-slug-${level.id}`}>Level Slug</Label>
+                                                                    <Input id={`level-slug-${level.id}`} value={level.slug} onChange={e => handleLevelChange(chapter.id, level.id, 'slug', e.target.value)} required />
+                                                                </div>
+                                                                <div className="space-y-2 md:col-span-2">
+                                                                    <Label htmlFor={`level-objective-${level.id}`}>Objective</Label>
+                                                                    <Textarea id={`level-objective-${level.id}`} value={level.objective} onChange={e => handleLevelChange(chapter.id, level.id, 'objective', e.target.value)} placeholder="Describe the goal of this level." className="min-h-[80px]" />
+                                                                </div>
+                                                                <div className="space-y-2 md:col-span-2">
+                                                                    <Label htmlFor={`level-intro-text-${level.id}`}>Intro Text (Robot Speech)</Label>
+                                                                    <Textarea id={`level-intro-text-${level.id}`} value={level.intro_text || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'intro_text', e.target.value)} placeholder="Text for the robot to say at the start." className="min-h-[80px]" />
+                                                                </div>
+                                                                <div className="space-y-2 md:col-span-2">
+                                                                    <Label htmlFor={`level-starter-code-${level.id}`}>Starter Code</Label>
+                                                                    <Textarea id={`level-starter-code-${level.id}`} value={level.starter_code || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'starter_code', e.target.value)} placeholder="Provide some initial code for the user." className="min-h-[120px] font-mono" />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor={`level-expected-output-${level.id}`}>Expected Output</Label>
+                                                                    <Textarea id={`level-expected-output-${level.id}`} value={level.expected_output || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'expected_output', e.target.value)} placeholder="What should the code output on success?" className="min-h-[60px] font-mono" />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor={`level-reward-xp-${level.id}`}>Reward XP</Label>
+                                                                    <Input id={`level-reward-xp-${level.id}`} type="number" value={level.reward_xp} onChange={e => handleLevelChange(chapter.id, level.id, 'reward_xp', e.target.value)} placeholder="e.g., 100" />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor={`level-correct-feedback-${level.id}`}>Correct Feedback</Label>
+                                                                    <Textarea id={`level-correct-feedback-${level.id}`} value={level.correct_feedback || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'correct_feedback', e.target.value)} placeholder="e.g., 'Great job, recruit!'" className="min-h-[60px]" />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor={`level-incorrect-feedback-${level.id}`}>Incorrect Feedback</Label>
+                                                                    <Textarea id={`level-incorrect-feedback-${level.id}`} value={level.incorrect_feedback || ''} onChange={e => handleLevelChange(chapter.id, level.id, 'incorrect_feedback', e.target.value)} placeholder="e.g., 'Not quite, try again!'" className="min-h-[60px]" />
+                                                                </div>
+                                                            </div>
+                                                            <div className="pt-4 flex justify-end">
+                                                                <Button type="button" variant="destructive" size="sm" onClick={() => handleRemoveLevel(chapter.id, level.id)} disabled={chapter.game_levels.length === 1}><Trash2 className="mr-2"/> Delete Level</Button>
+                                                            </div>
+                                                        </div>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            ))}
+                                        </Accordion>
                                          <Button type="button" variant="outline" onClick={() => handleAddLevel(chapter.id)}><Plus className="mr-2"/> Add Level</Button>
                                     </CardContent>
                                 </Card>
@@ -420,3 +446,4 @@ export default function EditGamePage() {
         </AdminLayout>
     );
 }
+

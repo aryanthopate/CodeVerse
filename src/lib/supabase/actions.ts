@@ -668,6 +668,46 @@ export async function deleteMultipleGames(gameIds: string[]) {
     revalidatePath('/playground');
     return { success: true };
 }
+
+export async function completeGameLevel(levelId: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: "User not authenticated" };
+    }
+    
+    // First, get the game_id from the level
+    const { data: levelData, error: levelError } = await supabase
+        .from('game_levels')
+        .select('game_chapters(game_id)')
+        .eq('id', levelId)
+        .single();
+    
+    if (levelError || !levelData || !levelData.game_chapters) {
+        return { success: false, error: "Could not find the game for this level." };
+    }
+    const gameId = levelData.game_chapters.game_id;
+
+    // Now, upsert the progress
+    const { error } = await supabase.from('user_game_progress').upsert({
+        user_id: user.id,
+        game_id: gameId,
+        level_id: levelId,
+        completed_at: new Date().toISOString(),
+    }, {
+        onConflict: 'user_id, level_id' // This ensures that if the user completes the level again, it just updates the timestamp
+    });
+
+    if (error) {
+        console.error("Error saving game progress:", error);
+        return { success: false, error: "Could not save progress." };
+    }
+
+    revalidatePath(`/playground/${gameId}`);
+
+    return { success: true };
+}
     
 
     

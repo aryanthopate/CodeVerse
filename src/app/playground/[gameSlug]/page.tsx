@@ -4,7 +4,7 @@
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { getGameBySlug } from '@/lib/supabase/queries';
+import { getGameBySlug, getUserGameProgress } from '@/lib/supabase/queries';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Check, Lock, Play, Star, Swords, ShieldCheck, Crown } from 'lucide-reac
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import React from 'react';
+import { createClient } from '@/lib/supabase/server';
 
 
 // Helper function to generate SVG path data and level positions
@@ -45,6 +46,7 @@ const generateLevelMap = (levelCount: number) => {
 
 
 export default async function GameDetailPage({ params }: { params: { gameSlug: string } }) {
+    const supabase = createClient();
     const game = await getGameBySlug(params.gameSlug);
 
     if (!game) {
@@ -54,13 +56,11 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
     const allLevels = game.game_chapters.flatMap(chapter => chapter.game_levels);
     const { levels: levelPositions, pathData, width } = generateLevelMap(allLevels.length);
 
-    // This is a placeholder for user progress. In a real app, you'd fetch this.
-    const userProgress = {
-        completed_levels: [], // e.g. ['level_id_1', 'level_id_2']
-    };
+    const userProgress = await getUserGameProgress(game.id);
+    const completedLevelIds = userProgress?.map(p => p.level_id) || [];
     
-    let currentLevelIndex = allLevels.findIndex(l => !userProgress.completed_levels.includes(l.id as never));
-    if (currentLevelIndex === -1) currentLevelIndex = allLevels.length; // All completed
+    let currentLevelIndex = allLevels.findIndex(l => !completedLevelIds.includes(l.id));
+    if (currentLevelIndex === -1 && allLevels.length > 0) currentLevelIndex = allLevels.length; // All completed
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
@@ -117,11 +117,6 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
                                     stroke-dashoffset: 10000;
                                     animation: draw-path 5s linear forwards;
                                 }
-                                @keyframes draw-path {
-                                    to {
-                                        stroke-dashoffset: 0;
-                                    }
-                                }
                                 .level-node-glow {
                                     box-shadow: 0 0 15px hsl(var(--primary)), 0 0 30px hsl(var(--primary) / 0.7);
                                 }
@@ -132,7 +127,7 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
                             const position = levelPositions[index];
                             if (!position) return null;
 
-                            const isCompleted = userProgress.completed_levels.includes(level.id as never);
+                            const isCompleted = completedLevelIds.includes(level.id);
                             const isCurrent = index === currentLevelIndex;
                             const isLocked = index > currentLevelIndex;
                             
@@ -183,4 +178,3 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
         </div>
     );
 }
-

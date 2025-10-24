@@ -46,7 +46,6 @@ export type CourseReview = Database['public']['Tables']['course_reviews']['Row']
 };
 export type CourseGift = Database['public']['Tables']['course_gifts']['Row'];
 export type Game = Database['public']['Tables']['games']['Row'] & {
-    language?: string;
     course_id?: string | null;
 };
 export type GameChapter = Database['public']['Tables']['game_chapters']['Row'];
@@ -55,6 +54,7 @@ export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
     correct_feedback?: string | null;
     incorrect_feedback?: string | null;
 };
+export type UserGameProgress = Database['public']['Tables']['user_game_progress']['Row'];
 
 
 // Custom combined types for nested data fetching
