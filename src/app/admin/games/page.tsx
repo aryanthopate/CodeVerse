@@ -1,5 +1,4 @@
 
-
 'use client';
 import { AdminLayout } from '@/components/admin-layout';
 import { Button } from '@/components/ui/button';
@@ -91,10 +90,10 @@ function DeleteMultipleGamesDialog({ games, onConfirm, onCancel }: { games: Game
                     <AlertDialogTitle>Delete {games.length} Games?</AlertDialogTitle>
                     <AlertDialogDescription>
                         This action cannot be undone. This will permanently delete the selected games and all their data.
-                        <ul>
-                            {games.map(g => <li key={g.id} className="font-bold mt-1"> - {g.title}</li>)}
-                        </ul>
                     </AlertDialogDescription>
+                    <ul className="list-disc list-inside pt-2 text-sm text-muted-foreground">
+                        {games.map(g => <li key={g.id} className="font-bold"> - {g.title}</li>)}
+                    </ul>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
