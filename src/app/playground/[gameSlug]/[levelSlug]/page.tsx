@@ -86,14 +86,19 @@ function CodeBubbleGame({
 
       const spawnBubble = () => {
           if (targetIndex >= correctSnippets.length) return;
+          
+          // Only spawn if there is no current target bubble
+          if (bubbles.some(b => b.isTarget)) return;
 
           const incorrectSnippets = ['var', 'func', 'err', '=>', 'const', 'let', 'x', 'y', 'z', '123', 'error', 'null'];
           const newBubbles: Bubble[] = [];
           const targetText = correctSnippets[targetIndex];
-          const usedLanes = new Set<number>();
-
+          
+          let availableLanes = [0, 1, 2, 3];
+          
           // Add the target bubble
-          const targetLane = Math.floor(Math.random() * 4);
+          const targetLaneIndex = Math.floor(Math.random() * availableLanes.length);
+          const targetLane = availableLanes.splice(targetLaneIndex, 1)[0];
           newBubbles.push({
               id: Date.now(),
               text: targetText,
@@ -101,34 +106,29 @@ function CodeBubbleGame({
               y: -50,
               isTarget: true,
           });
-          usedLanes.add(targetLane);
 
-          // Add 3 distractor bubbles
-          for (let i = 0; i < 3; i++) {
-              let randomLane;
-              do {
-                  randomLane = Math.floor(Math.random() * 4);
-              } while (usedLanes.has(randomLane));
-              usedLanes.add(randomLane);
+          // Add 1 distractor bubble
+          const distractorLaneIndex = Math.floor(Math.random() * availableLanes.length);
+          const distractorLane = availableLanes.splice(distractorLaneIndex, 1)[0];
 
-              let distractorText;
-              do {
-                distractorText = incorrectSnippets[Math.floor(Math.random() * incorrectSnippets.length)];
-              } while (distractorText === targetText);
+          let distractorText;
+          do {
+            distractorText = incorrectSnippets[Math.floor(Math.random() * incorrectSnippets.length)];
+          } while (distractorText === targetText);
 
-              newBubbles.push({
-                  id: Date.now() + i + 1,
-                  text: distractorText,
-                  x: randomLane,
-                  y: -50,
-                  isTarget: false,
-              });
-          }
+          newBubbles.push({
+              id: Date.now() + 1,
+              text: distractorText,
+              x: distractorLane,
+              y: -50,
+              isTarget: false,
+          });
+          
           setBubbles(prev => [...prev, ...newBubbles]);
       };
 
       const gameLoop = () => {
-          if (Date.now() - lastBubbleTime.current > 2000 && bubbles.length < 4) { // Spawn every 2 seconds
+          if (Date.now() - lastBubbleTime.current > 3500) { // Spawn every 3.5 seconds
               spawnBubble();
               lastBubbleTime.current = Date.now();
           }
@@ -141,7 +141,7 @@ function CodeBubbleGame({
 
           setBubbles(prevBubbles => {
               let newBubbles = prevBubbles
-                  .map(bubble => ({ ...bubble, y: bubble.y + 1 }))
+                  .map(bubble => ({ ...bubble, y: bubble.y + 0.5 })) // Slower falling speed
                   .filter(bubble => bubble.y < gameAreaRef.current!.offsetHeight);
 
               // Collision detection
@@ -158,6 +158,7 @@ function CodeBubbleGame({
                           } else {
                               onIncorrectBubble();
                           }
+                          setBullets(bs => bs.filter(b => b.id !== bullet.id)); // Remove bullet on hit
                           return false; // Remove bubble
                       }
                       return true;
@@ -172,7 +173,7 @@ function CodeBubbleGame({
       const animationFrameId = requestAnimationFrame(gameLoop);
 
       return () => cancelAnimationFrame(animationFrameId);
-  }, [bubbles.length, bullets, correctSnippets.length, onCorrectBubble, onIncorrectBubble, targetIndex, isGameOver]);
+  }, [bubbles, bullets, correctSnippets.length, onCorrectBubble, onIncorrectBubble, targetIndex, isGameOver]);
   
   useEffect(() => {
     if (lives <= 0) {
@@ -189,7 +190,7 @@ function CodeBubbleGame({
     const handleMouseMove = (e: MouseEvent) => {
       const rect = gameArea.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
+      rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px) rotate(0deg)`;
     };
 
     const handleClick = () => fireBullet();
@@ -198,8 +199,10 @@ function CodeBubbleGame({
     gameArea.addEventListener('click', handleClick);
 
     return () => {
-      gameArea.removeEventListener('mousemove', handleMouseMove);
-      gameArea.removeEventListener('click', handleClick);
+      if (gameArea) {
+        gameArea.removeEventListener('mousemove', handleMouseMove);
+        gameArea.removeEventListener('click', handleClick);
+      }
     };
   }, [fireBullet]);
   
@@ -248,13 +251,13 @@ function CodeBubbleGame({
         <div
           key={bubble.id}
           className={cn(
-              "absolute px-3 py-1 rounded-full text-white font-mono text-sm",
+              "absolute px-3 py-1 rounded-full text-white font-mono text-sm transition-transform duration-500 ease-linear",
                "bg-muted/80 backdrop-blur-sm border border-primary/20",
           )}
           style={{ 
               top: `${bubble.y}px`, 
               left: `${lanePositions[bubble.x]}%`,
-              transform: 'translateX(-50%)'
+              transform: `translateX(-50%)`
            }}
         >
           {bubble.text}
@@ -271,7 +274,7 @@ function CodeBubbleGame({
               }}
           />
       ))}
-      <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10">
+      <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10" style={{ transform: 'rotate(0deg)' }}>
         <Rocket className="w-full h-full text-primary" />
         <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-8 bg-gradient-to-t from-yellow-400 to-orange-500 rounded-b-full blur-sm" />
       </div>
