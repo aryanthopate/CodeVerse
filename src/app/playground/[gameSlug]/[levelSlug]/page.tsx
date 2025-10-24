@@ -67,7 +67,8 @@ function CodeBubbleGame({
     const isGameOverRef = useRef(false);
 
     const correctSnippets = useMemo(() => {
-        return level.expected_output?.match(/([a-zA-Z0-9_]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/])/g) || [];
+        // Split by spaces, but keep quoted strings together. Also treat operators as tokens.
+        return level.expected_output?.match(/([a-zA-Z0-9_.]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\S+)/g) || [];
     }, [level.expected_output]);
     
     const fireBullet = useCallback(() => {
@@ -404,9 +405,9 @@ export default function GameLevelPage() {
         });
     }, []);
 
-    const handleLevelComplete = useCallback(() => {
+    const handleLevelComplete = useCallback(async () => {
         if (!level) return;
-        completeGameLevel(level.id);
+        await completeGameLevel(level.id);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 8000);
         setGameState('levelComplete');

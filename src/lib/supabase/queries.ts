@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
@@ -350,4 +349,3 @@ export async function getUserGameProgress(gameId: string): Promise<UserGameProgr
 
     return data;
 }
-

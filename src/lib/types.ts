@@ -1,5 +1,4 @@
 
-
 import type { Database } from './supabase/database.types';
 
 export interface UserProfile {
@@ -104,5 +103,3 @@ declare module 'next/navigation' {
         levelSlug?: string;
     }
 }
-
-    
