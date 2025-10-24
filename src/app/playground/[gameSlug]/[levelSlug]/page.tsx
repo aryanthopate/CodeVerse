@@ -5,8 +5,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { getGameAndLevelDetails } from '@/lib/supabase/queries';
-import { GameWithLevels, GameLevel, UserProfile } from '@/lib/types';
+import { getGameAndLevelDetails, getUserGameProgress } from '@/lib/supabase/queries';
+import { GameWithLevels, GameLevel, UserProfile, UserGameProgress } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowLeft, Bot, Lightbulb, Loader2, Play, Sparkles, CheckCircle, ArrowRight, X, Rocket, Award, Heart, ShieldX, ShieldCheck, RefreshCw, Code, BookOpen } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
@@ -20,7 +20,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Confetti from 'react-confetti';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { completeGameLevel } from '@/lib/supabase/actions';
 
 
@@ -67,7 +66,7 @@ function CodeBubbleGame({
     const isGameOverRef = useRef(false);
 
     const correctSnippets = useMemo(() => {
-        // Split by spaces, but keep quoted strings together. Also treat operators as tokens.
+        // A more robust regex to split by spaces but keep quoted strings, and treat operators/parentheses as tokens.
         return level.expected_output?.match(/([a-zA-Z0-9_.]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\S+)/g) || [];
     }, [level.expected_output]);
     
@@ -104,7 +103,7 @@ function CodeBubbleGame({
         const gameAreaHeight = gameAreaRef.current.offsetHeight;
     
         // Spawn new bubbles
-        if (now - lastBubbleTimeRef.current > 2200 && bubbles.length < 2) {
+        if (now - lastBubbleTimeRef.current > 1500 && bubbles.length < 2) { // Faster spawning
             const currentTargetExists = bubbles.some(b => b.isTarget && b.state === 'active');
             if (!currentTargetExists && targetIndex < correctSnippets.length) {
                 const newBubbles: Bubble[] = [];
@@ -132,71 +131,56 @@ function CodeBubbleGame({
         // Move bullets
         setBullets(prevBullets =>
             prevBullets
-            .map(bullet => ({ ...bullet, y: bullet.y - 15 })) // Increased bullet speed
+            .map(bullet => ({ ...bullet, y: bullet.y - 12 })) // Bullet speed
             .filter(bullet => bullet.y > -20)
         );
     
+        let appendCodeQueue: string[] = [];
+        let hitBulletIds = new Set<number>();
+        let newLives = lives;
+
         // Process bubbles: move, check collisions, handle state transitions
-        setBubbles(prevBubbles => {
-            let newLives = lives;
-            let hitBulletIds = new Set<number>();
-            let appendCodeQueue: string[] = [];
+        const updatedBubbles = bubbles.map(bubble => {
+            if (bubble.state !== 'active') return bubble; // Skip already hit/bursting bubbles
 
-            const updatedBubbles = prevBubbles.map(bubble => {
-                // Handle bursting animation cleanup
-                if (bubble.state === 'bursting') {
-                    return bubble;
-                }
+            // Check for bullet collision
+            for (const bullet of bullets) {
+                if (hitBulletIds.has(bullet.id)) continue;
+                const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
+                const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
 
-                // Check for bullet collision
-                let hit = false;
-                for (const bullet of bullets) {
-                    if (hitBulletIds.has(bullet.id)) continue;
-                    const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
-                    const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
-
-                    if (distance < 40 && bubble.state === 'active') {
-                        hit = true;
-                        hitBulletIds.add(bullet.id);
-                        if (bubble.isTarget) {
-                            appendCodeQueue.push(bubble.text);
-                            return { ...bubble, state: 'hit-correct' as const };
-                        } else {
-                            newLives--;
-                            return { ...bubble, state: 'hit-wrong' as const };
-                        }
+                if (distance < 40) {
+                    hitBulletIds.add(bullet.id);
+                    if (bubble.isTarget) {
+                        appendCodeQueue.push(bubble.text);
+                        return { ...bubble, state: 'hit-correct' as const };
+                    } else {
+                        newLives--;
+                        return { ...bubble, state: 'hit-wrong' as const };
                     }
                 }
-                
-                // Move bubble down if not hit
-                if (bubble.state === 'active') {
-                    const newY = bubble.y + 0.5;
-                    if (newY > gameAreaHeight) {
-                        if (bubble.isTarget) newLives--;
-                        return null; // Will be filtered out
-                    }
-                    return { ...bubble, y: newY };
-                }
-
-                return bubble; // Keep hit bubbles for animation
-            }).filter(b => b !== null) as Bubble[];
-
-            // Process state transitions and side effects
-            if (appendCodeQueue.length > 0) {
-                const fullCodeToAppend = appendCodeQueue.join(' ');
-                onCodeAppend(fullCodeToAppend);
-                setTargetIndex(i => i + appendCodeQueue.length);
             }
-
-            if (newLives !== lives) setLives(newLives);
-
-            // Filter out bullets that hit something
-            setBullets(prev => prev.filter(b => !hitBulletIds.has(b.id)));
             
-            return updatedBubbles;
-        });
+            // Move bubble down if not hit
+            const newY = bubble.y + 0.8; // Bubble fall speed
+            if (newY > gameAreaHeight) {
+                if (bubble.isTarget) newLives--;
+                return null;
+            }
+            return { ...bubble, y: newY };
+        }).filter(b => b !== null) as Bubble[];
 
-        // Check for game over or win conditions
+        if (appendCodeQueue.length > 0) {
+            onCodeAppend(appendCodeQueue.join(' '));
+            setTargetIndex(i => i + appendCodeQueue.length);
+        }
+        if (newLives !== lives) setLives(newLives);
+
+        setBubbles(updatedBubbles);
+        if (hitBulletIds.size > 0) {
+            setBullets(prev => prev.filter(b => !hitBulletIds.has(b.id)));
+        }
+        
         if (lives <= 0 && !isGameOverRef.current) {
             isGameOverRef.current = true;
             onGameOver();
@@ -206,37 +190,24 @@ function CodeBubbleGame({
              const anyActiveBubbles = bubbles.some(b => b.state === 'active');
              if(!anyActiveBubbles) {
                 isGameOverRef.current = true;
-                onLevelComplete();
+                setTimeout(onLevelComplete, 500); // Give a moment before completing
             }
         }
 
         gameLoopRef.current = requestAnimationFrame(gameLoop);
     }, [bubbles, bullets, lives, onGameOver, onLevelComplete, correctSnippets, targetIndex, onCodeAppend]);
     
-    // Effect to handle post-hit animations
+    // Effect to handle post-hit animations and cleanup
     useEffect(() => {
-        const hitBubbles = bubbles.filter(b => b.state === 'hit-correct' || b.state === 'hit-wrong');
-        if (hitBubbles.length > 0) {
-            const timer = setTimeout(() => {
-                setBubbles(prev =>
-                    prev.map(b => (b.state === 'hit-correct' || b.state === 'hit-wrong' ? { ...b, state: 'bursting' } : b))
-                );
-            }, 300); // How long the green/red color stays
-            return () => clearTimeout(timer);
-        }
+        bubbles.forEach(bubble => {
+            if (bubble.state === 'hit-correct' || bubble.state === 'hit-wrong') {
+                const timer = setTimeout(() => {
+                    setBubbles(prev => prev.filter(b => b.id !== bubble.id));
+                }, 400); // Duration of green/red + burst animation
+                return () => clearTimeout(timer);
+            }
+        });
     }, [bubbles]);
-
-    // Effect to clean up bursting bubbles after animation
-    useEffect(() => {
-        const burstingBubbles = bubbles.filter(b => b.state === 'bursting');
-        if (burstingBubbles.length > 0) {
-            const timer = setTimeout(() => {
-                setBubbles(prev => prev.filter(b => b.state !== 'bursting'));
-            }, 300); // Animation duration
-            return () => clearTimeout(timer);
-        }
-    }, [bubbles]);
-
 
     useEffect(() => {
         const gameArea = gameAreaRef.current;
@@ -289,11 +260,10 @@ function CodeBubbleGame({
                     className={cn(
                         "absolute px-3 py-2 rounded-full text-white font-mono text-sm",
                         "backdrop-blur-sm border-2 shadow-lg",
-                        "transition-all duration-300",
+                        "transition-all duration-100",
                         bubble.state === 'active' && "bg-primary/50 border-primary/80 shadow-primary/20",
-                        bubble.state === 'hit-correct' && "bg-green-500/70 border-green-400 shadow-green-500/40 scale-110",
+                        bubble.state === 'hit-correct' && "bg-green-500/70 border-green-400 shadow-green-500/40 scale-110 animate-ping",
                         bubble.state === 'hit-wrong' && "bg-red-500/70 border-red-400 shadow-red-500/40 scale-110 animate-shake",
-                        bubble.state === 'bursting' && "animate-ping opacity-0 scale-150"
                     )}
                     style={{
                         top: `${bubble.y}px`,
@@ -378,7 +348,7 @@ export default function GameLevelPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [showIntro, setShowIntro] = useState(true);
-    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver' | 'manual'>('playing');
+    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver' | 'manual' | 'reviewing'>('playing');
     const [showSolution, setShowSolution] = useState(false);
 
     const [feedback, setFeedback] = useState('');
@@ -393,25 +363,66 @@ export default function GameLevelPage() {
     const [finalCode, setFinalCode] = useState('');
     
     const handleCodeAppend = useCallback((codeSnippet: string) => {
-        // Use requestAnimationFrame to defer the state update,
-        // preventing updates during the render cycle of a child component.
-        requestAnimationFrame(() => {
-            setFinalCode(prevCode => {
-                if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + codeSnippet;
-                const lastChar = prevCode.slice(-1);
-                if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(codeSnippet)) return prevCode + codeSnippet;
-                return prevCode + ' ' + codeSnippet;
-            });
+        setFinalCode(prevCode => {
+            if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + codeSnippet;
+            const lastChar = prevCode.slice(-1);
+            if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(codeSnippet)) return prevCode + codeSnippet;
+            return prevCode + ' ' + codeSnippet;
         });
     }, []);
+    
+    const handleRunCode = async (codeToRun: string) => {
+        if (!level || !codeToRun) return;
+        setIsChecking(true);
+        setFeedback('');
+        setHint('');
+        setRunOutput('Analyzing code...');
+        setRunOutputIsError(false);
+
+        try {
+            const result = await reviewCodeAndProvideFeedback({
+                code: codeToRun,
+                solution: level.expected_output || '',
+                programmingLanguage: game?.language || 'code',
+            });
+
+            // Simple check: does feedback contain words like "correct", "well done", "great job"?
+            const positiveFeedback = /correct|well done|great job|excellent/i.test(result.feedback);
+
+            if (positiveFeedback) {
+                setIsCorrect(true);
+                setRunOutput('Success! Output matches expected result.');
+                setFeedback(result.feedback || level.correct_feedback || 'Great job! Your code is correct.');
+                await handleLevelComplete();
+            } else {
+                setIsCorrect(false);
+                setRunOutputIsError(true);
+                setRunOutput('Execution finished. See AI feedback.');
+                setFeedback(result.feedback || level.incorrect_feedback || "That's not quite right. Try again!");
+            }
+        } catch (e: any) {
+            setRunOutputIsError(true);
+            setRunOutput('Error during analysis.');
+            setFeedback(`Error getting feedback: ${e.message}`);
+        } finally {
+            setIsChecking(false);
+        }
+    }
+
+
+    const handleBubblePhaseComplete = useCallback(async () => {
+        setGameState('reviewing');
+        await handleRunCode(finalCode);
+    }, [finalCode]);
 
     const handleLevelComplete = useCallback(async () => {
-        if (!level) return;
+        if (!level || gameState === 'levelComplete') return; // Prevent multiple calls
         await completeGameLevel(level.id);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 8000);
         setGameState('levelComplete');
-    }, [level]);
+    }, [level, gameState]);
+
 
     const handleGameOver = useCallback(() => {
         setGameState('gameOver');
@@ -448,42 +459,7 @@ export default function GameLevelPage() {
         };
         fetchDetails();
     }, [params, supabase, router]);
-
-    const handleRunCode = async (codeToRun: string) => {
-        if (!level || !codeToRun) return;
-        setIsChecking(true);
-        setFeedback('');
-        setHint('');
-        setRunOutput('Running code...');
-        setRunOutputIsError(false);
-
-        // Simple string comparison for validation
-        const isSolutionCorrect = codeToRun.trim().replace(/\s+/g, '') === level.expected_output?.trim().replace(/\s+/g, '');
-
-        if (isSolutionCorrect) {
-            setIsCorrect(true);
-            setRunOutput('Success! Output matches expected result.');
-            setFeedback(level.correct_feedback || 'Great job! Your code is correct.');
-            handleLevelComplete();
-        } else {
-            setIsCorrect(false);
-            setRunOutputIsError(true);
-            setRunOutput('Execution finished. Check AI feedback for details.');
-            try {
-                const result = await reviewCodeAndProvideFeedback({
-                    code: codeToRun,
-                    solution: level.expected_output || '',
-                    programmingLanguage: game?.language || 'code',
-                });
-                setFeedback(result.feedback || (level.incorrect_feedback || "That's not quite right. Try again!"));
-            } catch (e: any) {
-                setFeedback(`Error getting feedback: ${e.message}`);
-            }
-        }
-
-        setIsChecking(false);
-    }
-
+    
     const handleGetHint = async (codeForHint: string) => {
         if (!level) return;
         setIsGettingHint(true);
@@ -511,7 +487,7 @@ export default function GameLevelPage() {
                          <div className="p-6 bg-card/80 rounded-xl relative">
                             <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-card/80 rotate-45"></div>
                             <h3 className="text-2xl font-bold">Mission Complete!</h3>
-                            <p className="text-muted-foreground mt-2">Outstanding work, recruit! Do you want to proceed to the next mission or take a break?</p>
+                            <p className="text-muted-foreground mt-2">Outstanding work, recruit! You earned {level?.reward_xp} XP.</p>
                             <div className="flex gap-4 mt-6">
                                 {nextLevel ? (
                                     <Button asChild className="flex-1">
@@ -613,9 +589,9 @@ export default function GameLevelPage() {
                                 ) : (
                                     <>
                                         <CodeBubbleGame
-                                            key={gameState} // Force re-render on restart
+                                            key={`${gameState}-${level.id}`} // Force re-render on restart
                                             level={level}
-                                            onLevelComplete={handleLevelComplete}
+                                            onLevelComplete={handleBubblePhaseComplete}
                                             onGameOver={handleGameOver}
                                             onCodeAppend={handleCodeAppend}
                                             gameSlug={game.slug}
@@ -640,7 +616,7 @@ export default function GameLevelPage() {
                                 <div className="flex flex-col h-full">
                                     <div className="p-4 border-b border-border/50 flex justify-between items-center">
                                         <h2 className="text-lg font-semibold">Code Editor</h2>
-                                        <Button size="sm" onClick={() => handleRunCode(finalCode)} disabled={isChecking}>
+                                        <Button size="sm" onClick={() => handleRunCode(finalCode)} disabled={isChecking || gameState === 'playing'}>
                                             {isChecking ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2" />} Run Code
                                         </Button>
                                     </div>
@@ -687,3 +663,5 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
+    
