@@ -9,14 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { X, Plus, Trash2, Gamepad2, Upload, Image as ImageIcon, Book, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
+import { X, Plus, Trash2, Gamepad2, Upload, Image as ImageIcon, Book, Sparkles, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { useRouter, useParams, notFound } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { createClient } from '@/lib/supabase/client';
 import { getGameBySlug } from '@/lib/supabase/queries';
-import type { GameWithChaptersAndLevels, GameChapter, GameLevel } from '@/lib/types';
+import type { GameWithChaptersAndLevels, GameChapter, GameLevel, Game } from '@/lib/types';
 
 
 interface GameLevelState extends Partial<GameLevel> {
@@ -170,95 +170,95 @@ export default function EditGamePage() {
             return;
         }
 
-        let finalThumbnailUrl = thumbnailUrl;
+        try {
+            let finalThumbnailUrl = thumbnailUrl;
 
-        if (thumbnailFile) {
-            const filePath = `${gameId}/${thumbnailFile.name}`;
-            const { error: uploadError } = await supabase.storage
-                .from('game_thumbnails')
-                .upload(filePath, thumbnailFile, { cacheControl: '3600', upsert: true });
+            if (thumbnailFile) {
+                const filePath = `${gameId}/${thumbnailFile.name}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('game_thumbnails')
+                    .upload(filePath, thumbnailFile, { cacheControl: '3600', upsert: true });
 
-            if (uploadError) {
-                toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
-            } else {
-                finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
+                if (uploadError) {
+                    toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
+                    // Decide if you want to proceed without the new thumbnail
+                } else {
+                    finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
+                }
             }
-        }
-        
-        // Update game details first, without course_id to avoid cache issues
-        const gamePayload = {
-            title, 
-            slug, 
-            description, 
-            language, 
-            thumbnail_url: finalThumbnailUrl, 
-            is_free: isFree, 
-        };
+            
+            const gamePayload = {
+                title, 
+                slug, 
+                description, 
+                language, 
+                thumbnail_url: finalThumbnailUrl, 
+                is_free: isFree,
+                course_id: courseId || null, 
+            } as Partial<Game>;
 
-        const { error: gameError } = await supabase.from('games').update(gamePayload).eq('id', gameId);
+            const { error: gameError } = await supabase.from('games').update(gamePayload).eq('id', gameId);
 
-        if (gameError) {
-            toast({ variant: 'destructive', title: 'Update Failed', description: gameError.message });
-            setLoading(false);
-            return;
-        }
-
-        // Now, update course_id in a separate query
-        const { error: courseLinkError } = await supabase.from('games').update({ course_id: courseId || null }).eq('id', gameId);
-        
-        if (courseLinkError) {
-             toast({ variant: 'destructive', title: 'Course Link Failed', description: courseLinkError.message });
-            // Not returning here, as the main data was saved.
-        }
-
-
-        for (const chapter of chapters) {
-            const isNewChapter = chapter.id.startsWith('chap-');
-            const chapterPayload: any = {
-                game_id: gameId,
-                title: chapter.title,
-                order: chapter.order,
-            };
-            if (!isNewChapter) {
-                chapterPayload.id = chapter.id;
+            if (gameError) {
+                throw new Error(gameError.message);
             }
 
-            const { data: upsertedChapter, error: chapterError } = await supabase.from('game_chapters').upsert(chapterPayload).select().single();
-            if (chapterError) { 
-                console.error('Chapter upsert failed:', chapterError);
-                toast({ variant: 'destructive', title: 'Chapter Save Failed', description: chapterError.message });
-                continue; // Continue to next chapter
-            }
-
-            for (const level of chapter.game_levels) {
-                const isNewLevel = level.id.startsWith('lvl-');
-                const levelPayload: any = {
-                    chapter_id: upsertedChapter!.id,
-                    title: level.title,
-                    slug: level.slug,
-                    objective: level.objective,
-                    starter_code: level.starter_code,
-                    expected_output: level.expected_output,
-                    reward_xp: Number(level.reward_xp),
-                    order: level.order,
-                    intro_text: level.intro_text,
-                    correct_feedback: level.correct_feedback,
-                    incorrect_feedback: level.incorrect_feedback,
+            for (const chapter of chapters) {
+                const isNewChapter = chapter.id.startsWith('chap-');
+                const chapterPayload: any = {
+                    game_id: gameId,
+                    title: chapter.title,
+                    order: chapter.order,
                 };
-                 if (!isNewLevel) {
-                    levelPayload.id = level.id;
+                if (!isNewChapter) {
+                    chapterPayload.id = chapter.id;
                 }
-                const { error: levelError } = await supabase.from('game_levels').upsert(levelPayload);
-                 if (levelError) {
-                    console.error('Level upsert failed:', levelError);
-                    toast({ variant: 'destructive', title: 'Level Save Failed', description: levelError.message });
+
+                const { data: upsertedChapter, error: chapterError } = await supabase.from('game_chapters').upsert(chapterPayload).select().single();
+                if (chapterError) { 
+                    console.error('Chapter upsert failed:', chapterError);
+                    toast({ variant: 'destructive', title: 'Chapter Save Failed', description: chapterError.message });
+                    continue; // Continue to next chapter
+                }
+
+                for (const level of chapter.game_levels) {
+                    const isNewLevel = level.id.startsWith('lvl-');
+                    const levelPayload: any = {
+                        chapter_id: upsertedChapter!.id,
+                        title: level.title,
+                        slug: level.slug,
+                        objective: level.objective,
+                        starter_code: level.starter_code,
+                        expected_output: level.expected_output,
+                        reward_xp: Number(level.reward_xp),
+                        order: level.order,
+                        intro_text: level.intro_text,
+                        correct_feedback: level.correct_feedback,
+                        incorrect_feedback: level.incorrect_feedback,
+                    };
+                    if (!isNewLevel) {
+                        levelPayload.id = level.id;
+                    }
+                    const { error: levelError } = await supabase.from('game_levels').upsert(levelPayload);
+                    if (levelError) {
+                        console.error('Level upsert failed:', levelError);
+                        toast({ variant: 'destructive', title: 'Level Save Failed', description: levelError.message });
+                    }
                 }
             }
-        }
 
-        toast({ title: "Game Updated!", description: `${title} has been saved.` });
-        router.push('/admin/games');
-        setLoading(false);
+            toast({ title: "Game Updated!", description: `${title} has been saved.` });
+            router.push('/admin/games');
+
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: error.message || 'An unexpected error occurred.',
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (initialLoading) {
@@ -342,7 +342,7 @@ export default function EditGamePage() {
                                 </CardContent>
                             </Card>
                              <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                                {loading ? 'Saving Game...' : 'Save Changes'}
+                                {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Game...</> : 'Save Changes'}
                             </Button>
                         </div>
 
