@@ -10,7 +10,8 @@ import { getGameAndLevelDetails } from '@/lib/supabase/queries';
 import { GameWithLevels, GameLevel, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowLeft, Bot, Lightbulb, Loader2, Play, Sparkles, CheckCircle, ArrowRight, X, Rocket, Award, Heart, ShieldX, ShieldCheck, RefreshCw } from 'lucide-react';
-import { reviewCodeAndProvideFeedback, provideHintForCodePractice } from '@/ai/flows/review-code-and-provide-feedback';
+import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
+import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +64,8 @@ function CodeBubbleGame({
 
 
   const correctSnippets = useMemo(() => {
-      return level.expected_output?.match(/([a-zA-Z0-9_]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}])/g) || [];
+    // FIX: Source snippets from expected_output which should contain the code to write.
+    return level.expected_output?.match(/([a-zA-Z0-9_]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}])/g) || [];
   }, [level.expected_output]);
 
   const fireBullet = useCallback(() => {
@@ -110,7 +112,7 @@ function CodeBubbleGame({
           }
 
           // Spawn new bubbles periodically
-          if (Date.now() - lastBubbleTime.current > 5000 && bubbles.length < 4) {
+          if (Date.now() - lastBubbleTime.current > 5000 && bubbles.length < 2) {
               const currentTargetExists = bubbles.some(b => b.isTarget);
               if (!currentTargetExists && targetIndex < correctSnippets.length) {
                   const newBubbles: Bubble[] = [];
@@ -211,7 +213,7 @@ function CodeBubbleGame({
           cancelAnimationFrame(gameLoopRef.current);
         }
       }
-  }, [correctSnippets, onCorrectBubble, targetIndex, bullets]);
+  }, [correctSnippets, onCorrectBubble, targetIndex, bullets, onLevelComplete, lives, onGameOver]);
   
   // Controls
   useEffect(() => {
@@ -222,7 +224,7 @@ function CodeBubbleGame({
     const handleMouseMove = (e: MouseEvent) => {
       const rect = gameArea.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px) rotate(0deg)`;
+      rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
     };
 
     const handleClick = () => fireBullet();
@@ -286,8 +288,8 @@ function CodeBubbleGame({
               }}
           />
       ))}
-      <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10" style={{ transform: 'rotate(0deg)' }}>
-        <Rocket className="w-full h-full text-primary -rotate-90" />
+      <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10">
+        <Rocket className="w-full h-full text-primary" />
         <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-8 bg-gradient-to-t from-yellow-400 to-orange-500 rounded-b-full blur-sm" />
       </div>
       {isMobile && (
@@ -370,7 +372,6 @@ export default function GameLevelPage() {
     const [runOutputIsError, setRunOutputIsError] = useState(false);
     
     const [showConfetti, setShowConfetti] = useState(false);
-    const [currentCode, setCurrentCode] = useState('');
     const editorRef = useRef<{ appendCode: (text: string) => void, getCode: () => string, resetCode: () => void }>(null);
 
 
@@ -410,7 +411,6 @@ export default function GameLevelPage() {
                 setGame(game);
                 setLevel(level);
                 setNextLevel(nextLevel);
-                setCurrentCode(level.starter_code || '');
             }
             setLoading(false);
         };
@@ -585,7 +585,7 @@ export default function GameLevelPage() {
                                         </Button>
                                     </div>
                                     <div className="flex-grow p-2">
-                                        <CodeEditor ref={editorRef} level={level} onCodeChange={setCurrentCode} />
+                                        <CodeEditor ref={editorRef} level={level} onCodeChange={() => {}} />
                                     </div>
                                 </div>
                             </ResizablePanel>
@@ -636,4 +636,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
