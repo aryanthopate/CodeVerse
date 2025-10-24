@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -128,7 +129,7 @@ function CodeBubbleGame({
       };
 
       const gameLoop = () => {
-          if (Date.now() - lastBubbleTime.current > 3500) { // Spawn every 3.5 seconds
+          if (Date.now() - lastBubbleTime.current > 4000) { // Spawn every 4 seconds
               spawnBubble();
               lastBubbleTime.current = Date.now();
           }
@@ -141,13 +142,14 @@ function CodeBubbleGame({
 
           setBubbles(prevBubbles => {
               let newBubbles = prevBubbles
-                  .map(bubble => ({ ...bubble, y: bubble.y + 0.5 })) // Slower falling speed
-                  .filter(bubble => bubble.y < gameAreaRef.current!.offsetHeight);
+                  .map(bubble => ({ ...bubble, y: bubble.y + 0.25 })) // Slower falling speed
+                  .filter(bubble => !gameAreaRef.current || bubble.y < gameAreaRef.current!.offsetHeight);
 
               // Collision detection
               bullets.forEach(bullet => {
                   newBubbles = newBubbles.filter(bubble => {
-                      const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
+                      if (!gameAreaRef.current) return true;
+                      const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current.offsetWidth;
                       const distance = Math.sqrt(
                           Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2)
                       );
@@ -363,10 +365,6 @@ export default function GameLevelPage() {
     const editorRef = useRef<{ appendCode: (text: string) => void, getCode: () => string, resetCode: () => void }>(null);
 
 
-    const handleCorrectBubble = useCallback((text: string) => {
-        editorRef.current?.appendCode(text);
-    }, []);
-
     const handleIncorrectBubble = useCallback(() => {
         setLives(l => Math.max(0, l - 1));
     }, []);
@@ -379,6 +377,10 @@ export default function GameLevelPage() {
         setRunOutput('');
         editorRef.current?.resetCode();
         // A key change in the game component would be a cleaner way to force a full reset
+    }, []);
+
+    const handleCorrectBubble = useCallback((text: string) => {
+        editorRef.current?.appendCode(text);
     }, []);
 
     useEffect(() => {
@@ -401,7 +403,7 @@ export default function GameLevelPage() {
             setLoading(false);
         };
         fetchDetails();
-    }, [params, supabase, router, handleRestart]); // Add handleRestart to deps
+    }, [params, supabase, router]);
     
     const handleRunCode = async () => {
         if (!level || !editorRef.current) return;
