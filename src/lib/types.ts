@@ -54,6 +54,7 @@ export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
     incorrect_feedback?: string | null;
 };
 export type UserGameProgress = Database['public']['Tables']['user_game_progress']['Row'];
+export type GameSettings = Database['public']['Tables']['game_settings']['Row'];
 
 
 // Custom combined types for nested data fetching

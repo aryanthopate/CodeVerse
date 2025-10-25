@@ -2,7 +2,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -348,4 +348,19 @@ export async function getUserGameProgress(gameId: string): Promise<UserGameProgr
     }
 
     return data as UserGameProgress[];
+}
+
+export async function getGameSettings(): Promise<GameSettings | null> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('game_settings')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+    if (error) {
+        console.error("Error fetching game settings:", error.message);
+        return null;
+    }
+    return data;
 }

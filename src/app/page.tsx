@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn, Gamepad2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
+import { getCoursesWithChaptersAndTopics, getGameSettings } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -60,6 +60,7 @@ export default async function Home() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const courses: CourseWithChaptersAndTopics[] = await getCoursesWithChaptersAndTopics() || [];
+  const gameSettings = await getGameSettings();
   
   const features = [
     {
@@ -184,7 +185,7 @@ export default async function Home() {
                         </Button>
                     </div>
                     <div className="flex-1 w-full max-w-md lg:max-w-none z-10">
-                        <Image src="/images/placeholder-game-home.png" width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20 transform hover:scale-105 transition-transform duration-500" data-ai-hint="neon abstract" />
+                        <Image src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"} width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20 transform hover:scale-105 transition-transform duration-500" data-ai-hint="neon abstract" />
                     </div>
                 </div>
             </div>
