@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -18,7 +19,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { LayoutDashboard, BookCopy, Users, Home, Gamepad2 } from 'lucide-react';
+import { LayoutDashboard, BookCopy, Users, Home, Gamepad2, Bot } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { UserProfile } from '@/lib/types';
 import { AppHeader } from './app-header';
@@ -30,6 +31,7 @@ const adminNav = [
   { href: '/admin/users', icon: <Users />, label: 'User Management' },
   { href: '/admin/courses', icon: <BookCopy />, label: 'Course Management' },
   { href: '/admin/games', icon: <Gamepad2 />, label: 'Games' },
+  { href: '/admin/ai', icon: <Bot />, label: 'AI' },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -96,18 +98,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (pathname.startsWith('/admin/games')) {
-    return (
-        <div className="min-h-screen bg-background flex flex-col">
-             <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
-                <div className="w-full max-w-7xl mx-auto">
-                {children}
-                </div>
-            </div>
-        </div>
-    )
-  }
-
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-muted/30 flex">
@@ -126,7 +116,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                       <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton
                           asChild
-                          isActive={pathname === item.href}
+                          isActive={pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin')}
                           >
                           <Link href={item.href}>
                               {item.icon}

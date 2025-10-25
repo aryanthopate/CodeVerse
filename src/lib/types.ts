@@ -58,6 +58,9 @@ export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
     correct_feedback?: string | null;
     incorrect_feedback?: string | null;
 };
+export type Chat = Database['public']['Tables']['chats']['Row'];
+export type ChatMessage = Database['public']['Tables']['chat_messages']['Row'];
+
 
 // The type from the DB has a different column name
 export type UserGameProgress = Omit<Database['public']['Tables']['user_game_progress']['Row'], 'level_id'> & {
@@ -65,6 +68,7 @@ export type UserGameProgress = Omit<Database['public']['Tables']['user_game_prog
 };
 
 export type GameSettings = Database['public']['Tables']['game_settings']['Row'];
+export type WebsiteSettings = Database['public']['Tables']['website_settings']['Row'];
 
 
 // Custom combined types for nested data fetching

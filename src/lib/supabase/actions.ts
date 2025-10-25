@@ -4,7 +4,7 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter } from '@/lib/types';
+import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter, Chat, ChatMessage } from '@/lib/types';
 import placeholderGames from '@/lib/placeholder-games.json';
 
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
@@ -18,7 +18,8 @@ interface ChapterData extends Omit<Chapter, 'id' | 'created_at' | 'course_id' | 
     id?: string; // id is present when updating
     order: number;
     topics: TopicData[];
-    image_file?: File;
+    image_url?: string | null;
+    image_file?: File | null;
 }
 
 interface CourseData extends Omit<Course, 'id' | 'created_at' > {
@@ -743,7 +744,7 @@ export async function completeGameLevel(levelId: string) {
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
         game_id: gameId,
-        level_id: levelId,
+        completed_level_id: levelId,
         completed_at: new Date().toISOString(),
     }, {
         onConflict: 'user_id,level_id'
@@ -758,6 +759,48 @@ export async function completeGameLevel(levelId: string) {
 
     return { success: true };
 }
+
+export async function getChats(): Promise<{chats: Chat[] | null, error: string | null}> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { chats: [], error: null };
+
+    const { data, error } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        return { chats: null, error: error.message };
+    }
+    return { chats: data, error: null };
+}
+
+export async function getChat(id: string): Promise<{chat: Chat | null, messages: ChatMessage[] | null, error: string | null}> {
+     const supabase = createClient();
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return { chat: null, messages: null, error: "Unauthorized" };
+
+     const { data: chatData, error: chatError } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+    
+    if(chatError) return { chat: null, messages: null, error: chatError.message };
+
+    const { data: messagesData, error: messagesError } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('chat_id', id)
+        .order('created_at', { ascending: true });
+    
+    if(messagesError) return { chat: chatData, messages: null, error: messagesError.message };
+
+    return { chat: chatData, messages: messagesData as ChatMessage[], error: null };
+}
     
 
     
@@ -770,4 +813,5 @@ export async function completeGameLevel(levelId: string) {
 
 
     
+
 

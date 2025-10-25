@@ -3,7 +3,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter, WebsiteSettings, Chat } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -366,8 +366,41 @@ export async function getGameSettings(): Promise<GameSettings | null> {
         .eq('id', 1)
         .single();
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') {
         console.error("Error fetching game settings:", error.message);
+        return null;
+    }
+    return data;
+}
+
+export async function getWebsiteSettings(): Promise<WebsiteSettings | null> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('website_settings')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching website settings:", error.message);
+        return null;
+    }
+    return data;
+}
+
+export async function getUserChats(): Promise<Chat[] | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching user chats:", error.message);
         return null;
     }
     return data;
