@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from 'next/link';
@@ -100,18 +101,22 @@ export function Header() {
                 </Button>
               )}
               <Button variant="ghost" onClick={handleLogout} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>Logout</Button>
-              <Button asChild className={cn(isPlayground ? 'btn-game' : '', "shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300")}>
-                  <Link href="/dashboard">Go to Dashboard</Link>
-              </Button>
+              <Link href="/dashboard" className={cn(isPlayground ? 'btn-game' : '')}>
+                  <Button asChild={!isPlayground} className={cn(isPlayground ? 'pointer-events-none' : 'shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300')}>
+                      <span>Go to Dashboard</span>
+                  </Button>
+              </Link>
             </>
           ) : (
             <>
               <Button variant="ghost" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                 <Link href="/login">Login</Link>
               </Button>
-              <Button asChild className={cn(isPlayground ? 'btn-game' : '', "shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300")}>
-                <Link href="/signup">Start Learning</Link>
-              </Button>
+               <Link href="/signup" className={cn(isPlayground ? 'btn-game' : '')}>
+                  <Button asChild={!isPlayground} className={cn(isPlayground ? 'pointer-events-none' : 'shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300')}>
+                    <span>Start Learning</span>
+                  </Button>
+              </Link>
             </>
           )}
         </div>

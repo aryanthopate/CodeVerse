@@ -167,6 +167,7 @@ function CodeBubbleGame({
                     stateChanged = true;
                     if (bubble.isTarget) {
                         appendCodeQueue.push(bubble.text);
+                        targetIndexRef.current++;
                         bubble.state = 'hit-correct';
                     } else {
                         livesRef.current--;
@@ -260,9 +261,9 @@ function CodeBubbleGame({
         <div ref={gameAreaRef} id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border cursor-crosshair">
             {!gameStarted && (
                  <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50">
-                    <Button size="lg" onClick={onStartGame}>
+                    <button className="btn-game" onClick={onStartGame}>
                         <Play className="mr-2" /> Start Mission
-                    </Button>
+                    </button>
                 </div>
             )}
             <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
@@ -312,8 +313,8 @@ function CodeBubbleGame({
                     }}
                 />
             ))}
-            <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10">
-                <Image src={rocketImageUrl || "/images/rocket-game.png"} alt="Rocket" width={40} height={48} className="h-12 w-10 object-contain" />
+            <div ref={rocketRef} className="absolute bottom-4 h-16 w-14 will-change-transform z-10">
+                <Image src={rocketImageUrl || "/images/rocket-game.png"} alt="Rocket" width={56} height={64} className="h-16 w-14 object-contain" />
             </div>
         </div>
     )
@@ -401,12 +402,15 @@ export default function GameLevelPage() {
         setHint('');
         setRunOutput('Analyzing code...');
         setRunOutputIsError(false);
-
-        const codeWithoutStarter = codeToRun.replace(level.starter_code || '', '').trim();
+        
+        // Strip only the starter code prefix, not everything
+        const codeWithoutStarter = level.starter_code && codeToRun.startsWith(level.starter_code)
+            ? codeToRun.substring(level.starter_code.length)
+            : codeToRun;
 
         try {
             const result = await reviewCodeAndProvideFeedback({
-                code: codeWithoutStarter,
+                code: codeWithoutStarter.trim(),
                 solution: level.expected_output || '',
                 programmingLanguage: game?.language || 'code',
             });
@@ -431,7 +435,7 @@ export default function GameLevelPage() {
         } finally {
             setIsChecking(false);
         }
-    }, [level, game]);
+    }, [level, game, handleLevelComplete]);
 
 
     const handleBubblePhaseComplete = useCallback(async () => {
@@ -571,25 +575,26 @@ export default function GameLevelPage() {
 
     if (showIntro) {
         return (
-            <div className="flex flex-col h-screen bg-background">
+            <div className="flex flex-col h-screen bg-[hsl(var(--game-bg))] text-[hsl(var(--game-text))]">
                 <Header />
                 <main className="flex-grow pt-16 flex items-center justify-center relative overflow-hidden">
-                    <Image src={game.thumbnail_url || `https://picsum.photos/seed/${level.id}/1920/1080`} alt="Mission Background" fill className="object-cover -z-10 opacity-20 blur-sm" data-ai-hint="futuristic space" />
-                    <Card className="w-full max-w-2xl bg-card/50 backdrop-blur-lg border-border/50 text-center animate-in fade-in-0 zoom-in-95 duration-500">
+                    <Image src={game.thumbnail_url || `https://picsum.photos/seed/${level.id}/1920/1080`} alt="Mission Background" fill className="object-cover -z-10 opacity-10 blur-sm" data-ai-hint="futuristic space" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--game-bg))]/50 via-[hsl(var(--game-bg))] to-[hsl(var(--game-bg))] -z-10"></div>
+                    <Card className="w-full max-w-2xl bg-[hsl(var(--game-surface))] text-[hsl(var(--game-text))] border-2 border-[hsl(var(--game-border))] text-center animate-in fade-in-0 zoom-in-95 duration-500" style={{ boxShadow: '0 8px 16px hsla(0,0%,0%,0.4), inset 0 2px 4px hsl(var(--game-border)/0.6)'}}>
                         <CardHeader>
-                            <CardTitle className="text-3xl font-bold">Mission Briefing</CardTitle>
-                            <CardDescription>{chapter.title}: {level.title}</CardDescription>
+                            <CardTitle className="text-3xl font-bold" style={{ color: 'hsl(var(--game-accent))', textShadow: '0 0 8px hsl(var(--game-accent-glow)/0.7)' }}>Mission Briefing</CardTitle>
+                            <CardDescription className="text-[hsl(var(--game-text))]/80">{chapter.title}: {level.title}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex gap-4 items-start">
-                                <Bot className="w-16 h-16 text-primary flex-shrink-0" />
-                                <p className="text-left p-4 bg-muted/50 rounded-lg border border-border">
+                                <Bot className="w-16 h-16 text-[hsl(var(--game-accent))] flex-shrink-0" />
+                                <p className="text-left p-4 bg-[hsl(var(--game-bg))] rounded-lg border border-[hsl(var(--game-border))]">
                                     {level.intro_text || "Your mission, should you choose to accept it, is to complete the objective. Good luck, recruit!"}
                                 </p>
                             </div>
-                            <Button size="lg" onClick={() => setShowIntro(false)}>
+                            <button className="btn-game" onClick={() => setShowIntro(false)}>
                                 Start Challenge <ArrowRight className="ml-2" />
-                            </Button>
+                            </button>
                         </CardContent>
                     </Card>
                 </main>
@@ -598,18 +603,16 @@ export default function GameLevelPage() {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-background">
+        <div className="flex flex-col h-screen bg-[hsl(var(--game-bg))] text-[hsl(var(--game-text))]">
             <Header />
             <main className="flex-grow pt-16 flex flex-col">
-                <div className="p-4 border-b border-border/50 flex items-center justify-between">
-                    <Button variant="ghost" asChild>
-                        <Link href={`/playground/${game.slug}`}>
-                            <ArrowLeft className="mr-2" /> Back to Map
-                        </Link>
-                    </Button>
+                <div className="p-4 border-b-2 border-[hsl(var(--game-border))] flex items-center justify-between">
+                    <button className="btn-game !py-2 !px-4" onClick={() => router.push(`/playground/${game.slug}`)}>
+                        <ArrowLeft className="mr-2" /> Back to Map
+                    </button>
                     <h1 className="text-xl font-bold text-center truncate">{game.title}: {level.title}</h1>
-                    <div className="w-[150px] flex justify-end">
-                        <Badge variant="secondary" className="text-yellow-400 border-yellow-400/50">{level.reward_xp} XP</Badge>
+                    <div className="w-[200px] flex justify-end">
+                        <Badge variant="secondary" className="text-yellow-400 border-yellow-400/50 bg-[hsl(var(--game-surface))]">{level.reward_xp} XP</Badge>
                     </div>
                 </div>
 
@@ -645,7 +648,7 @@ export default function GameLevelPage() {
                             <ResizablePanel defaultSize={30} minSize={20}>
                                 <ScrollArea className="h-full p-4">
                                     <h2 className="text-lg font-semibold mb-2">Objective</h2>
-                                    <p className="text-sm text-muted-foreground">{level.objective}</p>
+                                    <p className="text-sm text-[hsl(var(--game-text))]/80">{level.objective}</p>
                                 </ScrollArea>
                             </ResizablePanel>
                             <ResizableHandle withHandle />
@@ -700,4 +703,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
