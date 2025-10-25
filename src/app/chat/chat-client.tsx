@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowUpRight, Unarchive } from 'lucide-react';
+import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowUpRight, Unarchive, ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -173,7 +172,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     };
     
     const handleChatAction = useCallback(async (chatId: string, action: 'pin' | 'unpin' | 'archive' | 'unarchive' | 'delete') => {
-        if (!profile) return; // Actions are only for logged-in users
+        if (!profile && (action !== 'delete')) return; // Allow delete for anon chats
         
         let optimisticChats = [...chats];
 
@@ -196,31 +195,41 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         // Optimistically update the UI
         setChats(optimisticChats);
 
-        if (params.chatId === chatId && (action === 'delete' || action === 'archive')) {
-            router.push('/chat');
+        if (params.chatId === chatId) {
+            if(action === 'delete' || action === 'archive') {
+                router.push('/chat');
+            } else if (action === 'unarchive') {
+                router.push(`/chat/${chatId}`);
+            }
+        }
+        
+        if (action === 'unarchive') {
+             router.push(`/chat/${chatId}`);
         }
 
-        // Perform the backend action
-        try {
-            if (action === 'delete') {
-                await deleteChatAction(chatId);
-            } else {
-                const updates: Partial<Chat> = {};
-                if (action === 'pin') updates.is_pinned = true;
-                if (action === 'unpin') updates.is_pinned = false;
-                if (action === 'archive') updates.is_archived = true;
-                if (action === 'unarchive') updates.is_archived = false;
-                const { error } = await updateChat(chatId, updates);
-                if(error) throw new Error(error.message);
+        // Perform the backend action if user is logged in
+        if (profile) {
+            try {
+                if (action === 'delete') {
+                    await deleteChatAction(chatId);
+                } else {
+                    const updates: Partial<Chat> = {};
+                    if (action === 'pin') updates.is_pinned = true;
+                    if (action === 'unpin') updates.is_pinned = false;
+                    if (action === 'archive') updates.is_archived = true;
+                    if (action === 'unarchive') updates.is_archived = false;
+                    const { error } = await updateChat(chatId, updates);
+                    if(error) throw new Error(error.message);
+                }
+            } catch (error: any) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Action Failed',
+                    description: `Could not perform action: ${error.message}`,
+                });
+                // Revert optimistic update on failure
+                setChats(chats);
             }
-        } catch (error: any) {
-             toast({
-                variant: 'destructive',
-                title: 'Action Failed',
-                description: `Could not perform action: ${error.message}`,
-            });
-            // Revert optimistic update on failure
-            setChats(chats);
         }
 
     }, [chats, profile, params.chatId, router, toast]);
@@ -301,7 +310,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 <header className="p-4 border-b border-border/50 flex items-center justify-between gap-2 md:gap-4 shrink-0">
                     <div className='flex items-center gap-2'>
                         <Button className="md:hidden" variant="ghost" size="icon" asChild>
-                            <Link href="/dashboard"><Home /></Link>
+                            <Link href="/dashboard"><ArrowLeft /></Link>
                         </Button>
                         <h1 className="text-xl font-semibold truncate">{activeChat?.title || 'Chatlify AI'}</h1>
                     </div>
@@ -406,17 +415,15 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction: (chatId: string, action: 'pin' | 'unpin' | 'archive' | 'unarchive' | 'delete') => void, isArchived?: boolean }) {
     const params = useParams();
     
-    return (
+    const content = (
         <div className="relative group">
-            <Link href={`/chat/${chat.id}`} className="block">
-                <div className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl text-sm hover:bg-muted",
-                    params.chatId === chat.id && "bg-muted"
-                )}>
-                    <MessageSquare className="w-4 h-4 shrink-0" />
-                    <span className="truncate flex-1">{chat.title}</span>
-                </div>
-            </Link>
+            <div className={cn(
+                "flex items-center gap-3 p-3 rounded-xl text-sm hover:bg-muted",
+                 params.chatId === chat.id && "bg-muted"
+            )}>
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <span className="truncate flex-1">{chat.title}</span>
+            </div>
              <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -447,5 +454,19 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
                 </DropdownMenu>
             </div>
         </div>
+    );
+
+    if (isArchived) {
+        return (
+            <button onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block">
+                {content}
+            </button>
+        );
+    }
+    
+    return (
+        <Link href={`/chat/${chat.id}`} className="block">
+            {content}
+        </Link>
     );
 }

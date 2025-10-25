@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A multi-modal chat AI agent.
@@ -31,7 +30,7 @@ const ChatInputSchema = z.object({
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
 export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>> {
-    const { stream, response } = ai.generateStream({
+    const { stream, response } = await ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
       prompt: {
         messages: input.messages.map((m) => ({
