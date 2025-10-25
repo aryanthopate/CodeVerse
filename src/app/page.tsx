@@ -184,7 +184,7 @@ export default async function Home() {
                         </Button>
                     </div>
                     <div className="flex-1 w-full max-w-md lg:max-w-none z-10">
-                        <Image src="https://picsum.photos/seed/gamer/600/600" width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20 transform hover:scale-105 transition-transform duration-500" data-ai-hint="neon abstract" />
+                        <Image src="/images/placeholder-game-home.png" width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20 transform hover:scale-105 transition-transform duration-500" data-ai-hint="neon abstract" />
                     </div>
                 </div>
             </div>
