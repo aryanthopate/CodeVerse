@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowUpRight, Unarchive, ArrowLeft } from 'lucide-react';
+import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, Unarchive, ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -202,6 +202,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         if (params.chatId === chatId) {
             if(action === 'delete' || action === 'archive') {
                 router.push('/chat');
+                setActiveChat(null);
             } else if (action === 'unarchive') {
                  setActiveChat(prev => prev ? {...prev, is_archived: false} : null);
             }
@@ -287,13 +288,15 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                         </PopoverTrigger>
                         <PopoverContent className="w-80 p-2" side="top" align="start">
                             <h3 className="p-2 font-semibold">Archived</h3>
+                            <ScrollArea className="max-h-60">
                             {archivedChats.length > 0 ? (
-                                <ScrollArea className="max-h-60">
-                                {archivedChats.map(chatItem => (
+                                
+                                archivedChats.map(chatItem => (
                                     <ChatItem key={chatItem.id} chat={chatItem} onAction={handleChatAction} isArchived />
-                                ))}
-                                </ScrollArea>
+                                ))
+                                
                             ) : <p className="p-2 text-sm text-muted-foreground">No archived chats.</p>}
+                            </ScrollArea>
                         </PopoverContent>
                     </Popover>
                     <Popover>
@@ -463,9 +466,9 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 
     if (isArchived) {
         return (
-            <button onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block cursor-pointer">
+            <div onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block cursor-pointer">
                 {content}
-            </button>
+            </div>
         );
     }
     
