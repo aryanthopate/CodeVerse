@@ -330,7 +330,7 @@ export async function getGameAndLevelDetails(gameSlug: string, levelSlug: string
 }
 
 
-export async function getUserGameProgress(gameId: string): Promise<UserGameProgress[]> {
+export async function getUserGameProgress(gameId: string): Promise<UserGameProgress[] | null> {
     try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -348,13 +348,13 @@ export async function getUserGameProgress(gameId: string): Promise<UserGameProgr
         if (error) {
             // Log a more informative error, but don't crash the server.
             console.error("Error fetching user game progress:", error.message || "Unknown error");
-            return [];
+            return null;
         }
 
         return data as UserGameProgress[];
     } catch (e: any) {
         console.error("Caught an exception in getUserGameProgress:", e.message);
-        return [];
+        return null;
     }
 }
 
@@ -372,9 +372,3 @@ export async function getGameSettings(): Promise<GameSettings | null> {
     }
     return data;
 }
-
-
-
-
-
-    
