@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A multi-modal chat AI agent.
@@ -9,7 +8,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { streamFlow } from '@genkit-ai/next';
 
 const MessagePartSchema = z.object({
   text: z.string().optional(),
@@ -31,14 +29,7 @@ const ChatInputSchema = z.object({
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
-const chatFlow = ai.defineFlow(
-  {
-    name: 'chatFlow',
-    inputSchema: ChatInputSchema,
-    outputSchema: z.string(),
-    stream: true,
-  },
-  async function* (input) {
+export async function chat(input: ChatInput) {
     const { stream } = ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
       prompt: {
@@ -49,16 +40,22 @@ const chatFlow = ai.defineFlow(
       },
     });
 
-    for await (const chunk of stream) {
-        if (chunk.text) {
-            yield chunk.text;
-        }
-    }
-  }
-);
+    const reader = stream.getReader();
+    const readableStream = new ReadableStream({
+        async start(controller) {
+            function push() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        controller.close();
+                        return;
+                    }
+                    controller.enqueue(value.text());
+                    push();
+                });
+            }
+            push();
+        },
+    });
 
-export async function chat(input: ChatInput) {
-    return streamFlow(chatFlow, input);
+    return readableStream;
 }
-
-    
