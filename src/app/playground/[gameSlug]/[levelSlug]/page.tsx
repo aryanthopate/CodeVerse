@@ -313,8 +313,8 @@ function CodeBubbleGame({
                     }}
                 />
             ))}
-            <div ref={rocketRef} className="absolute bottom-4 h-16 w-14 will-change-transform z-10">
-                <Image src={rocketImageUrl || "/images/rocket-game.png"} alt="Rocket" width={56} height={64} className="h-16 w-14 object-contain" />
+            <div ref={rocketRef} className="absolute bottom-4 h-24 w-20 will-change-transform z-10">
+                <Image src={rocketImageUrl || "/images/rocket-game.png"} alt="Rocket" width={80} height={96} className="h-24 w-20 object-contain" />
             </div>
         </div>
     )
@@ -395,6 +395,14 @@ export default function GameLevelPage() {
         setFinalCode(updater);
     }, []);
     
+    const handleLevelComplete = useCallback(async () => {
+        if (!level || gameState === 'levelComplete') return;
+        setGameState('levelComplete');
+        await completeGameLevel(level.id);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 8000);
+    }, [level, gameState]);
+
     const handleRunCode = useCallback(async (codeToRun: string) => {
         if (!level || !codeToRun) return;
         setIsChecking(true);
@@ -403,7 +411,6 @@ export default function GameLevelPage() {
         setRunOutput('Analyzing code...');
         setRunOutputIsError(false);
         
-        // Strip only the starter code prefix, not everything
         const codeWithoutStarter = level.starter_code && codeToRun.startsWith(level.starter_code)
             ? codeToRun.substring(level.starter_code.length)
             : codeToRun;
@@ -437,20 +444,10 @@ export default function GameLevelPage() {
         }
     }, [level, game, handleLevelComplete]);
 
-
     const handleBubblePhaseComplete = useCallback(async () => {
         setGameState('reviewing');
         setTimeout(() => handleRunCode(finalCode), 1000);
     }, [finalCode, handleRunCode]);
-
-    const handleLevelComplete = useCallback(async () => {
-        if (!level || gameState === 'levelComplete') return;
-        setGameState('levelComplete');
-        await completeGameLevel(level.id);
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 8000);
-    }, [level, gameState]);
-
 
     const handleGameOver = useCallback(() => {
         setGameState('gameOver');
