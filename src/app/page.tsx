@@ -174,7 +174,7 @@ export default async function Home() {
                         <Badge variant="outline" className="mb-4 border-accent text-accent animate-float text-sm">
                             New Feature!
                         </Badge>
-                        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary [text-shadow:0_0_8px_hsl(var(--primary)/0.5)]">
+                        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
                             Play & Learn
                         </h2>
                         <p className="mt-4 text-lg text-muted-foreground max-w-xl">
@@ -190,7 +190,7 @@ export default async function Home() {
                             width={400}
                             height={400}
                             alt="Coding Game"
-                            className="object-contain rounded-2xl shadow-[0_0_15px_2px] shadow-primary/30 transition-all duration-500 group-hover:scale-105 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
+                            className="object-contain rounded-lg shadow-[0_0_15px_2px] shadow-primary/30 transition-all duration-500 group-hover:scale-105 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
                             data-ai-hint="neon abstract"
                         />
                     </div>
