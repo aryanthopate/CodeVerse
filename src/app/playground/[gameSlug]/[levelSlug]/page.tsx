@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
 import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
+import { generateDistractors } from '@/ai/flows/generate-distractors';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +51,9 @@ function CodeBubbleGame({
     onStartGame,
     gameStarted,
     rocketImageUrl,
-    onRestart
+    onRestart,
+    distractors,
+    isGeneratingDistractors,
 }: {
     level: GameLevel,
     onLevelComplete: () => void,
@@ -61,6 +64,8 @@ function CodeBubbleGame({
     gameStarted: boolean;
     rocketImageUrl: string | null;
     onRestart: () => void;
+    distractors: string[],
+    isGeneratingDistractors: boolean;
 }) {
     const rocketRef = useRef<HTMLDivElement>(null);
     const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -106,7 +111,6 @@ function CodeBubbleGame({
         const gameAreaHeight = gameAreaRef.current.offsetHeight;
         let needsRender = false;
         
-        // Spawn new bubbles
         if (now - lastBubbleTimeRef.current > 2000 && bubblesRef.current.filter(b => b.isTarget && b.state === 'active').length < 1) { 
              if (targetIndexRef.current < correctSnippets.length) {
                 const newBubbles: Bubble[] = [];
@@ -117,13 +121,10 @@ function CodeBubbleGame({
                 const targetLane = availableLanes.splice(targetLaneIndex, 1)[0];
                 newBubbles.push({ id: now, text: targetText, x: targetLane, y: -50, isTarget: true, state: 'active' });
     
-                const incorrectSnippets = ['var', 'func', 'err', '=>', 'const', 'let', 'x', 'y', 'z', '123', 'error', 'null'];
                 const distractorLaneIndex = Math.floor(Math.random() * availableLanes.length);
                 const distractorLane = availableLanes.splice(distractorLaneIndex, 1)[0];
-                let distractorText;
-                do {
-                    distractorText = incorrectSnippets[Math.floor(Math.random() * incorrectSnippets.length)];
-                } while (distractorText === targetText);
+                let distractorText = distractors[Math.floor(Math.random() * distractors.length)] || 'SyntaxError';
+                
                 newBubbles.push({ id: now + 1, text: distractorText, x: distractorLane, y: -50, isTarget: false, state: 'active' });
                 
                 bubblesRef.current.push(...newBubbles);
@@ -132,88 +133,69 @@ function CodeBubbleGame({
             }
         }
     
-        // Move bullets
         if (bulletsRef.current.length > 0) {
             bulletsRef.current = bulletsRef.current.map(bullet => ({ ...bullet, y: bullet.y - 12 })).filter(bullet => bullet.y > -20);
             needsRender = true;
         }
         
-        const appendCodeQueue: string[] = [];
-        const hitBulletIds = new Set<number>();
-        const hitBubbleIds = new Set<number>();
+        let hitBulletIds = new Set<number>();
         let stateChanged = false;
 
-        // Move bubbles and check for collisions
-        for (const bubble of bubblesRef.current) {
-             if (bubble.state !== 'active') continue;
+        bubblesRef.current = bubblesRef.current.filter(bubble => {
+            if (bubble.state !== 'active') return true;
 
-            bubble.y += 0.8;
-            needsRender = true;
-            
-            // Check if bubble is off-screen
-            if (bubble.y > gameAreaHeight) {
-                hitBubbleIds.add(bubble.id);
-                if (bubble.isTarget) {
+            const newY = bubble.y + 0.8; 
+            if (newY > gameAreaHeight) {
+                 if (bubble.isTarget) {
                     livesRef.current--;
                     stateChanged = true;
                 }
-                continue;
+                return false;
+            } else {
+                bubble.y = newY;
+                needsRender = true;
             }
-
-            // Check for bullet collision
+            
             for (const bullet of bulletsRef.current) {
                 if (hitBulletIds.has(bullet.id)) continue;
 
                 const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
                 const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
 
-                if (distance < 40) { // Collision detected
+                if (distance < 40) {
                     hitBulletIds.add(bullet.id);
-                    hitBubbleIds.add(bubble.id);
+                    bubble.state = bubble.isTarget ? 'hit-correct' : 'hit-wrong';
                     stateChanged = true;
 
                     if (bubble.isTarget) {
-                        appendCodeQueue.push(bubble.text);
+                        onCodeChange(prevCode => {
+                            const newCode = bubble.text;
+                             if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + newCode;
+                            const lastChar = prevCode.slice(-1);
+                            if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(newCode)) return prevCode + newCode;
+                            return prevCode + ' ' + newCode;
+                        });
                         targetIndexRef.current++;
-                        bubble.state = 'hit-correct'; // Change state for animation
                     } else {
                         livesRef.current--;
-                        bubble.state = 'hit-wrong';
                     }
-                    
-                     // Schedule the animated bubble to be removed
+
                     setTimeout(() => {
                         bubblesRef.current = bubblesRef.current.filter(b => b.id !== bubble.id);
                     }, 300);
-                    break; 
+                    
+                    return false; 
                 }
             }
-        }
+            return true;
+        });
 
-        // Clean up
-        if (hitBubbleIds.size > 0) {
-            // In the main loop, we only mark for removal. The actual removal for animated bubbles is timed.
-            // Non-animated (off-screen) bubbles are removed here.
-            bubblesRef.current = bubblesRef.current.filter(b => b.state !== 'active' || !hitBubbleIds.has(b.id));
-            needsRender = true;
-        }
-
-        if (appendCodeQueue.length > 0) {
-            onCodeChange(prevCode => {
-                const newCode = appendCodeQueue.join(' ');
-                if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + newCode;
-                const lastChar = prevCode.slice(-1);
-                if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(newCode)) return prevCode + newCode;
-                return prevCode + ' ' + newCode;
-            });
-        }
         
         if (hitBulletIds.size > 0) {
              bulletsRef.current = bulletsRef.current.filter(b => !hitBulletIds.has(b.id));
              needsRender = true;
         }
 
-        // Check game state
         if (livesRef.current <= 0 && !isGameOverRef.current) {
             isGameOverRef.current = true;
             onGameOver();
@@ -221,7 +203,6 @@ function CodeBubbleGame({
         }
 
         if (targetIndexRef.current >= correctSnippets.length && correctSnippets.length > 0 && !isGameOverRef.current) {
-             // Ensure no more active targets are on screen
              const anyActiveTargets = bubblesRef.current.some(b => b.isTarget && b.state === 'active');
              if(!anyActiveTargets) {
                 isGameOverRef.current = true;
@@ -234,7 +215,7 @@ function CodeBubbleGame({
             forceRender();
         }
         gameLoopRef.current = requestAnimationFrame(gameLoop);
-    }, [onCodeChange, onGameOver, onLevelComplete, correctSnippets, forceRender, gameStarted]);
+    }, [onCodeChange, onGameOver, onLevelComplete, correctSnippets, forceRender, gameStarted, distractors]);
     
     useEffect(() => {
         const gameArea = gameAreaRef.current;
@@ -248,7 +229,6 @@ function CodeBubbleGame({
             rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
         };
         const handleClick = (e: MouseEvent) => {
-            // Prevent firing if the click is on a button
             if ((e.target as HTMLElement).closest('button')) {
                 return;
             }
@@ -278,7 +258,7 @@ function CodeBubbleGame({
         };
     }, [gameStarted, gameLoop, fireBullet]);
 
-    const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>, action: () => void) => {
+    const handleButtonClick = (e: React.MouseEvent<HTMLElement>, action: () => void) => {
         e.stopPropagation();
         action();
     }
@@ -287,8 +267,8 @@ function CodeBubbleGame({
         <div ref={gameAreaRef} id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border cursor-crosshair">
             {!gameStarted && (
                  <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <button className="btn-game" onClick={(e) => handleButtonClick(e, onStartGame)}>
-                        <Play className="mr-2" /> Start Mission
+                    <button className="btn-game" onClick={(e) => handleButtonClick(e, onStartGame)} disabled={isGeneratingDistractors}>
+                        {isGeneratingDistractors ? <><Loader2 className="mr-2 animate-spin" /> Generating Mission...</> : <><Play className="mr-2" /> Start Mission</>}
                     </button>
                 </div>
             )}
@@ -362,17 +342,17 @@ function OutputConsole({ output, isError }: { output: string, isError: boolean }
     )
 }
 
-function ManualCodePractice({ level, onRunCode, onGetHint, onCodeChange, code }: { level: GameLevel, onRunCode: (code: string) => void, onGetHint: (code: string) => void, onCodeChange: (code: string) => void, code: string }) {
+function ManualCodePractice({ level, onRunCode, onGetHint, onCodeChange, code, isChecking, isGettingHint }: { level: GameLevel, onRunCode: (code: string) => void, onGetHint: (code: string) => void, onCodeChange: (code: string) => void, code: string, isChecking: boolean, isGettingHint: boolean }) {
     return (
         <div className="flex flex-col h-full">
             <div className="p-4 border-b border-border/50 flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Manual Code Editor</h2>
                 <div className="flex gap-2">
-                    <button className="btn-game !py-2 !px-4" onClick={() => onGetHint(code)}>
-                        <Lightbulb className="mr-2" /> Hint
+                    <button className="btn-game !py-2 !px-4" onClick={() => onGetHint(code)} disabled={isGettingHint}>
+                        {isGettingHint ? <Loader2 className="mr-2 animate-spin"/> : <Lightbulb className="mr-2" />} Hint
                     </button>
-                    <button className="btn-game !py-2 !px-4" onClick={() => onRunCode(code)}>
-                        <Play className="mr-2" /> Run Code
+                    <button className="btn-game !py-2 !px-4" onClick={() => onRunCode(code)} disabled={isChecking}>
+                         {isChecking ? <Loader2 className="mr-2 animate-spin"/> : <Play className="mr-2" />} Run Code
                     </button>
                 </div>
             </div>
@@ -414,6 +394,8 @@ export default function GameLevelPage() {
     const [showConfetti, setShowConfetti] = useState(false);
     const [finalCode, setFinalCode] = useState('');
     const [gameStarted, setGameStarted] = useState(false);
+    const [distractors, setDistractors] = useState<string[]>([]);
+    const [isGeneratingDistractors, setIsGeneratingDistractors] = useState(true);
     
     const handleCodeChange = useCallback((updater: (prevCode: string) => string) => {
         setFinalCode(updater);
@@ -486,7 +468,7 @@ export default function GameLevelPage() {
         setRunOutput('');
         setShowSolution(false);
         setFinalCode(level?.starter_code || '');
-        setGameStarted(false); // This will show the "Start Mission" button again
+        setGameStarted(false); 
     }, [level]);
 
     useEffect(() => {
@@ -511,6 +493,16 @@ export default function GameLevelPage() {
                 setChapter(chapter as GameChapter);
                 setNextLevel(nextLevel);
                 setFinalCode(level.starter_code || '');
+                
+                setIsGeneratingDistractors(true);
+                const { distractors } = await generateDistractors({
+                    language: game.language || 'code',
+                    correctSnippets: level.expected_output?.match(/([a-zA-Z_]\w*|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\d+)/g) || [],
+                    count: 10
+                });
+                setDistractors(distractors);
+                setIsGeneratingDistractors(false);
+
             }
             if(settingsData) {
                 setGameSettings(settingsData);
@@ -637,7 +629,7 @@ export default function GameLevelPage() {
                         <div className="flex flex-col h-full" ref={gameAreaRef}>
                             <div className="flex-grow relative">
                                 {gameState === 'manual' ? (
-                                    <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} />
+                                    <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
                                 ) : (
                                     <>
                                         <CodeBubbleGame
@@ -651,6 +643,8 @@ export default function GameLevelPage() {
                                             gameStarted={gameStarted}
                                             rocketImageUrl={gameSettings?.rocket_image_url || null}
                                             onRestart={handleRestart}
+                                            distractors={distractors}
+                                            isGeneratingDistractors={isGeneratingDistractors}
                                         />
                                         <GameStatusOverlay />
                                     </>
