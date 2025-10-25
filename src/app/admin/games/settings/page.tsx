@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -18,12 +18,19 @@ interface GameSettings {
     rocket_image_url: string | null;
 }
 
+interface FileUploadState {
+    placeholder_image_file: File | null;
+    rocket_image_file: File | null;
+}
+
 export default function GameSettingsPage() {
     const { toast } = useToast();
     const supabase = createClient();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [settings, setSettings] = useState<GameSettings>({ placeholder_image_url: null, rocket_image_url: null });
+    const [filesToUpload, setFilesToUpload] = useState<FileUploadState>({ placeholder_image_file: null, rocket_image_file: null });
+    const [previews, setPreviews] = useState<GameSettings>({ placeholder_image_url: null, rocket_image_url: null });
     const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number | undefined }>({});
 
     useEffect(() => {
@@ -37,7 +44,8 @@ export default function GameSettingsPage() {
             
             if (data) {
                 setSettings(data);
-            } else if (error) {
+                setPreviews(data); // Initialize previews with existing data
+            } else if (error && error.code !== 'PGRST116') { // Ignore "no rows found"
                 toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
             }
             setLoading(false);
@@ -45,50 +53,79 @@ export default function GameSettingsPage() {
         fetchSettings();
     }, [supabase, toast]);
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof GameSettings) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof FileUploadState) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const filePath = `public/${file.name}`;
-        setUploadProgress(prev => ({...prev, [field]: 0}));
+        setFilesToUpload(prev => ({ ...prev, [field]: file }));
 
-        const { error: uploadError } = await supabase.storage
-            .from('game_assets')
-            .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-        if (uploadError) {
-            toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError.message });
-            setUploadProgress(prev => ({...prev, [field]: undefined}));
-            return;
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('game_assets').getPublicUrl(filePath);
-
-        setSettings(prev => ({ ...prev, [field]: publicUrl }));
-        setUploadProgress(prev => ({...prev, [field]: 100}));
-        
-        toast({ title: 'Upload Complete!', description: `${file.name} has been uploaded.`});
-        setTimeout(() => setUploadProgress(prev => ({...prev, [field]: undefined})), 3000);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const previewUrl = reader.result as string;
+            if (field === 'placeholder_image_file') {
+                setPreviews(prev => ({ ...prev, placeholder_image_url: previewUrl }));
+            } else if (field === 'rocket_image_file') {
+                 setPreviews(prev => ({ ...prev, rocket_image_url: previewUrl }));
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleSave = async () => {
         setSaving(true);
-        const { error } = await supabase
-            .from('game_settings')
-            .update({
-                placeholder_image_url: settings.placeholder_image_url,
-                rocket_image_url: settings.rocket_image_url,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', 1);
+        let updatedSettings = { ...settings };
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
-        } else {
+        try {
+            // Process placeholder image if a new one was selected
+            if (filesToUpload.placeholder_image_file) {
+                const file = filesToUpload.placeholder_image_file;
+                const filePath = `public/placeholder-${Date.now()}-${file.name}`;
+                setUploadProgress(prev => ({...prev, placeholder: 0}));
+                const { error: uploadError } = await supabase.storage.from('game_assets').upload(filePath, file, { upsert: true });
+                if (uploadError) throw new Error(`Placeholder upload failed: ${uploadError.message}`);
+                
+                const { data: { publicUrl } } = supabase.storage.from('game_assets').getPublicUrl(filePath);
+                updatedSettings.placeholder_image_url = publicUrl;
+                setUploadProgress(prev => ({...prev, placeholder: 100}));
+            }
+            
+            // Process rocket image if a new one was selected
+            if (filesToUpload.rocket_image_file) {
+                const file = filesToUpload.rocket_image_file;
+                const filePath = `public/rocket-${Date.now()}-${file.name}`;
+                 setUploadProgress(prev => ({...prev, rocket: 0}));
+                const { error: uploadError } = await supabase.storage.from('game_assets').upload(filePath, file, { upsert: true });
+                if (uploadError) throw new Error(`Rocket image upload failed: ${uploadError.message}`);
+                
+                const { data: { publicUrl } } = supabase.storage.from('game_assets').getPublicUrl(filePath);
+                updatedSettings.rocket_image_url = publicUrl;
+                setUploadProgress(prev => ({...prev, rocket: 100}));
+            }
+
+            // Update the database with new URLs
+            const { error: dbError } = await supabase
+                .from('game_settings')
+                .update({
+                    placeholder_image_url: updatedSettings.placeholder_image_url,
+                    rocket_image_url: updatedSettings.rocket_image_url,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', 1);
+
+            if (dbError) throw new Error(`Database update failed: ${dbError.message}`);
+
+            setSettings(updatedSettings); // Update local state with saved URLs
+            setFilesToUpload({ placeholder_image_file: null, rocket_image_file: null }); // Clear staged files
             toast({ title: 'Settings Saved!', description: 'Your game assets have been updated.' });
+
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
+        } finally {
+            setSaving(false);
+            setTimeout(() => setUploadProgress({}), 3000);
         }
-        setSaving(false);
     };
+
 
     if (loading) {
         return <AdminLayout><div>Loading game settings...</div></AdminLayout>;
@@ -115,20 +152,20 @@ export default function GameSettingsPage() {
                             <Card className="border-dashed">
                                 <CardContent className="p-4">
                                     <div className="flex flex-col items-center justify-center space-y-2">
-                                        {settings.placeholder_image_url ? (
-                                            <Image src={settings.placeholder_image_url} alt="Placeholder preview" width={200} height={200} className="rounded-md h-40 w-40 object-cover"/>
+                                        {previews.placeholder_image_url ? (
+                                            <Image src={previews.placeholder_image_url} alt="Placeholder preview" width={200} height={200} className="rounded-md h-40 w-40 object-cover"/>
                                         ) : (
                                             <div className="w-40 h-40 bg-muted rounded-lg flex items-center justify-center">
                                                 <ImageIcon className="w-12 h-12 text-muted-foreground" />
                                             </div>
                                         )}
-                                        <Input id="placeholder-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'placeholder_image_url')} accept="image/png, image/jpeg, image/jpg"/>
+                                        <Input id="placeholder-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'placeholder_image_file')} accept="image/png, image/jpeg, image/jpg"/>
                                         <Label htmlFor="placeholder-upload" className="cursor-pointer text-primary text-sm underline">
-                                            {settings.placeholder_image_url ? 'Change image' : 'Upload an image'}
+                                            {previews.placeholder_image_url ? 'Change image' : 'Upload an image'}
                                         </Label>
-                                         {uploadProgress['placeholder_image_url'] !== undefined && (
+                                         {uploadProgress['placeholder'] !== undefined && (
                                             <div className="w-full mt-2 space-y-1">
-                                                <Progress value={uploadProgress['placeholder_image_url']} className="h-2" />
+                                                <Progress value={uploadProgress['placeholder']} className="h-2" />
                                             </div>
                                         )}
                                     </div>
@@ -143,20 +180,20 @@ export default function GameSettingsPage() {
                             <Card className="border-dashed">
                                 <CardContent className="p-4">
                                     <div className="flex flex-col items-center justify-center space-y-2">
-                                        {settings.rocket_image_url ? (
-                                            <Image src={settings.rocket_image_url} alt="Rocket preview" width={40} height={48} className="rounded-md object-contain"/>
+                                        {previews.rocket_image_url ? (
+                                            <Image src={previews.rocket_image_url} alt="Rocket preview" width={40} height={48} className="rounded-md object-contain"/>
                                         ) : (
                                             <div className="w-20 h-24 bg-muted rounded-lg flex items-center justify-center">
                                                 <ImageIcon className="w-12 h-12 text-muted-foreground" />
                                             </div>
                                         )}
-                                        <Input id="rocket-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'rocket_image_url')} accept="image/png, image/jpeg, image/jpg"/>
+                                        <Input id="rocket-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'rocket_image_file')} accept="image/png, image/jpeg, image/jpg"/>
                                         <Label htmlFor="rocket-upload" className="cursor-pointer text-primary text-sm underline">
-                                            {settings.rocket_image_url ? 'Change image' : 'Upload an image'}
+                                            {previews.rocket_image_url ? 'Change image' : 'Upload an image'}
                                         </Label>
-                                        {uploadProgress['rocket_image_url'] !== undefined && (
+                                        {uploadProgress['rocket'] !== undefined && (
                                             <div className="w-full mt-2 space-y-1">
-                                                <Progress value={uploadProgress['rocket_image_url']} className="h-2" />
+                                                <Progress value={uploadProgress['rocket']} className="h-2" />
                                             </div>
                                         )}
                                     </div>
