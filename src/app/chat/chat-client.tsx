@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, ArrowLeft } from 'lucide-react';
+import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, ArrowLeft, Home, LayoutDashboard, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import type { Chat, ChatMessage, WebsiteSettings } from '@/lib/types';
 import { chat as streamChat } from '@/ai/flows/chat';
 import { createNewChat, saveChat } from '@/lib/supabase/actions';
 import { useToast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
@@ -64,13 +66,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
         let currentChat = activeChat;
         
-        // Create a new chat if one doesn't exist
         if (!currentChat) {
             const newChat = await createNewChat(currentInput);
             if (newChat) {
                 currentChat = { ...newChat, messages: [] };
-                // Using router.replace to avoid adding a new entry to the history stack for the initial chat message.
-                // This makes the back button behavior more intuitive.
                 router.replace(`/chat/${newChat.id}`, { scroll: false });
                  setChats(prev => [newChat, ...(prev || [])]);
             } else {
@@ -83,7 +82,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }
         }
         
-        // Optimistic update for immediate UI feedback.
         setActiveChat(prev => {
             const chatToUpdate = prev || currentChat!;
             return {
@@ -99,7 +97,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             const { chunks, abort, done } = await streamChat({ messages: allMessages as any });
             let streamedResponse = '';
             
-            // Add a placeholder for the AI's message
             setActiveChat(prev => ({
                 ...prev!,
                 messages: [...prev!.messages, { role: 'model', content: [{ text: '' }] } as unknown as ChatMessage]
@@ -120,14 +117,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             
             await done;
             
-            // Persist the full conversation
             if (currentChat.id) {
                 await saveChat(currentChat.id, [
                     ...allMessages.map(m => m as ChatMessage),
                     { role: 'model', content: [{text: streamedResponse}] } as ChatMessage
                 ]);
             }
-            // Manually trigger a router refresh to sync server state
             router.refresh();
 
         } catch(error: any) {
@@ -137,7 +132,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 title: "An error occurred",
                 description: "Could not get a response from the AI. Please try again.",
             });
-             // Remove the optimistically added user message and the empty AI placeholder on error
             setActiveChat(prev => {
                 if (!prev) return null;
                 return {
@@ -153,7 +147,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
     return (
         <div className="flex h-screen bg-background">
-            {/* Sidebar */}
             <aside className="w-80 border-r border-border/50 flex-col hidden md:flex">
                 <div className="p-4 border-b border-border/50">
                     <Button className="w-full rounded-xl" onClick={handleNewChat}>
@@ -176,13 +169,21 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     </nav>
                 </ScrollArea>
                 <div className="p-4 border-t border-border/50">
-                     <Button variant="outline" className="w-full rounded-xl" asChild>
-                        <Link href="/dashboard">Back to Dashboard</Link>
-                    </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                           <Button variant="outline" className="w-full rounded-xl justify-between">
+                                Go Back
+                               <ChevronDown className="w-4 h-4" />
+                           </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 p-2" side="top" align="start">
+                            <Link href="/dashboard" className="block p-2 text-sm rounded-md hover:bg-muted"><LayoutDashboard className="inline-block mr-2"/>Dashboard</Link>
+                            <Link href="/" className="block p-2 text-sm rounded-md hover:bg-muted"><Home className="inline-block mr-2"/>Homepage</Link>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </aside>
 
-            {/* Main Chat Area */}
             <main className="flex-1 flex flex-col">
                 <header className="p-4 border-b border-border/50 flex items-center gap-2 md:gap-4 shrink-0">
                      <Button className="md:hidden" variant="ghost" size="icon" asChild>
@@ -240,14 +241,14 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     </div>
                 </div>
                 <div className="p-4 md:p-6 border-t border-border/50 shrink-0">
-                    <div className="relative flex items-center gap-2">
-                         <Button type="button" variant="ghost" size="icon" disabled={isStreaming}>
+                     <div className="flex items-center gap-2">
+                         <Button type="button" variant="ghost" size="icon" disabled={isStreaming} className="shrink-0">
                             <Paperclip className="h-5 w-5" />
                          </Button>
-                        <form onSubmit={handleSubmit} className="flex-grow">
+                        <form onSubmit={handleSubmit} className="flex-grow relative">
                             <Input
                                 placeholder="Ask anything..."
-                                className="pr-12 rounded-full h-12"
+                                className="pr-12 rounded-full h-12 bg-muted border-muted-foreground/20"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 disabled={isStreaming}

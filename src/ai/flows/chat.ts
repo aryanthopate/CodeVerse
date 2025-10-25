@@ -36,9 +36,10 @@ const chatFlow = ai.defineFlow(
     name: 'chatFlow',
     inputSchema: ChatInputSchema,
     outputSchema: z.string(),
+    stream: true,
   },
   async function* (input) {
-    const { stream, response } = ai.generateStream({
+    const { stream } = ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
       prompt: {
         messages: input.messages.map((m) => ({
@@ -49,7 +50,6 @@ const chatFlow = ai.defineFlow(
     });
 
     for await (const chunk of stream) {
-        // Just stream the text part
         if (chunk.text) {
             yield chunk.text;
         }
