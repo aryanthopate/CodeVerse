@@ -9,7 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { streamFlow } from 'genkit/next';
+import { streamFlow } from '@genkit-ai/next';
 
 const MessagePartSchema = z.object({
   text: z.string().optional(),
@@ -37,7 +37,7 @@ const chatFlow = ai.defineFlow(
     inputSchema: ChatInputSchema,
     outputSchema: z.string(),
   },
-  async (input) => {
+  async function* (input) {
     const { stream, response } = ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
       prompt: {
