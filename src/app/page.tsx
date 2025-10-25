@@ -190,7 +190,7 @@ export default async function Home() {
                             width={400}
                             height={400}
                             alt="Coding Game"
-                            className="object-contain rounded-2xl p-2 bg-gradient-to-br from-accent/50 to-primary/50 shadow-[0_0_15px_2px] shadow-primary/30 transition-all duration-500 group-hover:scale-105 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
+                            className="object-contain rounded-2xl shadow-[0_0_15px_2px] shadow-primary/30 transition-all duration-500 group-hover:scale-105 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
                             data-ai-hint="neon abstract"
                         />
                     </div>
