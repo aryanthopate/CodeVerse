@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -6,7 +7,7 @@ import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { getGameAndLevelDetails, getGameSettings } from '@/lib/supabase/queries';
-import { GameWithChaptersAndLevels, GameLevel, GameSettings } from '@/lib/types';
+import { GameWithChaptersAndLevels, GameLevel, GameSettings, GameChapter } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
@@ -70,7 +71,7 @@ function CodeBubbleGame({
     const lastBubbleTimeRef = useRef(Date.now());
     const isGameOverRef = useRef(false);
 
-    const [, setRenderTrigger] = useState(0);
+    const [renderTrigger, setRenderTrigger] = useState(0);
 
     const forceRender = useCallback(() => setRenderTrigger(c => c + 1), []);
 
@@ -90,7 +91,8 @@ function CodeBubbleGame({
             y: rocketRect.top - gameAreaRect.top,
         };
         bulletsRef.current.push(newBullet);
-    }, []);
+        forceRender();
+    }, [forceRender]);
 
     const handleRestart = useCallback(() => {
         isGameOverRef.current = false;
@@ -114,7 +116,7 @@ function CodeBubbleGame({
         const gameAreaHeight = gameAreaRef.current.offsetHeight;
         let needsRender = false;
         
-        if (now - lastBubbleTimeRef.current > 1500 && bubblesRef.current.filter(b => b.isTarget).length < 1) { 
+        if (now - lastBubbleTimeRef.current > 2500 && bubblesRef.current.filter(b => b.isTarget).length < 1) { 
              if (targetIndexRef.current < correctSnippets.length) {
                 const newBubbles: Bubble[] = [];
                 const targetText = correctSnippets[targetIndexRef.current];
@@ -146,26 +148,26 @@ function CodeBubbleGame({
         
         let appendCodeQueue: string[] = [];
         let hitBulletIds = new Set<number>();
-        let hitBubbleIds = new Set<number>();
+        
         let stateChanged = false;
 
-        bubblesRef.current.forEach(bubble => {
-             if (bubble.state !== 'active') return;
+        bubblesRef.current = bubblesRef.current.filter(bubble => {
+            if (bubble.state !== 'active') return true;
 
-            const newY = bubble.y + 1.5; 
+            const newY = bubble.y + 0.5; 
             if (newY > gameAreaHeight) {
                  if (bubble.isTarget) {
                     livesRef.current--;
                     stateChanged = true;
                 }
-                hitBubbleIds.add(bubble.id);
+                return false;
             } else {
                 bubble.y = newY;
                 needsRender = true;
             }
             
             for (const bullet of bulletsRef.current) {
-                if (hitBulletIds.has(bullet.id) || hitBubbleIds.has(bubble.id)) continue;
+                if (hitBulletIds.has(bullet.id)) continue;
 
                 const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
                 const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
@@ -182,11 +184,13 @@ function CodeBubbleGame({
                         bubble.state = 'hit-wrong';
                     }
                     setTimeout(() => {
-                        hitBubbleIds.add(bubble.id);
+                        bubblesRef.current = bubblesRef.current.filter(b => b.id !== bubble.id);
                         forceRender();
                     }, 200); 
+                    return false; // remove this bubble from the next frame
                 }
             }
+            return true; // keep bubble for next frame
         });
 
         if (appendCodeQueue.length > 0) {
@@ -197,12 +201,6 @@ function CodeBubbleGame({
              bulletsRef.current = bulletsRef.current.filter(b => !hitBulletIds.has(b.id));
              needsRender = true;
         }
-
-        if (bubblesRef.current.some(b => hitBubbleIds.has(b.id))) {
-            bubblesRef.current = bubblesRef.current.filter(b => !hitBubbleIds.has(b.id));
-            needsRender = true;
-        }
-
 
         if (livesRef.current <= 0 && !isGameOverRef.current) {
             isGameOverRef.current = true;
@@ -374,6 +372,7 @@ export default function GameLevelPage() {
 
     const [game, setGame] = useState<GameWithChaptersAndLevels | null>(null);
     const [level, setLevel] = useState<GameLevel | null>(null);
+    const [chapter, setChapter] = useState<GameChapter | null>(null);
     const [nextLevel, setNextLevel] = useState<GameLevel | null>(null);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
@@ -413,9 +412,11 @@ export default function GameLevelPage() {
         setRunOutput('Analyzing code...');
         setRunOutputIsError(false);
 
+        const codeWithoutStarter = codeToRun.replace(level.starter_code || '', '').trim();
+
         try {
             const result = await reviewCodeAndProvideFeedback({
-                code: codeToRun,
+                code: codeWithoutStarter,
                 solution: level.expected_output || '',
                 programmingLanguage: game?.language || 'code',
             });
@@ -486,11 +487,12 @@ export default function GameLevelPage() {
                 getGameSettings()
             ]);
 
-            const { game, level, nextLevel } = gameDetails;
+            const { game, level, chapter, nextLevel } = gameDetails;
 
-            if (game && level) {
+            if (game && level && chapter) {
                 setGame(game as GameWithChaptersAndLevels);
                 setLevel(level);
+                setChapter(chapter as GameChapter);
                 setNextLevel(nextLevel);
                 setFinalCode(level.starter_code || '');
             }
@@ -573,7 +575,7 @@ export default function GameLevelPage() {
         return <div className="flex items-center justify-center h-screen bg-background text-foreground">Loading Level...</div>;
     }
 
-    if (!game || !level) {
+    if (!game || !level || !chapter) {
         notFound();
     }
 
@@ -582,11 +584,11 @@ export default function GameLevelPage() {
             <div className="flex flex-col h-screen bg-background">
                 <Header />
                 <main className="flex-grow pt-16 flex items-center justify-center relative overflow-hidden">
-                    <Image src={`https://picsum.photos/seed/${level.id}/1920/1080`} alt="Mission Background" fill className="object-cover -z-10 opacity-20 blur-sm" data-ai-hint="futuristic space" />
+                    <Image src={game.thumbnail_url || `https://picsum.photos/seed/${level.id}/1920/1080`} alt="Mission Background" fill className="object-cover -z-10 opacity-20 blur-sm" data-ai-hint="futuristic space" />
                     <Card className="w-full max-w-2xl bg-card/50 backdrop-blur-lg border-border/50 text-center animate-in fade-in-0 zoom-in-95 duration-500">
                         <CardHeader>
                             <CardTitle className="text-3xl font-bold">Mission Briefing</CardTitle>
-                            <CardDescription>{game.title}: {level.title}</CardDescription>
+                            <CardDescription>{chapter.title}: {level.title}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex gap-4 items-start">
@@ -707,3 +709,4 @@ export default function GameLevelPage() {
         </div>
     );
 }
+

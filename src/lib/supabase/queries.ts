@@ -3,7 +3,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -308,7 +308,7 @@ export async function getGameAndLevelDetails(gameSlug: string, levelSlug: string
     
     if(gameError || !gameData) {
         console.error("Error fetching game details:", gameError?.message);
-        return { game: null, level: null, prevLevel: null, nextLevel: null };
+        return { game: null, level: null, chapter: null, prevLevel: null, nextLevel: null };
     }
     
     const game = gameData as GameWithChaptersAndLevels;
@@ -318,14 +318,15 @@ export async function getGameAndLevelDetails(gameSlug: string, levelSlug: string
 
     if (currentLevelIndex === -1) {
         console.error(`Level with slug "${levelSlug}" not found in game "${gameSlug}"`);
-        return { game: game, level: null, prevLevel: null, nextLevel: null };
+        return { game: game, level: null, chapter: null, prevLevel: null, nextLevel: null };
     }
 
     const currentLevel = allLevels[currentLevelIndex];
+    const currentChapter = game.game_chapters.find(c => c.id === currentLevel.chapter_id);
     const prevLevel = currentLevelIndex > 0 ? allLevels[currentLevelIndex - 1] : null;
     const nextLevel = currentLevelIndex < allLevels.length - 1 ? allLevels[currentLevelIndex + 1] : null;
 
-    return { game, level: currentLevel, prevLevel, nextLevel };
+    return { game, level: currentLevel, chapter: currentChapter || null, prevLevel, nextLevel };
 }
 
 
@@ -346,7 +347,7 @@ export async function getUserGameProgress(gameId: string): Promise<UserGameProgr
 
         if (error) {
             // Log a more informative error, but don't crash the server.
-            console.error("Error fetching user game progress:", error.message || error);
+            console.error("Error fetching user game progress:", error.message || "Unknown error");
             return [];
         }
 
@@ -371,3 +372,4 @@ export async function getGameSettings(): Promise<GameSettings | null> {
     }
     return data;
 }
+
