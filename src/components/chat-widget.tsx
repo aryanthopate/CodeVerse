@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ScrollArea } from './ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -40,7 +41,7 @@ export function ChatWidget() {
           {open ? <X className="h-8 w-8" /> : <Bot className="h-8 w-8" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={16} className="w-96 mr-4 mb-2 bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden">
+      <PopoverContent align="end" sideOffset={16} className="w-96 mr-4 mb-2 bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden rounded-2xl">
         <div className="flex flex-col h-[60vh]">
           <div className="p-4 border-b border-border/50">
              <h4 className="font-medium leading-none">Chatlify AI</h4>
@@ -57,19 +58,17 @@ export function ChatWidget() {
           </ScrollArea>
           
           <div className="p-4 border-t border-border/50">
-             <Button asChild className="w-full mb-4">
+             <Button asChild className="w-full mb-4 rounded-xl">
                   <Link href="/chat">Open Full Chat</Link>
              </Button>
-            <div className="relative">
-                <Input placeholder="Ask anything..." className="pr-20" />
-                <div className="absolute top-1/2 right-2 transform -translate-y-1/2 flex gap-1">
-                    <Button variant="ghost" size="icon">
-                        <Paperclip className="h-5 w-5" />
-                    </Button>
-                    <Button size="icon">
-                        <Send className="h-5 w-5" />
-                    </Button>
-                </div>
+            <div className="relative flex items-center gap-2">
+                 <Button type="button" variant="ghost" size="icon">
+                    <Paperclip className="h-5 w-5" />
+                 </Button>
+                <Input placeholder="Ask anything..." className="pr-10 rounded-full" />
+                <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full">
+                    <Send className="h-4 w-4" />
+                </Button>
             </div>
           </div>
         </div>
