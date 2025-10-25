@@ -185,13 +185,13 @@ export default async function Home() {
                         </Button>
                     </div>
                      <div className="flex-1 w-full flex items-center justify-center z-10 group">
-                        <Image 
-                            src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"} 
-                            width={400} 
-                            height={400} 
-                            alt="Coding Game" 
-                            className="rounded-2xl shadow-2xl shadow-black/50 transform transition-all duration-500 group-hover:scale-105 p-2 bg-gradient-to-br from-accent/50 to-primary/50 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
-                            data-ai-hint="neon abstract" 
+                        <Image
+                            src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"}
+                            width={400}
+                            height={400}
+                            alt="Coding Game"
+                            className="object-contain rounded-2xl p-2 bg-gradient-to-br from-accent/50 to-primary/50 shadow-[0_0_15px_2px] shadow-primary/30 transition-all duration-500 group-hover:scale-105 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
+                            data-ai-hint="neon abstract"
                         />
                     </div>
                 </div>
@@ -246,5 +246,6 @@ export default async function Home() {
     </div>
   );
 }
+
 
 
