@@ -768,6 +768,7 @@ export async function deleteChat(chatId: string) {
         return { success: false, error: error.message };
     }
     revalidatePath('/admin/users', 'layout');
+    revalidatePath('/chat');
     return { success: true };
 }
 
@@ -791,6 +792,8 @@ export async function createNewChat(title: string): Promise<Chat | null> {
 
 export async function saveChat(chatId: string, messages: ChatMessage[]) {
     const supabase = createClient();
+     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return; // Anonymous chats are not saved
     
     // We only need to upsert the messages, the chat record already exists.
     const messagesToUpsert = messages.map(msg => ({
@@ -815,3 +818,17 @@ export async function saveChat(chatId: string, messages: ChatMessage[]) {
     revalidatePath(`/chat/${chatId}`);
     revalidatePath('/admin/chats', 'layout');
 }
+
+
+export async function updateChat(chatId: string, updates: Partial<Chat>) {
+    const supabase = createClient();
+    const { error } = await supabase.from('chats').update(updates).eq('id', chatId);
+    if (error) {
+        console.error("Failed to update chat:", error);
+        return { success: false, error: error.message };
+    }
+    revalidatePath('/chat');
+    return { success: true };
+}
+
+    

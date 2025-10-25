@@ -10,6 +10,19 @@ import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuesti
 // For client-side data fetching, you should create a client-side function
 // that uses the client Supabase instance.
 
+export async function getUserProfile(): Promise<UserProfile | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    if (error) {
+        console.error("Error fetching user profile:", error.message);
+        return null;
+    }
+    return data;
+}
+
 export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChaptersAndTopics[] | null> {
     const supabase = createClient();
     const { data: courses, error } = await supabase
@@ -397,6 +410,7 @@ export async function getUserChats(): Promise<Chat[] | null> {
         .from('chats')
         .select('*')
         .eq('user_id', user.id)
+        .order('is_pinned', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -499,3 +513,5 @@ export async function getChatForAdmin(chatId: string) {
 
     return { chat: data };
 }
+
+    

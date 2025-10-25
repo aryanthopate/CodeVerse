@@ -1,6 +1,6 @@
 
 
-import { getUserChats, getChat, getWebsiteSettings } from '@/lib/supabase/queries';
+import { getUserChats, getChat, getWebsiteSettings, getUserProfile } from '@/lib/supabase/queries';
 import { ChatClient } from '../chat-client';
 import { notFound } from 'next/navigation';
 
@@ -10,6 +10,7 @@ export default async function SpecificChatPage({ params }: { params: { chatId: s
   const chats = await getUserChats();
   const { chat, messages } = await getChat(params.chatId);
   const settings = await getWebsiteSettings();
+  const profile = await getUserProfile();
 
   if (!chat) {
     notFound();
@@ -20,6 +21,7 @@ export default async function SpecificChatPage({ params }: { params: { chatId: s
     messages: messages || [],
   };
 
-  return <ChatClient chats={chats} activeChat={activeChat} settings={settings} />;
+  return <ChatClient chats={chats || []} activeChat={activeChat} settings={settings} profile={profile} />;
 }
 
+    

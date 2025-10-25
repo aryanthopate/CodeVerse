@@ -80,18 +80,24 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_archived: boolean | null
+          is_pinned: boolean | null
           title: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
           title: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
           title?: string
           user_id?: string
         }
@@ -844,3 +850,5 @@ export type Composites<
   : PublicCompositeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeNameOrOptions]
     : never
+
+    
