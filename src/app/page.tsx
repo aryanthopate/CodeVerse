@@ -175,7 +175,7 @@ export default async function Home() {
                             New Feature!
                         </Badge>
                         <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
-                            Play & Learn
+                            Play &amp; Learn
                         </h2>
                         <p className="mt-4 text-lg text-muted-foreground max-w-xl">
                             Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
@@ -184,8 +184,19 @@ export default async function Home() {
                             <Link href="/playground">Enter the Playground <Gamepad2 className="ml-2" /></Link>
                         </Button>
                     </div>
-                    <div className="flex-1 w-full max-w-md lg:max-w-none z-10">
-                        <Image src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"} width={600} height={600} alt="Coding Game" className="rounded-xl shadow-2xl shadow-accent/20 transform hover:scale-105 transition-transform duration-500" data-ai-hint="neon abstract" />
+                     <div className="flex-1 w-full flex items-center justify-center z-10 group">
+                        <div className="relative w-full max-w-md lg:max-w-none p-2 rounded-2xl bg-gradient-to-br from-accent/50 to-primary/50 transition-all duration-500 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40">
+                             <div className="w-full aspect-square bg-background/50 rounded-xl flex items-center justify-center">
+                                <Image 
+                                    src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"} 
+                                    width={400} 
+                                    height={400} 
+                                    alt="Coding Game" 
+                                    className="rounded-lg shadow-2xl shadow-black/50 transform transition-transform duration-500 group-hover:scale-105" 
+                                    data-ai-hint="neon abstract" 
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -239,3 +250,4 @@ export default async function Home() {
     </div>
   );
 }
+
