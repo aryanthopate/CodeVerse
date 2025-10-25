@@ -42,10 +42,10 @@ export default async function PlaygroundPage() {
                                                 alt={game.title} 
                                                 width={600} 
                                                 height={400} 
-                                                className="w-full h-48 object-cover rounded-t-md border-b-2 border-[hsl(var(--game-border))] transition-transform duration-300 group-hover:scale-105"
+                                                className="w-full h-48 object-cover rounded-t-md border-b-2 border-[hsl(var(--game-border))]"
                                                 data-ai-hint="abstract game design"
                                             />
-                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                 <div className="text-white font-semibold flex items-center gap-2">
                                                     View Game Map <ArrowRight className="h-4 w-4"/>
                                                 </div>

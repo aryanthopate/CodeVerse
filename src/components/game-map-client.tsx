@@ -25,25 +25,23 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
         
         // Position the gate before the first level of the chapter
         const gateX = x;
-        // Don't add a gate if it's the very first item
-        if (i > 0 || chapters.length === 1) {
-            levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: y_center });
-            // Advance x for the gate and spacing
-            x += chapterGateSpacing;
+        
+        levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: y_center });
+        // Advance x for the gate and spacing
+        x += chapterGateSpacing;
 
-             // Draw path from previous item (if any) to the gate
-            if (levels.length > 1) {
-                const prevItem = levels[levels.length-2];
-                const prevX = prevItem.x;
-                const prevY = prevItem.y;
+         // Draw path from previous item (if any) to the gate
+        if (levels.length > 1) {
+            const prevItem = levels[levels.length-2];
+            const prevX = prevItem.x;
+            const prevY = prevY;
 
-                const cp1x = prevX + (segmentLength * 0.6);
-                const cp1y = prevY;
-                const cp2x = gateX - (segmentLength * 0.6);
-                const cp2y = y_center;
-                
-                pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${gateX},${y_center}`;
-            }
+            const cp1x = prevX + (segmentLength * 0.6);
+            const cp1y = prevY;
+            const cp2x = gateX - (segmentLength * 0.6);
+            const cp2y = y_center;
+            
+            pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${gateX},${y_center}`;
         }
         
         for (let j = 0; j < chapter.game_levels.length; j++) {

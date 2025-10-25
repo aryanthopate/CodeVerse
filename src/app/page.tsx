@@ -174,8 +174,8 @@ export default async function Home() {
                         <Badge variant="outline" className="mb-4 border-accent text-accent animate-float text-sm">
                             New Feature!
                         </Badge>
-                        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
-                            Play &amp; Learn
+                        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary [text-shadow:0_0_8px_hsl(var(--primary)/0.5)]">
+                            Play & Learn
                         </h2>
                         <p className="mt-4 text-lg text-muted-foreground max-w-xl">
                             Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
@@ -246,6 +246,3 @@ export default async function Home() {
     </div>
   );
 }
-
-
-

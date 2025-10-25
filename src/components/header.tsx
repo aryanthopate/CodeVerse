@@ -10,7 +10,8 @@ import { Menu, X, Shield, ShoppingCart, Heart, Gamepad2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { UserProfile } from '@/lib/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +19,8 @@ export function Header() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
+  const pathname = usePathname();
+  const isPlayground = pathname.startsWith('/playground');
 
   useEffect(() => {
     const getProfile = async () => {
@@ -59,29 +62,38 @@ export function Header() {
   ];
 
   const user = profile; // for clarity
+  
+  const navLinkClasses = isPlayground 
+    ? "text-sm font-medium text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))] transition-colors"
+    : "text-sm font-medium text-muted-foreground hover:text-primary transition-colors";
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-lg">
+    <header className={cn(
+        "fixed top-0 left-0 right-0 z-50",
+        isPlayground 
+            ? "bg-[hsl(var(--game-surface))] border-b-2 border-[hsl(var(--game-border))]" 
+            : "bg-background/50 backdrop-blur-lg"
+    )}>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <Logo />
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
-            <Link key={link.name} href={link.href} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link key={link.name} href={link.href} className={navLinkClasses}>
               {link.name}
             </Link>
           ))}
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-           <Button variant="ghost" size="icon" asChild>
+           <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                 <Link href="/wishlist"><Heart className="h-5 w-5" /></Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                 <Link href="/cart"><ShoppingCart className="h-5 w-5" /></Link>
             </Button>
-            <div className="w-px h-6 bg-border mx-2"></div>
+            <div className={cn("w-px h-6 mx-2", isPlayground ? "bg-[hsl(var(--game-border))]" : "bg-border")}></div>
           {loading ? null : user ? (
             <>
               {user.role === 'admin' && (
@@ -89,17 +101,17 @@ export function Header() {
                   <Link href="/admin"><Shield className="mr-2 h-4 w-4" />Admin Panel</Link>
                 </Button>
               )}
-              <Button variant="ghost" onClick={handleLogout}>Logout</Button>
-              <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
+              <Button variant="ghost" onClick={handleLogout} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>Logout</Button>
+              <Button asChild className={cn(isPlayground ? 'btn-game' : '', "shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300")}>
                   <Link href="/dashboard">Go to Dashboard</Link>
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                 <Link href="/login">Login</Link>
               </Button>
-              <Button asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
+              <Button asChild className={cn(isPlayground ? 'btn-game' : '', "shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300")}>
                 <Link href="/signup">Start Learning</Link>
               </Button>
             </>
@@ -108,24 +120,24 @@ export function Header() {
 
         {/* Mobile Navigation */}
         <div className="md:hidden flex items-center gap-2">
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                 <Link href="/wishlist"><Heart className="h-5 w-5" /></Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                 <Link href="/cart"><ShoppingCart className="h-5 w-5" /></Link>
             </Button>
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-background">
+            <SheetContent side="right" className={cn("w-[300px] sm:w-[400px]", isPlayground ? "bg-[hsl(var(--game-bg))] border-[hsl(var(--game-border))]" : "bg-background")}>
               <div className="p-4">
                 <div className="flex justify-between items-center mb-8">
                   <Logo />
-                  <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                  <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                     <X className="h-6 w-6" />
                     <span className="sr-only">Close menu</span>
                   </Button>
@@ -136,13 +148,13 @@ export function Header() {
                     <Link
                       key={link.name}
                       href={link.href}
-                      className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                      className={cn("text-lg font-medium", isPlayground ? "text-[hsl(var(--game-text))]" : "text-foreground", "hover:text-primary transition-colors")}
                       onClick={() => setIsOpen(false)}
                     >
                       {link.name}
                     </Link>
                   ))}
-                  <div className="border-t border-border pt-6 mt-4 flex flex-col gap-4">
+                  <div className={cn("border-t pt-6 mt-4 flex flex-col gap-4", isPlayground ? "border-[hsl(var(--game-border))]" : "border-border")}>
                      {loading ? null : user ? (
                         <>
                           {user.role === 'admin' && (
@@ -150,14 +162,14 @@ export function Header() {
                               <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Panel</Link>
                             </Button>
                           )}
-                          <Button variant="ghost" onClick={() => { handleLogout(); setIsOpen(false); }}>Logout</Button>
+                          <Button variant="ghost" onClick={() => { handleLogout(); setIsOpen(false); }} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>Logout</Button>
                           <Button asChild>
                               <Link href="/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>
                           </Button>
                         </>
                      ) : (
                         <>
-                            <Button variant="ghost" asChild>
+                            <Button variant="ghost" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                                 <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
                             </Button>
                             <Button asChild>
