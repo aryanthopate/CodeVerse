@@ -3,7 +3,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter, WebsiteSettings, Chat, UserProfile } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter, WebsiteSettings, Chat, UserProfile, ChatMessage } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -406,6 +406,26 @@ export async function getUserChats(): Promise<Chat[] | null> {
     return data;
 }
 
+export async function getChat(chatId: string): Promise<{ chat: Chat | null, messages: ChatMessage[] | null }> {
+    const supabase = createClient();
+     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { chat: null, messages: null };
+
+    const { data: chat, error: chatError } = await supabase.from('chats').select('*').eq('id', chatId).eq('user_id', user.id).single();
+    if (chatError) {
+        console.error("Error fetching chat:", chatError);
+        return { chat: null, messages: null };
+    }
+
+    const { data: messages, error: messagesError } = await supabase.from('chat_messages').select('*').eq('chat_id', chatId).order('created_at', { ascending: true });
+     if (messagesError) {
+        console.error("Error fetching messages:", messagesError);
+        return { chat, messages: null };
+    }
+
+    return { chat, messages };
+}
+
 
 // Admin-specific queries
 export async function getUsersWithChatCount(): Promise<(UserProfile & { chat_count: number })[] | null> {
@@ -465,7 +485,7 @@ export async function getChatForAdmin(chatId: string) {
         .from('chats')
         .select(`
             *,
-            profiles (id, full_name, email),
+            profiles (id, full_name, avatar_url, email),
             chat_messages (*)
         `)
         .eq('id', chatId)

@@ -10,6 +10,8 @@ import {
 import { Input } from './ui/input';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { ScrollArea } from './ui/scroll-area';
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -21,8 +23,8 @@ export function ChatWidget() {
     { id: '2', title: 'Explaining Python decorators' },
   ]
 
-  // Do not render the widget on any playground pages
-  if (pathname.startsWith('/playground')) {
+  // Do not render the widget on any playground or main chat pages
+  if (pathname.startsWith('/playground') || pathname.startsWith('/chat')) {
     return null;
   }
 
@@ -38,21 +40,26 @@ export function ChatWidget() {
           {open ? <X className="h-8 w-8" /> : <Bot className="h-8 w-8" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 mr-4 mb-2 bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden">
+      <PopoverContent align="end" sideOffset={16} className="w-96 mr-4 mb-2 bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden">
         <div className="flex flex-col h-[60vh]">
           <div className="p-4 border-b border-border/50">
              <h4 className="font-medium leading-none">Chatlify AI</h4>
              <p className="text-sm text-muted-foreground mt-1">Your personal coding assistant.</p>
           </div>
           
-          <div className="flex-grow p-4 space-y-4 overflow-y-auto">
-             {/* This is where the chat messages would go */}
-             <div className="text-center text-sm text-muted-foreground pt-12">
-                Start a new conversation to see your messages here.
+          <ScrollArea className="flex-grow">
+            <div className="p-4 space-y-4">
+              {/* This is where the chat messages would go */}
+              <div className="text-center text-sm text-muted-foreground pt-12">
+                  Start a new conversation to see your messages here.
+              </div>
             </div>
-          </div>
+          </ScrollArea>
           
           <div className="p-4 border-t border-border/50">
+             <Button asChild className="w-full mb-4">
+                  <Link href="/chat">Open Full Chat</Link>
+             </Button>
             <div className="relative">
                 <Input placeholder="Ask anything..." className="pr-20" />
                 <div className="absolute top-1/2 right-2 transform -translate-y-1/2 flex gap-1">

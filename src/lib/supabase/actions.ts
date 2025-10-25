@@ -767,22 +767,51 @@ export async function deleteChat(chatId: string) {
         console.error('Error deleting chat:', error);
         return { success: false, error: error.message };
     }
-    revalidatePath('/admin/users'); // Revalidate all user pages
+    revalidatePath('/admin/users', 'layout');
     return { success: true };
 }
+
+export async function createNewChat(title: string): Promise<Chat | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+        .from('chats')
+        .insert({ user_id: user.id, title: title.substring(0, 50) })
+        .select()
+        .single();
     
+    if (error) {
+        console.error("Failed to create new chat", error);
+        return null;
+    }
+    return data;
+}
 
+export async function saveChat(chatId: string, messages: ChatMessage[]) {
+    const supabase = createClient();
     
+    // We only need to upsert the messages, the chat record already exists.
+    const messagesToUpsert = messages.map(msg => ({
+        ...msg,
+        chat_id: chatId,
+        content: msg.content // Ensure content is in JSON format
+    }));
 
+    // Delete existing messages and insert new ones to ensure consistency
+    const { error: deleteError } = await supabase.from('chat_messages').delete().eq('chat_id', chatId);
+    if(deleteError) {
+        console.error("Failed to delete old messages", deleteError);
+        return;
+    }
+
+    const { error: insertError } = await supabase.from('chat_messages').insert(messagesToUpsert.map(({id, created_at, ...rest}) => rest));
+     if(insertError) {
+        console.error("Failed to save new messages", insertError);
+        return;
+    }
     
-
-
-
-
-
-
-    
-
-
-
-
+    revalidatePath(`/chat/${chatId}`);
+    revalidatePath('/admin/chats', 'layout');
+}
