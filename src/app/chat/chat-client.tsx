@@ -463,9 +463,9 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 
     if (isArchived) {
         return (
-            <div onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block cursor-pointer">
+            <button onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block cursor-pointer">
                 {content}
-            </div>
+            </button>
         );
     }
     
@@ -475,5 +475,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
+
+    
 
     
