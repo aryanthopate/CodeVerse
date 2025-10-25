@@ -1,14 +1,12 @@
 
-
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { getGameAndLevelDetails } from '@/lib/supabase/queries';
-import { GameWithChaptersAndLevels, GameLevel } from '@/lib/types';
+import { getGameAndLevelDetails, getGameSettings } from '@/lib/supabase/queries';
+import { GameWithChaptersAndLevels, GameLevel, GameSettings } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
@@ -49,7 +47,8 @@ function CodeBubbleGame({
     onCodeAppend,
     gameSlug,
     onStartGame,
-    gameStarted
+    gameStarted,
+    rocketImageUrl
 }: {
     level: GameLevel,
     onLevelComplete: () => void,
@@ -58,6 +57,7 @@ function CodeBubbleGame({
     gameSlug: string;
     onStartGame: () => void;
     gameStarted: boolean;
+    rocketImageUrl: string | null;
 }) {
     const rocketRef = useRef<HTMLDivElement>(null);
     const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -75,7 +75,6 @@ function CodeBubbleGame({
     const forceRender = useCallback(() => setRenderTrigger(c => c + 1), []);
 
     const correctSnippets = useMemo(() => {
-        // More robust regex to handle various code tokens
         return level.expected_output?.match(/([a-zA-Z_]\w*|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\d+)/g) || [];
     }, [level.expected_output]);
 
@@ -95,15 +94,15 @@ function CodeBubbleGame({
 
     const handleRestart = useCallback(() => {
         isGameOverRef.current = false;
-        onCodeAppend('');
+        onCodeAppend(level.starter_code || '');
         bubblesRef.current = [];
         bulletsRef.current = [];
         targetIndexRef.current = 0;
         livesRef.current = 3;
         lastBubbleTimeRef.current = Date.now();
         if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
-        onStartGame(); // This will trigger the game loop to start
-    }, [onCodeAppend, onStartGame]);
+        onStartGame(); 
+    }, [onCodeAppend, onStartGame, level.starter_code]);
 
     const gameLoop = useCallback(() => {
         if (!gameAreaRef.current || isGameOverRef.current || !gameStarted) {
@@ -115,8 +114,7 @@ function CodeBubbleGame({
         const gameAreaHeight = gameAreaRef.current.offsetHeight;
         let needsRender = false;
         
-        // Spawn bubbles logic
-        if (now - lastBubbleTimeRef.current > 3000 && bubblesRef.current.filter(b => b.isTarget).length < 1) { // Slower spawn rate
+        if (now - lastBubbleTimeRef.current > 1500 && bubblesRef.current.filter(b => b.isTarget).length < 1) { 
              if (targetIndexRef.current < correctSnippets.length) {
                 const newBubbles: Bubble[] = [];
                 const targetText = correctSnippets[targetIndexRef.current];
@@ -141,7 +139,6 @@ function CodeBubbleGame({
             }
         }
     
-        // Move bullets
         if (bulletsRef.current.length > 0) {
             bulletsRef.current = bulletsRef.current.map(bullet => ({ ...bullet, y: bullet.y - 12 })).filter(bullet => bullet.y > -20);
             needsRender = true;
@@ -152,12 +149,10 @@ function CodeBubbleGame({
         let hitBubbleIds = new Set<number>();
         let stateChanged = false;
 
-        // Move and check collisions for bubbles
         bubblesRef.current.forEach(bubble => {
              if (bubble.state !== 'active') return;
 
-            // Move bubble
-            const newY = bubble.y + 0.6; // Slower bubble speed
+            const newY = bubble.y + 1.5; 
             if (newY > gameAreaHeight) {
                  if (bubble.isTarget) {
                     livesRef.current--;
@@ -188,7 +183,8 @@ function CodeBubbleGame({
                     }
                     setTimeout(() => {
                         hitBubbleIds.add(bubble.id);
-                    }, 300); // Remove after animation
+                        forceRender();
+                    }, 200); 
                 }
             }
         });
@@ -202,10 +198,11 @@ function CodeBubbleGame({
              needsRender = true;
         }
 
-        if (hitBubbleIds.size > 0) {
+        if (bubblesRef.current.some(b => hitBubbleIds.has(b.id))) {
             bubblesRef.current = bubblesRef.current.filter(b => !hitBubbleIds.has(b.id));
             needsRender = true;
         }
+
 
         if (livesRef.current <= 0 && !isGameOverRef.current) {
             isGameOverRef.current = true;
@@ -254,7 +251,6 @@ function CodeBubbleGame({
             if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
             gameLoopRef.current = requestAnimationFrame(gameLoop);
         }
-
 
         return () => {
             if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
@@ -322,7 +318,7 @@ function CodeBubbleGame({
                 />
             ))}
             <div ref={rocketRef} className="absolute bottom-4 h-12 w-10 will-change-transform z-10">
-                <Image src="/images/rocket-game.jpg" alt="Rocket" width={40} height={48} className="h-12 w-10" />
+                <Image src={rocketImageUrl || "/images/rocket-game.png"} alt="Rocket" width={40} height={48} className="h-12 w-10 object-contain" />
             </div>
         </div>
     )
@@ -384,6 +380,7 @@ export default function GameLevelPage() {
     const [showIntro, setShowIntro] = useState(true);
     const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver' | 'manual' | 'reviewing'>('playing');
     const [showSolution, setShowSolution] = useState(false);
+    const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
 
     const [feedback, setFeedback] = useState('');
     const [hint, setHint] = useState('');
@@ -423,7 +420,6 @@ export default function GameLevelPage() {
                 programmingLanguage: game?.language || 'code',
             });
 
-            // More lenient check for success
             const positiveFeedback = /correct|well done|great job|excellent|perfect|looks good/i.test(result.feedback);
 
             if (positiveFeedback) {
@@ -449,7 +445,6 @@ export default function GameLevelPage() {
 
     const handleBubblePhaseComplete = useCallback(async () => {
         setGameState('reviewing');
-        // A small delay to let the user see the final code before analysis
         setTimeout(() => handleRunCode(finalCode), 1000);
     }, [finalCode, handleRunCode]);
 
@@ -486,13 +481,21 @@ export default function GameLevelPage() {
             }
             setUser(user);
 
-            const { game, level, nextLevel } = await getGameAndLevelDetails(params.gameSlug as string, params.levelSlug as string);
+            const [gameDetails, settingsData] = await Promise.all([
+                getGameAndLevelDetails(params.gameSlug as string, params.levelSlug as string),
+                getGameSettings()
+            ]);
+
+            const { game, level, nextLevel } = gameDetails;
 
             if (game && level) {
                 setGame(game as GameWithChaptersAndLevels);
                 setLevel(level);
                 setNextLevel(nextLevel);
                 setFinalCode(level.starter_code || '');
+            }
+            if(settingsData) {
+                setGameSettings(settingsData);
             }
             setLoading(false);
         };
@@ -566,7 +569,6 @@ export default function GameLevelPage() {
 
     const gameAreaRef = useRef<HTMLDivElement>(null);
 
-
     if (loading) {
         return <div className="flex items-center justify-center h-screen bg-background text-foreground">Loading Level...</div>;
     }
@@ -636,6 +638,7 @@ export default function GameLevelPage() {
                                             gameSlug={game.slug}
                                             onStartGame={() => setGameStarted(true)}
                                             gameStarted={gameStarted}
+                                            rocketImageUrl={gameSettings?.rocket_image_url || null}
                                         />
                                         <GameStatusOverlay />
                                     </>
@@ -704,8 +707,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
-
-
-
-
