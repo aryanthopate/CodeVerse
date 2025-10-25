@@ -10,7 +10,7 @@ import type { GameWithChaptersAndLevels, UserGameProgress } from '@/lib/types';
 import Image from 'next/image';
 
 // Helper function to generate SVG path data and level positions
-const generateLevelMap = (chapters: any[]) => {
+const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
     const levels = [];
     let pathData = "";
     let x = 150;
@@ -18,31 +18,52 @@ const generateLevelMap = (chapters: any[]) => {
     const segmentLength = 250;
     const verticalMovement = 100;
     let levelIndex = 0;
+    const chapterGateSpacing = 100; // Added spacing for gates
 
     for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
         
-        // Add a gate before each chapter
-        const gateX = x - segmentLength / 2;
+        // Position the gate before the first level of the chapter
+        const gateX = x;
         levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: y_center });
+        
+        // Advance x for the gate and spacing
+        x += chapterGateSpacing;
 
+        // Draw path from previous item (if any) to the gate
+        if (levels.length > 1) {
+            const prevItem = levels[levels.length-2];
+            const prevX = prevItem.type === 'gate' ? prevItem.x + chapterGateSpacing : prevItem.x;
+            const prevY = prevItem.y;
+
+            const cp1x = prevX + (segmentLength * 0.6);
+            const cp1y = prevY;
+            const cp2x = gateX - (segmentLength * 0.6);
+            const cp2y = y_center;
+            
+            pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${gateX},${y_center}`;
+        }
+        
         for (let j = 0; j < chapter.game_levels.length; j++) {
             const level = chapter.game_levels[j];
             
+            // Now position the actual level node
+            const currentLevelX = x;
             const currentY = y_center + (levelIndex % 2 === 0 ? 0 : (Math.floor(levelIndex / 2) % 2 === 0 ? -verticalMovement : verticalMovement));
             
-            levels.push({ type: 'level', ...level, x, y: currentY });
+            levels.push({ type: 'level', ...level, x: currentLevelX, y: currentY });
 
+            // Path from gate to first level, or from level to level
             const prevItem = levels[levels.length - 2];
             const prevX = prevItem.x;
             const prevY = prevItem.y;
 
             const cp1x = prevX + segmentLength * 0.6;
             const cp1y = prevY;
-            const cp2x = x - segmentLength * 0.6;
+            const cp2x = currentLevelX - segmentLength * 0.6;
             const cp2y = currentY;
 
-            pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${x},${currentY}`;
+            pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${currentLevelX},${currentY}`;
             
             x += segmentLength;
             levelIndex++;
@@ -54,7 +75,7 @@ const generateLevelMap = (chapters: any[]) => {
 };
 
 export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAndLevels, userProgress: UserGameProgress[] | null }) {
-    const { levels: levelPositions, pathData, width } = generateLevelMap(game.game_chapters);
+    const { levels: levelPositions, pathData, width } = generateLevelMap(game.game_chapters, game);
     const completedLevelIds = userProgress?.map(p => p.completed_level_id) || [];
     
     const allLevelsFlat = game.game_chapters.flatMap(c => c.game_levels);
