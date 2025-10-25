@@ -69,7 +69,7 @@ function CodeBubbleGame({
     const lastBubbleTimeRef = useRef(Date.now());
     const isGameOverRef = useRef(false);
 
-    const [renderTrigger, setRenderTrigger] = useState(0);
+    const [, setRenderTrigger] = useState(0);
 
     const forceRender = useCallback(() => setRenderTrigger(c => c + 1), []);
 
@@ -703,6 +703,7 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
 
 
 
