@@ -106,7 +106,8 @@ function CodeBubbleGame({
         const gameAreaHeight = gameAreaRef.current.offsetHeight;
         let needsRender = false;
         
-        if (now - lastBubbleTimeRef.current > 2000 && bubblesRef.current.filter(b => b.isTarget).length < 1) { 
+        // Spawn new bubbles
+        if (now - lastBubbleTimeRef.current > 2000 && bubblesRef.current.filter(b => b.isTarget && b.state === 'active').length < 1) { 
              if (targetIndexRef.current < correctSnippets.length) {
                 const newBubbles: Bubble[] = [];
                 const targetText = correctSnippets[targetIndexRef.current];
@@ -131,59 +132,71 @@ function CodeBubbleGame({
             }
         }
     
+        // Move bullets
         if (bulletsRef.current.length > 0) {
             bulletsRef.current = bulletsRef.current.map(bullet => ({ ...bullet, y: bullet.y - 12 })).filter(bullet => bullet.y > -20);
             needsRender = true;
         }
         
-        let appendCodeQueue: string[] = [];
-        let hitBulletIds = new Set<number>();
-        
+        const appendCodeQueue: string[] = [];
+        const hitBulletIds = new Set<number>();
+        const hitBubbleIds = new Set<number>();
         let stateChanged = false;
 
-        const newBubbles = bubblesRef.current.map(bubble => {
-            if (bubble.state !== 'active') return bubble; 
+        // Move bubbles and check for collisions
+        for (const bubble of bubblesRef.current) {
+             if (bubble.state !== 'active') continue;
 
-            const newY = bubble.y + 0.8; 
-            if (newY > gameAreaHeight) {
-                 if (bubble.isTarget) {
+            bubble.y += 0.8;
+            needsRender = true;
+            
+            // Check if bubble is off-screen
+            if (bubble.y > gameAreaHeight) {
+                hitBubbleIds.add(bubble.id);
+                if (bubble.isTarget) {
                     livesRef.current--;
                     stateChanged = true;
                 }
-                return null;
-            } else {
-                bubble.y = newY;
-                needsRender = true;
+                continue;
             }
-            
+
+            // Check for bullet collision
             for (const bullet of bulletsRef.current) {
                 if (hitBulletIds.has(bullet.id)) continue;
 
                 const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
                 const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
 
-                if (distance < 40) {
+                if (distance < 40) { // Collision detected
                     hitBulletIds.add(bullet.id);
+                    hitBubbleIds.add(bubble.id);
                     stateChanged = true;
+
                     if (bubble.isTarget) {
                         appendCodeQueue.push(bubble.text);
                         targetIndexRef.current++;
-                        bubble.state = 'hit-correct';
+                        bubble.state = 'hit-correct'; // Change state for animation
                     } else {
                         livesRef.current--;
                         bubble.state = 'hit-wrong';
                     }
+                    
+                     // Schedule the animated bubble to be removed
                     setTimeout(() => {
                         bubblesRef.current = bubblesRef.current.filter(b => b.id !== bubble.id);
-                        forceRender();
                     }, 300);
-                    return bubble;
+                    break; 
                 }
             }
-            return bubble;
-        }).filter(Boolean) as Bubble[];
-        
-        bubblesRef.current = newBubbles;
+        }
+
+        // Clean up
+        if (hitBubbleIds.size > 0) {
+            // In the main loop, we only mark for removal. The actual removal for animated bubbles is timed.
+            // Non-animated (off-screen) bubbles are removed here.
+            bubblesRef.current = bubblesRef.current.filter(b => b.state !== 'active' || !hitBubbleIds.has(b.id));
+            needsRender = true;
+        }
 
         if (appendCodeQueue.length > 0) {
             onCodeChange(prevCode => {
@@ -200,6 +213,7 @@ function CodeBubbleGame({
              needsRender = true;
         }
 
+        // Check game state
         if (livesRef.current <= 0 && !isGameOverRef.current) {
             isGameOverRef.current = true;
             onGameOver();
@@ -207,6 +221,7 @@ function CodeBubbleGame({
         }
 
         if (targetIndexRef.current >= correctSnippets.length && correctSnippets.length > 0 && !isGameOverRef.current) {
+             // Ensure no more active targets are on screen
              const anyActiveTargets = bubblesRef.current.some(b => b.isTarget && b.state === 'active');
              if(!anyActiveTargets) {
                 isGameOverRef.current = true;
@@ -271,7 +286,7 @@ function CodeBubbleGame({
     return (
         <div ref={gameAreaRef} id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border cursor-crosshair">
             {!gameStarted && (
-                 <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50">
+                 <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <button className="btn-game" onClick={(e) => handleButtonClick(e, onStartGame)}>
                         <Play className="mr-2" /> Start Mission
                     </button>
@@ -704,4 +719,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
