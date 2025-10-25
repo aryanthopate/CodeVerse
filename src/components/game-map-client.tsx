@@ -7,6 +7,7 @@ import { Check, Lock, Play, Crown, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import type { GameWithChaptersAndLevels, UserGameProgress } from '@/lib/types';
+import Image from 'next/image';
 
 // Helper function to generate SVG path data and level positions
 const generateLevelMap = (chapters: any[]) => {
@@ -85,7 +86,13 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
                    if (item.type === 'gate') {
                         return (
                              <div key={`gate-${index}`} style={{ left: `${item.x}px`, top: `50%`, transform: 'translate(-50%, -50%)' }} className="absolute flex flex-col items-center z-10 text-primary">
-                                <div className="w-16 h-16 rounded-full bg-gray-800 border-4 border-dashed border-primary/50 flex items-center justify-center font-bold text-lg">{index + 1}</div>
+                                <div className="w-16 h-16 rounded-xl bg-gray-800 border-4 border-dashed border-primary/50 flex items-center justify-center font-bold text-lg overflow-hidden">
+                                     {game.thumbnail_url ? (
+                                        <Image src={game.thumbnail_url} alt={game.title} width={64} height={64} className="object-cover w-full h-full" />
+                                    ) : (
+                                        <span>{game.title.charAt(0)}</span>
+                                    )}
+                                </div>
                                 <p className="text-xs font-bold w-48 text-center mt-2 tracking-widest uppercase text-primary/80">{item.chapterTitle}</p>
                             </div>
                         )
