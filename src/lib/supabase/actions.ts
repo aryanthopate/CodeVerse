@@ -855,3 +855,5 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     revalidatePath('/chat', 'layout');
     return { success: true };
 }
+
+    
