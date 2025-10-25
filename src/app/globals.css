@@ -128,4 +128,18 @@
     transform: translateY(0);
     box-shadow: 0 2px 0 hsl(var(--game-bg)), 0 2px 4px hsla(0, 0%, 0%, 0.3), inset 0 1px 1px hsl(var(--game-border));
   }
+
+  .tabs-game {
+    @apply inline-flex h-auto items-center justify-center rounded-md p-1;
+    background-color: hsl(var(--game-bg));
+    border: 2px solid hsl(var(--game-border));
+  }
+  .tab-trigger-game {
+     @apply inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+     color: hsl(var(--game-text) / 0.7);
+  }
+   .tab-trigger-game[data-state=active] {
+      @apply btn-game !py-1.5;
+   }
+
 }

@@ -116,6 +116,11 @@ export default {
         'gradient-x': {
             '0%, 100%': { 'background-position': '0% 50%' },
             '50%': { 'background-position': '100% 50%' },
+        },
+        'burst': {
+          '0%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.5)', opacity: '0.5' },
+          '100%': { transform: 'scale(2)', opacity: '0' },
         }
       },
       animation: {
@@ -125,6 +130,7 @@ export default {
         'glow-pulse': 'glow-pulse 4s ease-in-out infinite',
         'grid-pan': 'grid-pan 15s linear infinite',
         'gradient-x': 'gradient-x 3s ease-in-out infinite',
+        'burst': 'burst 0.3s ease-out forwards',
       },
     },
   },

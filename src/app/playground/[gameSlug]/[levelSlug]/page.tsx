@@ -141,8 +141,8 @@ function CodeBubbleGame({
         
         let stateChanged = false;
 
-        const newBubbles = bubblesRef.current.filter(bubble => {
-            if (bubble.state !== 'active') return true; // keep non-active bubbles for animation
+        const newBubbles = bubblesRef.current.map(bubble => {
+            if (bubble.state !== 'active') return bubble; 
 
             const newY = bubble.y + 0.8; 
             if (newY > gameAreaHeight) {
@@ -150,7 +150,7 @@ function CodeBubbleGame({
                     livesRef.current--;
                     stateChanged = true;
                 }
-                return false;
+                return null;
             } else {
                 bubble.y = newY;
                 needsRender = true;
@@ -173,15 +173,15 @@ function CodeBubbleGame({
                         livesRef.current--;
                         bubble.state = 'hit-wrong';
                     }
-                     setTimeout(() => {
+                    setTimeout(() => {
                         bubblesRef.current = bubblesRef.current.filter(b => b.id !== bubble.id);
                         forceRender();
-                    }, 200); 
-                    return false;
+                    }, 300);
+                    return bubble;
                 }
             }
-            return true;
-        });
+            return bubble;
+        }).filter(Boolean) as Bubble[];
         
         bubblesRef.current = newBubbles;
 
@@ -232,7 +232,13 @@ function CodeBubbleGame({
             const x = e.clientX - rect.left;
             rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
         };
-        const handleClick = () => fireBullet();
+        const handleClick = (e: MouseEvent) => {
+            // Prevent firing if the click is on a button
+            if ((e.target as HTMLElement).closest('button')) {
+                return;
+            }
+            fireBullet();
+        };
 
         gameArea.addEventListener('mousemove', handleMouseMove);
         gameArea.addEventListener('click', handleClick);
@@ -257,11 +263,16 @@ function CodeBubbleGame({
         };
     }, [gameStarted, gameLoop, fireBullet]);
 
+    const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>, action: () => void) => {
+        e.stopPropagation();
+        action();
+    }
+
     return (
         <div ref={gameAreaRef} id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border cursor-crosshair">
             {!gameStarted && (
                  <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50">
-                    <button className="btn-game" onClick={onStartGame}>
+                    <button className="btn-game" onClick={(e) => handleButtonClick(e, onStartGame)}>
                         <Play className="mr-2" /> Start Mission
                     </button>
                 </div>
@@ -276,10 +287,8 @@ function CodeBubbleGame({
                         ))}
                     </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={onRestart}><RefreshCw className="mr-2" /> Restart</Button>
-                 <Button variant="destructive" size="sm" asChild>
-                    <Link href={`/playground/${gameSlug}`}><X className="mr-2" /> Quit</Link>
-                </Button>
+                <button className="btn-game !py-1 !px-3" onClick={(e) => handleButtonClick(e, onRestart)}><RefreshCw className="mr-2" /> Restart</button>
+                 <Link href={`/playground/${gameSlug}`} onClick={(e) => e.stopPropagation()} className="btn-game !py-1 !px-3 !bg-red-800/80 !border-red-600/80 !shadow-red-900/80"><X className="mr-2" /> Quit</Link>
             </div>
 
             {bubblesRef.current.map(bubble => (
@@ -290,7 +299,7 @@ function CodeBubbleGame({
                         "backdrop-blur-sm border-2 shadow-lg",
                         "transition-all duration-100",
                         bubble.state === 'active' && "bg-primary/50 border-primary/80 shadow-primary/20",
-                        bubble.state === 'hit-correct' && "bg-green-500/70 border-green-400 shadow-green-500/40 animate-ping",
+                        bubble.state === 'hit-correct' && "bg-green-500/70 border-green-400 shadow-green-500/40 animate-burst",
                         bubble.state === 'hit-wrong' && "bg-red-500/70 border-red-400 shadow-red-500/40 animate-shake",
                     )}
                     style={{
@@ -344,12 +353,12 @@ function ManualCodePractice({ level, onRunCode, onGetHint, onCodeChange, code }:
             <div className="p-4 border-b border-border/50 flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Manual Code Editor</h2>
                 <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => onGetHint(code)}>
+                    <button className="btn-game !py-2 !px-4" onClick={() => onGetHint(code)}>
                         <Lightbulb className="mr-2" /> Hint
-                    </Button>
-                    <Button size="sm" onClick={() => onRunCode(code)}>
+                    </button>
+                    <button className="btn-game !py-2 !px-4" onClick={() => onRunCode(code)}>
                         <Play className="mr-2" /> Run Code
-                    </Button>
+                    </button>
                 </div>
             </div>
             <div className="flex-grow p-2">
@@ -416,11 +425,12 @@ export default function GameLevelPage() {
             : codeToRun;
 
         try {
-            const result = await reviewCodeAndProvideFeedback({
+            const { feedback: aiFeedback } = await reviewCodeAndProvideFeedback({
                 code: codeWithoutStarter.trim(),
                 solution: level.expected_output || '',
                 programmingLanguage: game?.language || 'code',
             });
+            const result = { feedback: aiFeedback };
 
             const positiveFeedback = /correct|well done|great job|excellent|perfect|looks good/i.test(result.feedback);
 
@@ -525,17 +535,11 @@ export default function GameLevelPage() {
                             <p className="text-muted-foreground mt-2">Outstanding work, recruit! You earned {level?.reward_xp} XP.</p>
                             <div className="flex gap-4 mt-6">
                                 {nextLevel ? (
-                                    <Button asChild className="flex-1">
-                                        <Link href={`/playground/${game!.slug}/${nextLevel.slug}`}>Next Mission <ArrowRight className="ml-2"/></Link>
-                                    </Button>
+                                    <Link href={`/playground/${game!.slug}/${nextLevel.slug}`} className="btn-game flex-1">Next Mission <ArrowRight className="ml-2"/></Link>
                                 ) : (
-                                    <Button asChild className="flex-1">
-                                        <Link href={`/playground/${game!.slug}`}>Finish Game <Award className="ml-2"/></Link>
-                                    </Button>
+                                    <Link href={`/playground/${game!.slug}`} className="btn-game flex-1">Finish Game <Award className="ml-2"/></Link>
                                 )}
-                                <Button asChild variant="secondary" className="flex-1">
-                                    <Link href={`/playground/${game!.slug}`}>Quit Game</Link>
-                                </Button>
+                                <Link href={`/playground/${game!.slug}`} className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80 flex-1">Quit Game</Link>
                             </div>
                         </div>
                     </div>
@@ -550,9 +554,9 @@ export default function GameLevelPage() {
                     <h3 className="text-2xl font-bold">Game Over</h3>
                     <p className="text-muted-foreground mt-2">You've run out of lives.</p>
                     <div className="flex gap-4 mt-6">
-                        <Button onClick={handleRestart}><RefreshCw className="mr-2" />Try Again</Button>
-                        <Button variant="secondary" onClick={() => setShowSolution(true)}><BookOpen className="mr-2" /> Show Solution</Button>
-                        <Button variant="outline" onClick={() => setGameState('manual')}><Code className="mr-2" /> Try Manual Mode</Button>
+                        <button className="btn-game" onClick={handleRestart}><RefreshCw className="mr-2" />Try Again</button>
+                        <button className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80" onClick={() => setShowSolution(true)}><BookOpen className="mr-2" /> Show Solution</button>
+                        <button className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80" onClick={() => setGameState('manual')}><Code className="mr-2" /> Try Manual Mode</button>
                     </div>
                 </div>
             );
@@ -604,9 +608,9 @@ export default function GameLevelPage() {
             <Header />
             <main className="flex-grow pt-16 flex flex-col">
                 <div className="p-4 border-b-2 border-[hsl(var(--game-border))] flex items-center justify-between">
-                    <button className="btn-game !py-2 !px-4" onClick={() => router.push(`/playground/${game.slug}`)}>
+                    <Link href={`/playground/${game.slug}`} className="btn-game !py-2 !px-4">
                         <ArrowLeft className="mr-2" /> Back to Map
-                    </button>
+                    </Link>
                     <h1 className="text-xl font-bold text-center truncate">{game.title}: {level.title}</h1>
                     <div className="w-[200px] flex justify-end">
                         <Badge variant="secondary" className="text-yellow-400 border-yellow-400/50 bg-[hsl(var(--game-surface))]">{level.reward_xp} XP</Badge>
@@ -653,9 +657,9 @@ export default function GameLevelPage() {
                                 <div className="flex flex-col h-full">
                                     <div className="p-4 border-b border-border/50 flex justify-between items-center">
                                         <h2 className="text-lg font-semibold">Code Editor</h2>
-                                        <Button size="sm" onClick={() => handleRunCode(finalCode)} disabled={isChecking || gameState === 'playing'}>
+                                        <button className="btn-game !py-2 !px-4" onClick={() => handleRunCode(finalCode)} disabled={isChecking || gameState === 'playing'}>
                                             {isChecking ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2" />} Run Code
-                                        </Button>
+                                        </button>
                                     </div>
                                     <div className="flex-grow p-2">
                                         <CodeEditor code={finalCode} />
@@ -665,10 +669,10 @@ export default function GameLevelPage() {
                             <ResizableHandle withHandle />
                             <ResizablePanel defaultSize={30} minSize={20}>
                                 <div className="flex flex-col h-full">
-                                    <Tabs defaultValue="feedback" className="flex-grow flex flex-col">
-                                        <TabsList className="m-4">
-                                            <TabsTrigger value="feedback"><Bot className="mr-2" />AI Feedback</TabsTrigger>
-                                            <TabsTrigger value="output"><Play className="mr-2" />Output</TabsTrigger>
+                                     <Tabs defaultValue="feedback" className="flex-grow flex flex-col">
+                                        <TabsList className="m-4 tabs-game">
+                                            <TabsTrigger value="feedback" className="tab-trigger-game"><Bot className="mr-2" />AI Feedback</TabsTrigger>
+                                            <TabsTrigger value="output" className="tab-trigger-game"><Play className="mr-2" />Output</TabsTrigger>
                                         </TabsList>
                                         <TabsContent value="feedback" className="flex-grow bg-muted/20 m-4 mt-0 rounded-lg">
                                             <ScrollArea className="h-full p-4">
@@ -678,7 +682,7 @@ export default function GameLevelPage() {
                                                         <h3 className="font-semibold mb-2">Solution:</h3>
                                                         <pre className="bg-black/50 p-2 rounded-md font-mono text-xs">{level.expected_output}</pre>
                                                         {level.incorrect_feedback && <p className="mt-2 italic">{level.incorrect_feedback}</p>}
-                                                        <Button onClick={handleRestart} className="mt-4"><RefreshCw className="mr-2" />Try Again</Button>
+                                                        <button onClick={handleRestart} className="btn-game mt-4"><RefreshCw className="mr-2" />Try Again</button>
                                                     </div>
                                                 )}
                                                 {!isCorrect && feedback && <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300 whitespace-pre-wrap font-mono">{feedback}</div>}
@@ -700,3 +704,4 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
