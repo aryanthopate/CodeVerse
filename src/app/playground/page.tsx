@@ -6,7 +6,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, ArrowRight } from 'lucide-react';
+import { Gamepad2, ArrowRight, Play } from 'lucide-react';
 import Link from 'next/link';
 import { getAllGames } from '@/lib/supabase/queries';
 import type { GameWithChaptersAndLevels } from '@/lib/types';
@@ -47,7 +47,7 @@ export default async function PlaygroundPage() {
                                             />
                                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                 <div className="text-white font-semibold flex items-center gap-2">
-                                                    Start Playing <ArrowRight className="h-4 w-4"/>
+                                                    View Game Map <ArrowRight className="h-4 w-4"/>
                                                 </div>
                                             </div>
                                         </Link>
@@ -68,6 +68,11 @@ export default async function PlaygroundPage() {
                                             )}
                                         </div>
                                     </CardContent>
+                                    <div className="p-4 pt-0">
+                                        <Button asChild className="w-full">
+                                            <Link href={`/playground/${game.slug}`}><Play className="mr-2"/> Start Game</Link>
+                                        </Button>
+                                    </div>
                                </Card>
                            )})}
                         </div>

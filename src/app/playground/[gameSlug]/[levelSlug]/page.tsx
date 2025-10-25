@@ -7,9 +7,9 @@ import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { getGameAndLevelDetails } from '@/lib/supabase/queries';
-import { GameWithLevels, GameLevel } from '@/lib/types';
+import { GameWithChaptersAndLevels, GameLevel } from '@/lib/types';
 import Link from 'next/link';
-import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen } from 'lucide-react';
+import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen, Rocket } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
 import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -46,18 +46,21 @@ function CodeBubbleGame({
     onLevelComplete,
     onGameOver,
     onCodeAppend,
-    gameSlug
+    gameSlug,
+    onStartGame,
+    gameStarted
 }: {
     level: GameLevel,
     onLevelComplete: () => void,
     onGameOver: () => void,
     onCodeAppend: (code: string) => void;
     gameSlug: string;
+    onStartGame: () => void;
+    gameStarted: boolean;
 }) {
     const rocketRef = useRef<HTMLDivElement>(null);
     const gameAreaRef = useRef<HTMLDivElement>(null);
 
-    // Refs for high-frequency state that doesn't need to trigger re-renders on every change.
     const bubblesRef = useRef<Bubble[]>([]);
     const bulletsRef = useRef<Bullet[]>([]);
     const targetIndexRef = useRef(0);
@@ -66,13 +69,13 @@ function CodeBubbleGame({
     const lastBubbleTimeRef = useRef(Date.now());
     const isGameOverRef = useRef(false);
 
-    // State for triggering re-renders ONLY when visually necessary
     const [renderTrigger, setRenderTrigger] = useState(0);
 
     const forceRender = useCallback(() => setRenderTrigger(c => c + 1), []);
 
     const correctSnippets = useMemo(() => {
-        return level.expected_output?.match(/([a-zA-Z0-9_.]+|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\S+)/g) || [];
+        // More robust regex to handle various code tokens
+        return level.expected_output?.match(/([a-zA-Z_]\w*|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\d+)/g) || [];
     }, [level.expected_output]);
 
     const fireBullet = useCallback(() => {
@@ -98,19 +101,21 @@ function CodeBubbleGame({
         livesRef.current = 3;
         lastBubbleTimeRef.current = Date.now();
         if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
-        gameLoopRef.current = requestAnimationFrame(gameLoop);
-        forceRender();
-    }, [onCodeAppend, forceRender]);
+        onStartGame(); // This will trigger the game loop to start
+    }, [onCodeAppend, onStartGame]);
 
     const gameLoop = useCallback(() => {
-        if (!gameAreaRef.current || isGameOverRef.current) return;
+        if (!gameAreaRef.current || isGameOverRef.current || !gameStarted) {
+            gameLoopRef.current = requestAnimationFrame(gameLoop);
+            return;
+        }
 
         const now = Date.now();
         const gameAreaHeight = gameAreaRef.current.offsetHeight;
         let needsRender = false;
         
-        // Spawn bubbles
-        if (now - lastBubbleTimeRef.current > 2200 && bubblesRef.current.filter(b => b.isTarget).length < 1) {
+        // Spawn bubbles logic
+        if (now - lastBubbleTimeRef.current > 3000 && bubblesRef.current.filter(b => b.isTarget).length < 1) { // Slower spawn rate
              if (targetIndexRef.current < correctSnippets.length) {
                 const newBubbles: Bubble[] = [];
                 const targetText = correctSnippets[targetIndexRef.current];
@@ -148,17 +153,29 @@ function CodeBubbleGame({
 
         // Move and check collisions for bubbles
         bubblesRef.current.forEach(bubble => {
-            if (bubble.state !== 'active') return;
+             if (bubble.state !== 'active') return;
+
+            // Move bubble
+            const newY = bubble.y + 0.6; // Slower bubble speed
+            if (newY > gameAreaHeight) {
+                 if (bubble.isTarget) {
+                    livesRef.current--;
+                    stateChanged = true;
+                }
+                hitBubbleIds.add(bubble.id);
+            } else {
+                bubble.y = newY;
+                needsRender = true;
+            }
             
             for (const bullet of bulletsRef.current) {
-                if (hitBulletIds.has(bullet.id)) continue;
+                if (hitBulletIds.has(bullet.id) || hitBubbleIds.has(bubble.id)) continue;
 
                 const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
                 const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
 
                 if (distance < 40) {
                     hitBulletIds.add(bullet.id);
-                    hitBubbleIds.add(bubble.id);
                     stateChanged = true;
                     if (bubble.isTarget) {
                         appendCodeQueue.push(bubble.text);
@@ -168,35 +185,25 @@ function CodeBubbleGame({
                         livesRef.current--;
                         bubble.state = 'hit-wrong';
                     }
+                    setTimeout(() => {
+                        hitBubbleIds.add(bubble.id);
+                    }, 300); // Remove after animation
                 }
             }
-            
-            const newY = bubble.y + 0.8;
-            if (newY > gameAreaHeight) {
-                if (bubble.isTarget) livesRef.current--;
-                hitBubbleIds.add(bubble.id); // Mark for removal
-                stateChanged = true;
-            } else {
-                bubble.y = newY;
-            }
         });
-
-        needsRender = needsRender || stateChanged;
 
         if (appendCodeQueue.length > 0) {
             onCodeAppend(appendCodeQueue.join(' '));
         }
         
-        // Filter out hit bullets
         if (hitBulletIds.size > 0) {
              bulletsRef.current = bulletsRef.current.filter(b => !hitBulletIds.has(b.id));
+             needsRender = true;
         }
 
-        // Remove hit bubbles after a delay for animation
         if (hitBubbleIds.size > 0) {
-            setTimeout(() => {
-                bubblesRef.current = bubblesRef.current.filter(b => !hitBubbleIds.has(b.id));
-            }, 300); 
+            bubblesRef.current = bubblesRef.current.filter(b => !hitBubbleIds.has(b.id));
+            needsRender = true;
         }
 
         if (livesRef.current <= 0 && !isGameOverRef.current) {
@@ -214,11 +221,11 @@ function CodeBubbleGame({
             }
         }
         
-        if (needsRender) {
+        if (needsRender || stateChanged) {
             forceRender();
         }
         gameLoopRef.current = requestAnimationFrame(gameLoop);
-    }, [onCodeAppend, onGameOver, onLevelComplete, correctSnippets, forceRender]);
+    }, [onCodeAppend, onGameOver, onLevelComplete, correctSnippets, forceRender, gameStarted]);
     
     useEffect(() => {
         const gameArea = gameAreaRef.current;
@@ -236,7 +243,17 @@ function CodeBubbleGame({
         gameArea.addEventListener('mousemove', handleMouseMove);
         gameArea.addEventListener('click', handleClick);
 
-        handleRestart(); // Start the game
+        if (gameStarted) {
+            isGameOverRef.current = false;
+            bubblesRef.current = [];
+            bulletsRef.current = [];
+            targetIndexRef.current = 0;
+            livesRef.current = 3;
+            lastBubbleTimeRef.current = Date.now();
+            if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
+            gameLoopRef.current = requestAnimationFrame(gameLoop);
+        }
+
 
         return () => {
             if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
@@ -245,10 +262,17 @@ function CodeBubbleGame({
                 gameArea.removeEventListener('click', handleClick);
             }
         };
-    }, []); // Only run once on mount
+    }, [gameStarted, gameLoop, fireBullet]);
 
     return (
         <div ref={gameAreaRef} id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border cursor-crosshair">
+            {!gameStarted && (
+                 <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50">
+                    <Button size="lg" onClick={onStartGame}>
+                        <Play className="mr-2" /> Start Mission
+                    </Button>
+                </div>
+            )}
             <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
             <div className="absolute top-4 left-4 flex items-center gap-4 z-20">
                 <div className="flex items-center gap-2">
@@ -351,7 +375,7 @@ export default function GameLevelPage() {
     const router = useRouter();
     const supabase = createClient();
 
-    const [game, setGame] = useState<GameWithLevels | null>(null);
+    const [game, setGame] = useState<GameWithChaptersAndLevels | null>(null);
     const [level, setLevel] = useState<GameLevel | null>(null);
     const [nextLevel, setNextLevel] = useState<GameLevel | null>(null);
     const [loading, setLoading] = useState(true);
@@ -370,6 +394,7 @@ export default function GameLevelPage() {
 
     const [showConfetti, setShowConfetti] = useState(false);
     const [finalCode, setFinalCode] = useState('');
+    const [gameStarted, setGameStarted] = useState(false);
     
     const handleCodeAppend = useCallback((codeSnippet: string) => {
         requestAnimationFrame(() => {
@@ -397,7 +422,8 @@ export default function GameLevelPage() {
                 programmingLanguage: game?.language || 'code',
             });
 
-            const positiveFeedback = /correct|well done|great job|excellent|perfect/i.test(result.feedback);
+            // More lenient check for success
+            const positiveFeedback = /correct|well done|great job|excellent|perfect|looks good/i.test(result.feedback);
 
             if (positiveFeedback) {
                 setIsCorrect(true);
@@ -422,7 +448,8 @@ export default function GameLevelPage() {
 
     const handleBubblePhaseComplete = useCallback(async () => {
         setGameState('reviewing');
-        await handleRunCode(finalCode);
+        // A small delay to let the user see the final code before analysis
+        setTimeout(() => handleRunCode(finalCode), 1000);
     }, [finalCode, handleRunCode]);
 
     const handleLevelComplete = useCallback(async () => {
@@ -446,6 +473,7 @@ export default function GameLevelPage() {
         setRunOutput('');
         setShowSolution(false);
         setFinalCode(level?.starter_code || '');
+        setGameStarted(false);
     }, [level]);
 
     useEffect(() => {
@@ -460,7 +488,7 @@ export default function GameLevelPage() {
             const { game, level, nextLevel } = await getGameAndLevelDetails(params.gameSlug as string, params.levelSlug as string);
 
             if (game && level) {
-                setGame(game as GameWithLevels);
+                setGame(game as GameWithChaptersAndLevels);
                 setLevel(level);
                 setNextLevel(nextLevel);
                 setFinalCode(level.starter_code || '');
@@ -605,6 +633,8 @@ export default function GameLevelPage() {
                                             onGameOver={handleGameOver}
                                             onCodeAppend={handleCodeAppend}
                                             gameSlug={game.slug}
+                                            onStartGame={() => setGameStarted(true)}
+                                            gameStarted={gameStarted}
                                         />
                                         <GameStatusOverlay />
                                     </>
@@ -673,5 +703,6 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
 
 
