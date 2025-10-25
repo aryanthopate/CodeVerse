@@ -185,18 +185,14 @@ export default async function Home() {
                         </Button>
                     </div>
                      <div className="flex-1 w-full flex items-center justify-center z-10 group">
-                        <div className="relative w-full max-w-md lg:max-w-none p-2 rounded-2xl bg-gradient-to-br from-accent/50 to-primary/50 transition-all duration-500 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40">
-                             <div className="w-full aspect-square bg-background/50 rounded-xl flex items-center justify-center">
-                                <Image 
-                                    src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"} 
-                                    width={400} 
-                                    height={400} 
-                                    alt="Coding Game" 
-                                    className="rounded-lg shadow-2xl shadow-black/50 transform transition-transform duration-500 group-hover:scale-105" 
-                                    data-ai-hint="neon abstract" 
-                                />
-                            </div>
-                        </div>
+                        <Image 
+                            src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"} 
+                            width={400} 
+                            height={400} 
+                            alt="Coding Game" 
+                            className="rounded-2xl shadow-2xl shadow-black/50 transform transition-all duration-500 group-hover:scale-105 p-2 bg-gradient-to-br from-accent/50 to-primary/50 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
+                            data-ai-hint="neon abstract" 
+                        />
                     </div>
                 </div>
             </div>
@@ -250,4 +246,5 @@ export default async function Home() {
     </div>
   );
 }
+
 
