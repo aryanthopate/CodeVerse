@@ -329,26 +329,32 @@ export async function getGameAndLevelDetails(gameSlug: string, levelSlug: string
 }
 
 
-export async function getUserGameProgress(gameId: string): Promise<UserGameProgress[] | null> {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+export async function getUserGameProgress(gameId: string): Promise<UserGameProgress[]> {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-        return []; // Return empty array if no user
+        if (!user) {
+            return []; // Return empty array if no user
+        }
+
+        const { data, error } = await supabase
+            .from('user_game_progress')
+            .select('level_id')
+            .eq('user_id', user.id)
+            .eq('game_id', gameId);
+
+        if (error) {
+            // Log a more informative error, but don't crash the server.
+            console.error("Error fetching user game progress:", error.message || error);
+            return [];
+        }
+
+        return data as UserGameProgress[];
+    } catch (e: any) {
+        console.error("Caught an exception in getUserGameProgress:", e.message);
+        return [];
     }
-
-    const { data, error } = await supabase
-        .from('user_game_progress')
-        .select('level_id')
-        .eq('user_id', user.id)
-        .eq('game_id', gameId);
-
-    if (error) {
-        console.error("Error fetching user game progress:", error);
-        return null;
-    }
-
-    return data as UserGameProgress[];
 }
 
 export async function getGameSettings(): Promise<GameSettings | null> {
@@ -365,4 +371,3 @@ export async function getGameSettings(): Promise<GameSettings | null> {
     }
     return data;
 }
-
