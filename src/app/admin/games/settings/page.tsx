@@ -159,7 +159,7 @@ export default function GameSettingsPage() {
                                                 <ImageIcon className="w-12 h-12 text-muted-foreground" />
                                             </div>
                                         )}
-                                        <Input id="placeholder-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'placeholder_image_file')} accept="image/png, image/jpeg, image/jpg"/>
+                                        <Input id="placeholder-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'placeholder_image_file')} accept="image/png, image/jpeg, image/jpg, image/webp"/>
                                         <Label htmlFor="placeholder-upload" className="cursor-pointer text-primary text-sm underline">
                                             {previews.placeholder_image_url ? 'Change image' : 'Upload an image'}
                                         </Label>
@@ -187,7 +187,7 @@ export default function GameSettingsPage() {
                                                 <ImageIcon className="w-12 h-12 text-muted-foreground" />
                                             </div>
                                         )}
-                                        <Input id="rocket-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'rocket_image_file')} accept="image/png, image/jpeg, image/jpg"/>
+                                        <Input id="rocket-upload" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'rocket_image_file')} accept="image/png, image/jpeg, image/jpg, image/webp"/>
                                         <Label htmlFor="rocket-upload" className="cursor-pointer text-primary text-sm underline">
                                             {previews.rocket_image_url ? 'Change image' : 'Upload an image'}
                                         </Label>
