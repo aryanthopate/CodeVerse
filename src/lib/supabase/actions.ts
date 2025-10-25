@@ -102,7 +102,7 @@ export async function createCourse(courseData: CourseData) {
             .single();
 
         if (chapterError) {
-            console.error('Error creating chapter:', chapterError.message);
+            console.error('Error creating chapter:', chapterError);
             continue;
         }
 
@@ -747,7 +747,7 @@ export async function completeGameLevel(levelId: string) {
         completed_level_id: levelId,
         completed_at: new Date().toISOString(),
     }, {
-        onConflict: 'user_id,level_id'
+        onConflict: 'user_id,completed_level_id'
     });
 
     if (error) {
@@ -813,5 +813,6 @@ export async function getChat(id: string): Promise<{chat: Chat | null, messages:
 
 
     
+
 
 

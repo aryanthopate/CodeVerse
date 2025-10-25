@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Bot, X, Send, Paperclip } from 'lucide-react';
@@ -10,15 +9,22 @@ import {
 } from "@/components/ui/popover"
 import { Input } from './ui/input';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   // In a real implementation, you would fetch user's recent chats
   const recentChats = [
     { id: '1', title: 'How to use React Hooks' },
     { id: '2', title: 'Explaining Python decorators' },
   ]
+
+  // Do not render the widget on any playground pages
+  if (pathname.startsWith('/playground')) {
+    return null;
+  }
 
   return (
     <>

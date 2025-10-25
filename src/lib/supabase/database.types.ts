@@ -81,19 +81,19 @@ export type Database = {
           created_at: string
           id: string
           title: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           title: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           title?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -671,38 +671,38 @@ export type Database = {
       user_game_progress: {
         Row: {
           completed_at: string
+          completed_level_id: string
           game_id: string
-          id: string
-          level_id: string
+          id: number
           user_id: string
         }
         Insert: {
           completed_at?: string
+          completed_level_id: string
           game_id: string
-          id?: string
-          level_id: string
+          id?: number
           user_id: string
         }
         Update: {
           completed_at?: string
+          completed_level_id?: string
           game_id?: string
-          id?: string
-          level_id?: string
+          id?: number
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_game_progress_completed_level_id_fkey"
+            columns: ["completed_level_id"]
+            isOneToOne: false
+            referencedRelation: "game_levels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_game_progress_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_game_progress_level_id_fkey"
-            columns: ["level_id"]
-            isOneToOne: false
-            referencedRelation: "game_levels"
             referencedColumns: ["id"]
           },
           {
@@ -713,6 +713,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      website_settings: {
+        Row: {
+          chat_bot_avatar_url: string | null
+          id: number
+          updated_at: string | null
+        }
+        Insert: {
+          chat_bot_avatar_url?: string | null
+          id?: number
+          updated_at?: string | null
+        }
+        Update: {
+          chat_bot_avatar_url?: string | null
+          id?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
