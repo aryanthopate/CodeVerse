@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
@@ -364,3 +365,4 @@ export async function getGameSettings(): Promise<GameSettings | null> {
     }
     return data;
 }
+

@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { Header } from '@/components/header';
@@ -50,4 +51,5 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
         </div>
     );
 }
+
 

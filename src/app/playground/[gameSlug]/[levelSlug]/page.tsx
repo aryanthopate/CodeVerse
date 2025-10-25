@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { getGameAndLevelDetails } from '@/lib/supabase/queries';
 import { GameWithChaptersAndLevels, GameLevel } from '@/lib/types';
 import Link from 'next/link';
-import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen, Rocket } from 'lucide-react';
+import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
 import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -703,6 +704,7 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
 
 
 
