@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
+import { ChatWidget } from '@/components/chat-widget';
 
 export const metadata: Metadata = {
   title: 'CodeVerse - Learn to Code, Playfully.',
@@ -21,6 +22,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         {children}
+        <ChatWidget />
         <Toaster />
       </body>
     </html>

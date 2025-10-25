@@ -4,10 +4,9 @@ export * from './app-layout';
 export * from './admin-layout';
 export * from './course-action-card';
 export * from './course-content-accordion';
-export * from './floating-ai-button';
+export * from './chat-widget';
 export * from './footer';
 export * from './header';
 export * from './logo';
 export * from './review-rating-section';
 export * from './game-map-client';
-

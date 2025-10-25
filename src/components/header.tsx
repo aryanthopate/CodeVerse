@@ -56,8 +56,7 @@ export function Header() {
   const navLinks = [
     { name: 'Courses', href: '/courses' },
     { name: 'Playground', href: '/playground' },
-    { name: 'About', href: '#' },
-    { name: 'Contact', href: '#' },
+    { name: 'Chatlify', href: '/chat' },
   ];
 
   const user = profile; // for clarity
