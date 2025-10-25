@@ -141,55 +141,64 @@ function CodeBubbleGame({
         let hitBulletIds = new Set<number>();
         let stateChanged = false;
 
-        bubblesRef.current = bubblesRef.current.filter(bubble => {
-            if (bubble.state !== 'active') return true;
-
-            const newY = bubble.y + 0.8; 
-            if (newY > gameAreaHeight) {
-                 if (bubble.isTarget) {
-                    livesRef.current--;
-                    stateChanged = true;
-                }
-                return false;
-            } else {
-                bubble.y = newY;
-                needsRender = true;
-            }
+        const newBubbles: Bubble[] = [];
+        
+        for (const bubble of bubblesRef.current) {
+            let keepBubble = true;
             
-            for (const bullet of bulletsRef.current) {
-                if (hitBulletIds.has(bullet.id)) continue;
-
-                const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
-                const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
-
-                if (distance < 40) {
-                    hitBulletIds.add(bullet.id);
-                    bubble.state = bubble.isTarget ? 'hit-correct' : 'hit-wrong';
-                    stateChanged = true;
-
+            if (bubble.state === 'active') {
+                 const newY = bubble.y + 0.8;
+                if (newY > gameAreaHeight) {
                     if (bubble.isTarget) {
-                        onCodeChange(prevCode => {
-                            const newCode = bubble.text;
-                             if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + newCode;
-                            const lastChar = prevCode.slice(-1);
-                            if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(newCode)) return prevCode + newCode;
-                            return prevCode + ' ' + newCode;
-                        });
-                        targetIndexRef.current++;
-                    } else {
                         livesRef.current--;
+                        stateChanged = true;
                     }
+                    keepBubble = false;
+                } else {
+                    bubble.y = newY;
+                    needsRender = true;
+                }
 
-                    setTimeout(() => {
-                        bubblesRef.current = bubblesRef.current.filter(b => b.id !== bubble.id);
-                    }, 300);
-                    
-                    return false; 
+                if (keepBubble) {
+                     for (const bullet of bulletsRef.current) {
+                        if (hitBulletIds.has(bullet.id)) continue;
+
+                        const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
+                        const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
+
+                        if (distance < 40) {
+                            hitBulletIds.add(bullet.id);
+                            bubble.state = bubble.isTarget ? 'hit-correct' : 'hit-wrong';
+                            stateChanged = true;
+
+                            if (bubble.isTarget) {
+                                onCodeChange(prevCode => {
+                                    const newCode = bubble.text;
+                                    if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + newCode;
+                                    const lastChar = prevCode.slice(-1);
+                                    if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(newCode)) return prevCode + newCode;
+                                    return prevCode + ' ' + newCode;
+                                });
+                                targetIndexRef.current++;
+                            } else {
+                                livesRef.current--;
+                            }
+                            
+                            setTimeout(() => {
+                                bubblesRef.current = bubblesRef.current.filter(b => b.id !== bubble.id);
+                            }, 300);
+
+                            keepBubble = false;
+                            break; 
+                        }
+                    }
                 }
             }
-            return true;
-        });
-
+             if (keepBubble) {
+                newBubbles.push(bubble);
+            }
+        }
+        bubblesRef.current = newBubbles;
         
         if (hitBulletIds.size > 0) {
              bulletsRef.current = bulletsRef.current.filter(b => !hitBulletIds.has(b.id));
@@ -229,7 +238,7 @@ function CodeBubbleGame({
             rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
         };
         const handleClick = (e: MouseEvent) => {
-            if ((e.target as HTMLElement).closest('button')) {
+            if ((e.target as HTMLElement).closest('button, a')) {
                 return;
             }
             fireBullet();
@@ -273,6 +282,8 @@ function CodeBubbleGame({
                 </div>
             )}
             <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 -z-10 animate-pulse"></div>
+
             <div className="absolute top-4 left-4 flex items-center gap-4 z-20">
                 <div className="flex items-center gap-2">
                     <span className="font-bold text-white">Lives:</span>
