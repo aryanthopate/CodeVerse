@@ -78,7 +78,7 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
 
 export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAndLevels, userProgress: UserGameProgress[] | null }) {
     const { levels: levelPositions, pathData, width } = generateLevelMap(game.game_chapters, game);
-    const completedLevelIds = userProgress?.map(p => p.level_id) || [];
+    const completedLevelIds = userProgress?.map(p => p.completed_level_id) || [];
     
     const allLevelsFlat = game.game_chapters.flatMap(c => c.game_levels);
     let currentLevelIndex = allLevelsFlat.findIndex(l => !completedLevelIds.includes(l.id));

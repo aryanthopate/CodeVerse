@@ -58,7 +58,12 @@ export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
     correct_feedback?: string | null;
     incorrect_feedback?: string | null;
 };
-export type UserGameProgress = Database['public']['Tables']['user_game_progress']['Row'];
+
+// The type from the DB has a different column name
+export type UserGameProgress = Omit<Database['public']['Tables']['user_game_progress']['Row'], 'level_id'> & {
+    completed_level_id: string;
+};
+
 export type GameSettings = Database['public']['Tables']['game_settings']['Row'];
 
 
