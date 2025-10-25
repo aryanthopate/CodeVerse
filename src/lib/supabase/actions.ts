@@ -781,6 +781,8 @@ export async function deleteChat(chatId: string) {
         return { success: false, error: error.message };
     }
     
+    // This action is now optimistic on the client, so revalidation isn't strictly necessary for instant UI feedback
+    // but it is good practice for data consistency across sessions.
     revalidatePath('/chat', 'layout');
     revalidatePath('/admin/users', 'layout');
 
@@ -802,43 +804,39 @@ export async function createNewChat(title: string): Promise<Chat | null> {
         console.error("Failed to create new chat", error);
         return null;
     }
+    
     revalidatePath('/chat', 'layout');
     return data;
 }
 
-export async function saveChat(chatId: string, messages: ChatMessage[]) {
+export async function saveChat(chatId: string, messages: Partial<ChatMessage>[]) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return; // Anonymous chats are not saved
+    if (!user) return { success: false, error: "User not authenticated" };
     
     // Verify user owns the chat
     const { count, error: countError } = await supabase.from('chats').select('*', { count: 'exact', head: true }).eq('id', chatId).eq('user_id', user.id);
     if (countError || count === 0) {
-        console.error("User does not own chat or chat does not exist.");
-        return;
+        return { success: false, error: "User does not own chat or chat does not exist."};
     }
+    
+    // Delete existing messages and insert new ones to ensure consistency
+    await supabase.from('chat_messages').delete().eq('chat_id', chatId);
 
-    const messagesToUpsert = messages.map(msg => ({
-        ...msg,
+    const messagesToInsert = messages.map(msg => ({
         chat_id: chatId,
-        content: msg.content // Ensure content is in JSON format
+        role: msg.role!,
+        content: msg.content!
     }));
 
-    // Delete existing messages and insert new ones to ensure consistency
-    const { error: deleteError } = await supabase.from('chat_messages').delete().eq('chat_id', chatId);
-    if(deleteError) {
-        console.error("Failed to delete old messages", deleteError);
-        return;
-    }
-
-    const { error: insertError } = await supabase.from('chat_messages').insert(messagesToUpsert.map(({id, created_at, ...rest}) => rest));
+    const { error: insertError } = await supabase.from('chat_messages').insert(messagesToInsert);
      if(insertError) {
         console.error("Failed to save new messages", insertError);
-        return;
+        return { success: false, error: "Failed to save messages." };
     }
     
     revalidatePath(`/chat/${chatId}`);
-    revalidatePath('/admin/chats', 'layout');
+    return { success: true };
 }
 
 
@@ -852,8 +850,9 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
         console.error("Failed to update chat:", error);
         return { success: false, error: error.message };
     }
+    
     revalidatePath('/chat', 'layout');
-    return { success: true };
+    return { success: true, error: null };
 }
 
     

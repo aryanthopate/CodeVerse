@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect, useRef, startTransition } from 'react';
+import { useState, useEffect, useRef, startTransition, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowUpRight } from 'lucide-react';
+import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowUpRight, Unarchive } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { chat as streamChat } from '@/ai/flows/chat';
 import { createNewChat, saveChat, updateChat, deleteChat as deleteChatAction } from '@/lib/supabase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 
 interface ActiveChat extends Chat {
@@ -26,7 +26,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     const router = useRouter();
     const params = useParams();
     const { toast } = useToast();
-    const [chats, setChats] = useState(initialChats);
+    const [chats, setChats] = useState(initialChats || []);
     const [activeChat, setActiveChat] = useState(initialActiveChat);
     const [input, setInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
@@ -42,7 +42,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [initialActiveChat]);
 
     useEffect(() => {
-        setChats(initialChats);
+        setChats(initialChats || []);
     }, [initialChats]);
 
     const scrollToBottom = () => {
@@ -72,7 +72,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         e.preventDefault();
         if (!input.trim() || isStreaming) return;
         
-        const userInput = { role: 'user', content: [{ text: input }] };
+        const userInput: Partial<ChatMessage> = { role: 'user', content: [{ text: input }] };
         const currentInput = input;
         setInput('');
 
@@ -80,41 +80,35 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         let isNewChat = !activeChat || activeChat.id === 'anonymous';
 
         // Optimistically update UI
-        setActiveChat(prev => {
-            const newMessages = [...(prev?.messages || []), userInput as unknown as ChatMessage];
-            if (isNewChat) {
-                return {
-                    id: 'anonymous',
-                    title: currentInput,
-                    user_id: profile?.id || 'anonymous',
-                    created_at: new Date().toISOString(),
-                    is_archived: false,
-                    is_pinned: false,
-                    messages: newMessages,
-                };
-            }
-            return { ...prev!, messages: newMessages };
-        });
+        const tempActiveChat = {
+            id: currentChatId || 'anonymous',
+            title: activeChat?.title || currentInput.substring(0, 50),
+            user_id: profile?.id || 'anonymous',
+            created_at: activeChat?.created_at || new Date().toISOString(),
+            is_archived: activeChat?.is_archived || false,
+            is_pinned: activeChat?.is_pinned || false,
+            messages: [...(activeChat?.messages || []), userInput as ChatMessage],
+        };
 
+        setActiveChat(tempActiveChat);
         setIsStreaming(true);
         
         try {
-             // 1. Create chat record if it's a new chat
+             // 1. Create chat record if it's a new chat and user is logged in
             if (isNewChat && profile) {
                 const newChat = await createNewChat(currentInput);
                 if (newChat) {
-                    isNewChat = false;
                     currentChatId = newChat.id;
-                    // Replace URL and update client state without full reload
-                    router.replace(`/chat/${newChat.id}`, { scroll: false });
-                    setChats(prev => [newChat, ...(prev || [])]);
+                    setChats(prev => [newChat, ...prev]);
                     setActiveChat(prev => ({...prev!, id: newChat.id}));
+                    // Replace URL without full reload
+                    window.history.replaceState(null, '', `/chat/${newChat.id}`);
                 } else {
                     throw new Error("Failed to create new chat session.");
                 }
             }
             
-            const messagesForApi = activeChat ? [...activeChat.messages, userInput as ChatMessage] : [userInput as ChatMessage];
+            const messagesForApi = tempActiveChat.messages;
 
             const stream = await streamChat({ messages: messagesForApi as any });
 
@@ -122,6 +116,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                  throw new Error("The AI service did not return a stream.");
             }
             
+            // Add placeholder for model's response
             setActiveChat(prev => ({
                 ...prev!,
                 messages: [...prev!.messages, { role: 'model', content: [{ text: '' }] } as unknown as ChatMessage]
@@ -143,19 +138,20 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     const latestMessages = [...prev.messages];
                     const lastMessage = latestMessages[latestMessages.length - 1];
                     if (lastMessage && lastMessage.role === 'model') {
-                        lastMessage.content = [{ text: streamedResponse }];
+                        // Create a new message object to avoid direct mutation
+                        latestMessages[latestMessages.length - 1] = { ...lastMessage, content: [{ text: streamedResponse }]};
                     }
                     return { ...prev, messages: latestMessages };
                 });
             }
             
+            // Save the final conversation if logged in
             if (profile && currentChatId && currentChatId !== 'anonymous') {
                 const finalMessages = [
                     ...messagesForApi,
                     { role: 'model', content: [{text: streamedResponse}] } as ChatMessage
                 ];
                 await saveChat(currentChatId, finalMessages);
-                router.refresh();
             }
 
         } catch(error: any) {
@@ -165,55 +161,77 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 title: "An error occurred",
                 description: error.message || "Could not get a response from the AI. Please try again.",
             });
-            // Rollback optimistic updates
+            // Rollback optimistic updates on error
             setActiveChat(prev => {
                 if (!prev) return null;
-                const rolledBackMessages = prev.messages.filter(m => m.role !== 'model'); // remove placeholder
-                return {
-                    ...prev,
-                    messages: rolledBackMessages.slice(0, -1) // remove user message
-                };
+                // Remove the user's message and the AI placeholder
+                return { ...prev, messages: prev.messages.slice(0, -2) };
             });
         } finally {
             setIsStreaming(false);
         }
     };
     
-    const handleChatAction = async (chatId: string, action: 'pin' | 'unpin' | 'archive' | 'unarchive' | 'delete') => {
-        if (!profile) return;
+    const handleChatAction = useCallback(async (chatId: string, action: 'pin' | 'unpin' | 'archive' | 'unarchive' | 'delete') => {
+        if (!profile) return; // Actions are only for logged-in users
         
-        const chatToUpdate = chats?.find(c => c.id === chatId);
-        if (!chatToUpdate) return;
-        
-        if (action === 'delete') {
-            await deleteChatAction(chatId);
-        } else {
-             const updates: Partial<Chat> = {};
-            if (action === 'pin') updates.is_pinned = true;
-            if (action === 'unpin') updates.is_pinned = false;
-            if (action === 'archive') updates.is_archived = true;
-            if (action === 'unarchive') updates.is_archived = false;
+        let optimisticChats = [...chats];
 
-            await updateChat(chatId, updates);
-        }
-        
-        if (params.chatId === chatId && (action === 'delete' || action === 'archive')) {
-            router.push('/chat');
+        if (action === 'delete') {
+            optimisticChats = chats.filter(c => c.id !== chatId);
         } else {
-             // Re-fetch or optimistically update
-            startTransition(() => {
-                router.refresh();
+            optimisticChats = chats.map(c => {
+                if (c.id === chatId) {
+                    const updates: Partial<Chat> = {};
+                    if (action === 'pin') updates.is_pinned = true;
+                    if (action === 'unpin') updates.is_pinned = false;
+                    if (action === 'archive') updates.is_archived = true;
+                    if (action === 'unarchive') updates.is_archived = false;
+                    return { ...c, ...updates };
+                }
+                return c;
             });
         }
-    }
+        
+        // Optimistically update the UI
+        setChats(optimisticChats);
+
+        if (params.chatId === chatId && (action === 'delete' || action === 'archive')) {
+            router.push('/chat');
+        }
+
+        // Perform the backend action
+        try {
+            if (action === 'delete') {
+                await deleteChatAction(chatId);
+            } else {
+                const updates: Partial<Chat> = {};
+                if (action === 'pin') updates.is_pinned = true;
+                if (action === 'unpin') updates.is_pinned = false;
+                if (action === 'archive') updates.is_archived = true;
+                if (action === 'unarchive') updates.is_archived = false;
+                const { error } = await updateChat(chatId, updates);
+                if(error) throw new Error(error.message);
+            }
+        } catch (error: any) {
+             toast({
+                variant: 'destructive',
+                title: 'Action Failed',
+                description: `Could not perform action: ${error.message}`,
+            });
+            // Revert optimistic update on failure
+            setChats(chats);
+        }
+
+    }, [chats, profile, params.chatId, router, toast]);
 
     if (!isClient) {
         return null; // Or a loading skeleton
     }
 
-    const pinnedChats = chats?.filter(c => c.is_pinned && !c.is_archived) || [];
-    const recentChats = chats?.filter(c => !c.is_pinned && !c.is_archived) || [];
-    const archivedChats = chats?.filter(c => c.is_archived) || [];
+    const pinnedChats = chats.filter(c => c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const recentChats = chats.filter(c => !c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const archivedChats = chats.filter(c => c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
 
     return (
@@ -296,8 +314,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                 </Avatar>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem>Profile</DropdownMenuItem>
                                 <DropdownMenuItem>Settings</DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem>Logout</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -407,7 +427,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
                     <DropdownMenuContent>
                          {isArchived ? (
                              <DropdownMenuItem onClick={() => onAction(chat.id, 'unarchive')}>
-                                 <Archive className="mr-2 h-4 w-4" /> Unarchive
+                                 <Unarchive className="mr-2 h-4 w-4" /> Unarchive
                             </DropdownMenuItem>
                          ) : (
                             <>
@@ -419,6 +439,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
                                 </DropdownMenuItem>
                             </>
                          )}
+                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => onAction(chat.id, 'delete')}>
                              <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
