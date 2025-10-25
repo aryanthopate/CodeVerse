@@ -40,7 +40,7 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
                         />
                          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--game-bg))] via-[hsl(var(--game-bg))]/80 to-transparent -z-10"></div>
                         <div className="text-center space-y-2 z-10">
-                            <h1 className="text-4xl font-bold" style={{ color: 'hsl(var(--game-accent))', textShadow: '0 0 10px hsl(var(--game-accent-glow))' }}>{game.title}</h1>
+                            <h1 className="text-4xl font-bold" style={{ color: 'hsl(var(--game-accent))', textShadow: '0 0 8px hsl(var(--game-accent-glow)/0.7)' }}>{game.title}</h1>
                             <p className="text-md max-w-3xl mx-auto text-[hsl(var(--game-text))]/80">{game.description}</p>
                         </div>
                     </div>

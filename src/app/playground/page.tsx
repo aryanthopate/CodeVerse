@@ -21,7 +21,7 @@ export default async function PlaygroundPage() {
             <main className="flex-grow pt-24 pb-12 bg-[hsl(var(--game-bg))] text-[hsl(var(--game-text))]">
                 <div className="container mx-auto">
                     <div className="text-center mb-12">
-                        <h1 className="text-5xl md:text-6xl font-bold font-headline" style={{ color: 'hsl(var(--game-accent))', textShadow: '0 0 10px hsl(var(--game-accent-glow)), 0 0 20px hsl(var(--game-accent-glow))' }}>
+                        <h1 className="text-5xl md:text-6xl font-bold font-headline" style={{ color: 'hsl(var(--game-accent))', textShadow: '0 0 8px hsl(var(--game-accent-glow)/0.8)' }}>
                             The Playground
                         </h1>
                         <p className="mt-4 max-w-2xl mx-auto text-lg text-[hsl(var(--game-text)/0.8)]">

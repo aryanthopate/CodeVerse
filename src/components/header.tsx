@@ -1,5 +1,3 @@
-
-
 "use client"
 
 import Link from 'next/link';
@@ -75,7 +73,7 @@ export function Header() {
             : "bg-background/50 backdrop-blur-lg"
     )}>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Logo />
+        <Logo isGameTheme={isPlayground} />
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
@@ -136,7 +134,7 @@ export function Header() {
             <SheetContent side="right" className={cn("w-[300px] sm:w-[400px]", isPlayground ? "bg-[hsl(var(--game-bg))] border-[hsl(var(--game-border))]" : "bg-background")}>
               <div className="p-4">
                 <div className="flex justify-between items-center mb-8">
-                  <Logo />
+                  <Logo isGameTheme={isPlayground} />
                   <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
                     <X className="h-6 w-6" />
                     <span className="sr-only">Close menu</span>
