@@ -18,7 +18,7 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
     const segmentLength = 250;
     const verticalMovement = 100;
     let levelIndex = 0;
-    const chapterGateSpacing = 100; // Added spacing for gates
+    const chapterGateSpacing = 150; // Added spacing for gates
 
     for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
@@ -156,3 +156,6 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
         </div>
     );
 }
+
+
+    
