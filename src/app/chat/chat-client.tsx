@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -92,8 +93,9 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         // Optimistically update UI
         let tempActiveChat: ActiveChat;
         if (isNewChat) {
+             const tempId = currentChatId || `temp-${Date.now()}`;
             tempActiveChat = {
-                id: currentChatId || `temp-${Date.now()}`,
+                id: tempId,
                 title: currentInput.substring(0, 50),
                 user_id: profile?.id || 'anonymous',
                 created_at: new Date().toISOString(),
@@ -101,6 +103,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 is_pinned: false,
                 messages: [userInput as ChatMessage],
             };
+            setChats(prev => [tempActiveChat, ...prev.filter(c => c.id !== tempId)]);
         } else {
             tempActiveChat = {
                 ...(activeChat as ActiveChat),
@@ -117,9 +120,17 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 const newChat = await createNewChat(currentInput);
                 if (newChat) {
                     currentChatId = newChat.id;
-                    tempActiveChat.id = newChat.id;
-                    setChats(prev => [newChat, ...prev.filter(c => c.id !== tempId)]);
-                    setActiveChat(tempActiveChat);
+                    
+                    setChats(prev => {
+                        return [newChat, ...prev.filter(c => c.id !== tempId)]
+                    });
+                    
+                    setActiveChat(prev => ({
+                        ...(prev as ActiveChat),
+                        id: newChat.id,
+                        title: newChat.title
+                    }));
+
                     window.history.replaceState(null, '', `/chat/${newChat.id}`);
                 } else {
                     throw new Error("Failed to create new chat session.");
@@ -135,10 +146,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             const decoder = new TextDecoder();
             let streamedResponse = '';
             
-            setActiveChat(prev => ({
-                ...(prev as ActiveChat),
-                messages: [...(prev?.messages || []), { role: 'model', content: [{ text: '' }] } as ChatMessage]
-            }));
+            setActiveChat(prev => {
+                if (!prev) return null;
+                const newMessages = [...prev.messages, { role: 'model', content: [{ text: '' }] } as ChatMessage];
+                return {...prev, messages: newMessages};
+            });
+            scrollToBottom();
 
             while (true) {
                 const { value, done } = await reader.read();
@@ -173,9 +186,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 title: "An error occurred",
                 description: error.message || "Could not get a response from the AI. Please try again.",
             });
-            setActiveChat(prev => {
+             setActiveChat(prev => {
                 if (!prev) return null;
-                return { ...prev, messages: prev.messages.slice(0, -2) };
+                // remove user message and potential empty model message
+                return { ...prev, messages: prev.messages.filter(m => m.role !== 'user' || m.content?.[0]?.text !== currentInput) };
             });
         } finally {
             setIsStreaming(false);
@@ -183,47 +197,54 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     };
     
     const handleChatAction = useCallback(async (chatId: string, action: 'pin' | 'unpin' | 'archive' | 'unarchive' | 'delete') => {
-        if (!profile && (action !== 'delete')) return; // Allow delete for anon chats
+        if (!profile && (action !== 'delete' || chatId.startsWith('temp-'))) {
+             toast({
+                variant: 'destructive',
+                title: 'Authentication Required',
+                description: 'Please log in to manage your chats.',
+            });
+            return;
+        }
         
         let optimisticChats = [...chats];
-        let originalChats = [...chats]; // Save original state for rollback
+        const originalChats = [...chats]; 
 
-        if (action === 'delete') {
-            optimisticChats = chats.filter(c => c.id !== chatId);
-        } else {
-            optimisticChats = chats.map(c => {
-                if (c.id === chatId) {
-                    const updates: Partial<Chat> = {};
-                    if (action === 'pin') updates.is_pinned = true;
-                    if (action === 'unpin') updates.is_pinned = false;
-                    if (action === 'archive') updates.is_archived = true;
-                    if (action === 'unarchive') updates.is_archived = false;
-                    return { ...c, ...updates };
-                }
-                return c;
-            });
-        }
-        
-        setChats(optimisticChats);
-
-        if (params.chatId === chatId) {
-            if(action === 'delete' || action === 'archive') {
-                router.push('/chat');
-                setActiveChat(null);
-            } else if (action === 'unarchive') {
-                 setActiveChat(prev => prev ? {...prev, is_archived: false} : null);
+        try {
+            if (action === 'delete') {
+                optimisticChats = chats.filter(c => c.id !== chatId);
+            } else {
+                optimisticChats = chats.map(c => {
+                    if (c.id === chatId) {
+                        const updates: Partial<Chat> = {};
+                        if (action === 'pin') updates.is_pinned = true;
+                        if (action === 'unpin') updates.is_pinned = false;
+                        if (action === 'archive') updates.is_archived = true;
+                        if (action === 'unarchive') updates.is_archived = false;
+                        return { ...c, ...updates };
+                    }
+                    return c;
+                });
             }
-        }
-        
-        if (action === 'unarchive' && params.chatId !== chatId) {
-             const chatToUnarchive = chats.find(c => c.id === chatId);
-             if (chatToUnarchive) {
-                 router.push(`/chat/${chatId}`);
-             }
-        }
+            
+            setChats(optimisticChats);
 
-        if (profile && !chatId.startsWith('temp-')) {
-            try {
+            if (params.chatId === chatId) {
+                if(action === 'delete' || action === 'archive') {
+                    router.push('/chat');
+                    setActiveChat(null);
+                } else if (action === 'unarchive' && activeChat) {
+                    setActiveChat(prev => prev ? {...prev, is_archived: false} : null);
+                }
+            }
+            
+            if (action === 'unarchive' && params.chatId !== chatId) {
+                const chatToUnarchive = chats.find(c => c.id === chatId);
+                if (chatToUnarchive) {
+                    router.push(`/chat/${chatId}`);
+                }
+            }
+
+            if (profile && !chatId.startsWith('temp-')) {
                 if (action === 'delete') {
                     await deleteChatAction(chatId);
                 } else {
@@ -235,17 +256,17 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     const { error } = await updateChat(chatId, updates);
                     if(error) throw new Error(error.message);
                 }
-            } catch (error: any) {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Action Failed',
-                    description: `Could not perform action: ${error.message}`,
-                });
-                setChats(originalChats); // Rollback optimistic update
             }
+        } catch (error: any) {
+             toast({
+                variant: 'destructive',
+                title: 'Action Failed',
+                description: `Could not perform action: ${error.message}`,
+            });
+            setChats(originalChats);
         }
 
-    }, [chats, profile, params.chatId, router, toast]);
+    }, [chats, profile, params.chatId, router, toast, activeChat]);
 
     if (!isClient) {
         return null;
@@ -487,6 +508,3 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 }
 
     
-
-    
-
