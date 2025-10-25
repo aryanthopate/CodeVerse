@@ -694,10 +694,10 @@ export async function completeGameLevel(levelId: string) {
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
         game_id: gameId,
-        level_id: levelId,
+        completed_level_id: levelId,
         completed_at: new Date().toISOString(),
     }, {
-        onConflict: 'user_id, level_id' // This ensures that if the user completes the level again, it just updates the timestamp
+        onConflict: 'user_id, completed_level_id' // This ensures that if the user completes the level again, it just updates the timestamp
     });
 
     if (error) {
@@ -714,5 +714,6 @@ export async function completeGameLevel(levelId: string) {
     
 
     
+
 
 
