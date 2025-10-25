@@ -62,5 +62,3 @@ export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>
 
     return readableStream;
 }
-
-    

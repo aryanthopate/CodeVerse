@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, startTransition, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowUpRight, Unarchive } from 'lucide-react';
@@ -449,5 +449,3 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </div>
     );
 }
-
-    
