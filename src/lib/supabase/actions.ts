@@ -762,13 +762,28 @@ export async function completeGameLevel(levelId: string) {
 
 export async function deleteChat(chatId: string) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    // Verify user owns the chat or is an admin
+    const { data: chat, error: fetchError } = await supabase.from('chats').select('user_id').eq('id', chatId).single();
+    if (fetchError || !chat) return { success: false, error: 'Chat not found' };
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+
+    if (chat.user_id !== user.id && profile?.role !== 'admin') {
+        return { success: false, error: 'Not authorized' };
+    }
+
     const { error } = await supabase.from('chats').delete().eq('id', chatId);
     if (error) {
         console.error('Error deleting chat:', error);
         return { success: false, error: error.message };
     }
+    
+    revalidatePath('/chat', 'layout');
     revalidatePath('/admin/users', 'layout');
-    revalidatePath('/chat');
+
     return { success: true };
 }
 
@@ -787,15 +802,22 @@ export async function createNewChat(title: string): Promise<Chat | null> {
         console.error("Failed to create new chat", error);
         return null;
     }
+    revalidatePath('/chat', 'layout');
     return data;
 }
 
 export async function saveChat(chatId: string, messages: ChatMessage[]) {
     const supabase = createClient();
-     const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return; // Anonymous chats are not saved
     
-    // We only need to upsert the messages, the chat record already exists.
+    // Verify user owns the chat
+    const { count, error: countError } = await supabase.from('chats').select('*', { count: 'exact', head: true }).eq('id', chatId).eq('user_id', user.id);
+    if (countError || count === 0) {
+        console.error("User does not own chat or chat does not exist.");
+        return;
+    }
+
     const messagesToUpsert = messages.map(msg => ({
         ...msg,
         chat_id: chatId,
@@ -822,13 +844,14 @@ export async function saveChat(chatId: string, messages: ChatMessage[]) {
 
 export async function updateChat(chatId: string, updates: Partial<Chat>) {
     const supabase = createClient();
-    const { error } = await supabase.from('chats').update(updates).eq('id', chatId);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    const { error } = await supabase.from('chats').update(updates).eq('id', chatId).eq('user_id', user.id);
     if (error) {
         console.error("Failed to update chat:", error);
         return { success: false, error: error.message };
     }
-    revalidatePath('/chat');
+    revalidatePath('/chat', 'layout');
     return { success: true };
 }
-
-    

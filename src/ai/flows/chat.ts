@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A multi-modal chat AI agent.
@@ -46,7 +47,7 @@ export async function chat(input: ChatInput) {
                 for await (const chunk of stream) {
                     const text = chunk.text();
                     if (text) {
-                        controller.enqueue(text);
+                        controller.enqueue(new TextEncoder().encode(text));
                     }
                 }
                 await response; // Wait for the full response to be processed
