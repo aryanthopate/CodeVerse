@@ -5,7 +5,6 @@
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
 import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter } from '@/lib/types';
-import crypto from 'crypto';
 import placeholderGames from '@/lib/placeholder-games.json';
 
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
@@ -672,7 +671,7 @@ export async function seedDemoGames() {
             const levelsToInsert = levels.map((level: any, index: number) => {
                 const baseSlug = level.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                 // Append a short hash to ensure uniqueness, just in case titles are identical
-                const uniqueId = crypto.randomBytes(3).toString('hex');
+                const uniqueId = Math.random().toString(36).substring(2, 8);
                 return {
                     ...level,
                     slug: `${baseSlug}-${uniqueId}`,
@@ -771,3 +770,4 @@ export async function completeGameLevel(levelId: string) {
 
 
     
+

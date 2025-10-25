@@ -19,7 +19,6 @@ import { getGameBySlug, getAllCoursesMinimal } from '@/lib/supabase/queries';
 import type { GameWithChaptersAndLevels, GameChapter, GameLevel, Game, Course } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import crypto from 'crypto';
 
 
 interface GameLevelState extends Partial<GameLevel> {
