@@ -30,7 +30,7 @@ const ChatInputSchema = z.object({
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
 export async function chat(input: ChatInput) {
-    const { stream } = ai.generateStream({
+    const { stream, response } = ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
       prompt: {
         messages: input.messages.map((m) => ({
@@ -40,20 +40,22 @@ export async function chat(input: ChatInput) {
       },
     });
 
-    const reader = stream.getReader();
     const readableStream = new ReadableStream({
         async start(controller) {
-            function push() {
-                reader.read().then(({ done, value }) => {
-                    if (done) {
-                        controller.close();
-                        return;
+            try {
+                for await (const chunk of stream) {
+                    const text = chunk.text();
+                    if (text) {
+                        controller.enqueue(text);
                     }
-                    controller.enqueue(value.text());
-                    push();
-                });
+                }
+                await response; // Wait for the full response to be processed
+            } catch (e: any) {
+                console.error("Streaming Error:", e);
+                controller.error(e);
+            } finally {
+                controller.close();
             }
-            push();
         },
     });
 
