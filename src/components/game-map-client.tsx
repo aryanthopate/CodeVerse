@@ -21,11 +21,9 @@ const generateLevelMap = (chapters: any[]) => {
     for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
         
-        // Add a gate before each chapter except the first one
-        if (i > 0) {
-            const gateX = x - segmentLength / 2;
-            levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: y_center });
-        }
+        // Add a gate before each chapter
+        const gateX = x - segmentLength / 2;
+        levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: y_center });
 
         for (let j = 0; j < chapter.game_levels.length; j++) {
             const level = chapter.game_levels[j];
@@ -34,21 +32,17 @@ const generateLevelMap = (chapters: any[]) => {
             
             levels.push({ type: 'level', ...level, x, y: currentY });
 
-            if (levelIndex > 0 || (i > 0 && j === 0)) {
-                 const prevItem = levels[levels.length - 2];
-                 const prevX = prevItem.x;
-                 const prevY = prevItem.y;
+            const prevItem = levels[levels.length - 2];
+            const prevX = prevItem.x;
+            const prevY = prevItem.y;
 
-                const cp1x = prevX + segmentLength * 0.6;
-                const cp1y = prevY;
-                const cp2x = x - segmentLength * 0.6;
-                const cp2y = currentY;
+            const cp1x = prevX + segmentLength * 0.6;
+            const cp1y = prevY;
+            const cp2x = x - segmentLength * 0.6;
+            const cp2y = currentY;
 
-                pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${x},${currentY}`;
-            } else {
-                 pathData = `M ${x},${currentY}`;
-            }
-
+            pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${x},${currentY}`;
+            
             x += segmentLength;
             levelIndex++;
         }
@@ -91,8 +85,8 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
                    if (item.type === 'gate') {
                         return (
                              <div key={`gate-${index}`} style={{ left: `${item.x}px`, top: `50%`, transform: 'translate(-50%, -50%)' }} className="absolute flex flex-col items-center z-10 text-primary">
-                                <div className="w-16 h-16 rounded-full bg-gray-800 border-4 border-dashed border-primary/50 flex items-center justify-center font-bold text-lg">{index}</div>
-                                <p className="text-xs font-bold w-32 text-center mt-2 tracking-widest uppercase text-primary/80">{item.chapterTitle}</p>
+                                <div className="w-16 h-16 rounded-full bg-gray-800 border-4 border-dashed border-primary/50 flex items-center justify-center font-bold text-lg">{index + 1}</div>
+                                <p className="text-xs font-bold w-48 text-center mt-2 tracking-widest uppercase text-primary/80">{item.chapterTitle}</p>
                             </div>
                         )
                    }

@@ -677,7 +677,6 @@ export async function completeGameLevel(levelId: string) {
         return { success: false, error: "User not authenticated" };
     }
     
-    // First, get the game_id from the level's chapter
     const { data: levelData, error: levelError } = await supabase
         .from('game_levels')
         .select('game_chapters(game_id)')
@@ -690,14 +689,13 @@ export async function completeGameLevel(levelId: string) {
     }
     const gameId = levelData.game_chapters.game_id;
 
-    // Now, upsert the progress
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
         game_id: gameId,
         completed_level_id: levelId,
         completed_at: new Date().toISOString(),
     }, {
-        onConflict: 'user_id, completed_level_id' // This ensures that if the user completes the level again, it just updates the timestamp
+        onConflict: 'user_id,completed_level_id'
     });
 
     if (error) {
@@ -714,6 +712,7 @@ export async function completeGameLevel(levelId: string) {
     
 
     
+
 
 
 

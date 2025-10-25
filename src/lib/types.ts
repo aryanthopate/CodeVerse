@@ -1,4 +1,5 @@
 
+
 import type { Database } from './supabase/database.types';
 
 export interface UserProfile {
@@ -78,13 +79,10 @@ export type CourseWithChaptersAndTopics = Course & {
   games?: Game | null;
 };
 
-export interface UserCourseProgress {
-    user_id: string;
-    course_id: string;
-    completed_topics: string[]; // array of topic_ids
-    progress_percentage: number;
-}
-
+// This was the old flat structure, it has been replaced by GameWithChaptersAndLevels
+export type GameWithLevels = Game & {
+    game_levels: GameLevel[];
+};
 
 export type GameChapterWithLevels = GameChapter & {
     game_levels: GameLevel[];
@@ -93,10 +91,7 @@ export type GameChapterWithLevels = GameChapter & {
 export type GameWithChaptersAndLevels = Game & {
     game_chapters: GameChapterWithLevels[];
 };
-// This was the old flat structure, it has been replaced by GameWithChaptersAndLevels
-export type GameWithLevels = Game & {
-    game_levels: GameLevel[];
-};
+
 
 declare module 'next/navigation' {
     interface Params {
