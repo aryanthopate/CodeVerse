@@ -676,7 +676,7 @@ export async function completeGameLevel(levelId: string) {
         return { success: false, error: "User not authenticated" };
     }
     
-    // First, get the game_id from the level
+    // First, get the game_id from the level's chapter
     const { data: levelData, error: levelError } = await supabase
         .from('game_levels')
         .select('game_chapters(game_id)')
@@ -684,6 +684,7 @@ export async function completeGameLevel(levelId: string) {
         .single();
     
     if (levelError || !levelData || !levelData.game_chapters) {
+        console.error("Could not find the game for this level:", levelError?.message);
         return { success: false, error: "Could not find the game for this level." };
     }
     const gameId = levelData.game_chapters.game_id;
@@ -712,3 +713,4 @@ export async function completeGameLevel(levelId: string) {
     
 
     
+

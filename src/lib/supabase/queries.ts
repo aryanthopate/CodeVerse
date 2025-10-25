@@ -333,12 +333,12 @@ export async function getUserGameProgress(gameId: string): Promise<UserGameProgr
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        return null;
+        return []; // Return empty array if no user
     }
 
     const { data, error } = await supabase
         .from('user_game_progress')
-        .select('*')
+        .select('level_id')
         .eq('user_id', user.id)
         .eq('game_id', gameId);
 
@@ -347,5 +347,5 @@ export async function getUserGameProgress(gameId: string): Promise<UserGameProgr
         return null;
     }
 
-    return data;
+    return data as UserGameProgress[];
 }
