@@ -44,7 +44,7 @@ export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>
         async start(controller) {
             try {
                 for await (const chunk of stream) {
-                    const text = chunk.text();
+                    const text = chunk.text;
                     if (text) {
                         controller.enqueue(new TextEncoder().encode(text));
                     }

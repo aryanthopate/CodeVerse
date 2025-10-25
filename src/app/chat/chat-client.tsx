@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -91,29 +90,36 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         let isNewChat = !currentChatId || currentChatId.startsWith('temp-');
 
         // Optimistically update UI
-        const tempActiveChat = {
-            id: currentChatId || 'anonymous',
-            title: activeChat?.title === 'New Chat' ? currentInput.substring(0, 50) : (activeChat?.title || currentInput.substring(0,50)),
-            user_id: profile?.id || 'anonymous',
-            created_at: activeChat?.created_at || new Date().toISOString(),
-            is_archived: activeChat?.is_archived || false,
-            is_pinned: activeChat?.is_pinned || false,
-            messages: [...(activeChat?.messages || []), userInput as ChatMessage],
-        };
+        let tempActiveChat: ActiveChat;
+        if (isNewChat) {
+            tempActiveChat = {
+                id: currentChatId || `temp-${Date.now()}`,
+                title: currentInput.substring(0, 50),
+                user_id: profile?.id || 'anonymous',
+                created_at: new Date().toISOString(),
+                is_archived: false,
+                is_pinned: false,
+                messages: [userInput as ChatMessage],
+            };
+        } else {
+            tempActiveChat = {
+                ...(activeChat as ActiveChat),
+                messages: [...(activeChat?.messages || []), userInput as ChatMessage],
+            };
+        }
 
-        setActiveChat(tempActiveChat as ActiveChat);
+        setActiveChat(tempActiveChat);
         setIsStreaming(true);
         
         try {
             if (isNewChat && profile) {
-                const tempId = currentChatId;
+                const tempId = tempActiveChat.id;
                 const newChat = await createNewChat(currentInput);
                 if (newChat) {
                     currentChatId = newChat.id;
-                    // Replace temporary chat with the real one
+                    tempActiveChat.id = newChat.id;
                     setChats(prev => [newChat, ...prev.filter(c => c.id !== tempId)]);
-                    setActiveChat(prev => ({...(prev as ActiveChat), id: newChat.id}));
-                    // Replace URL without full reload
+                    setActiveChat(tempActiveChat);
                     window.history.replaceState(null, '', `/chat/${newChat.id}`);
                 } else {
                     throw new Error("Failed to create new chat session.");
@@ -180,6 +186,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         if (!profile && (action !== 'delete')) return; // Allow delete for anon chats
         
         let optimisticChats = [...chats];
+        let originalChats = [...chats]; // Save original state for rollback
 
         if (action === 'delete') {
             optimisticChats = chats.filter(c => c.id !== chatId);
@@ -234,7 +241,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     title: 'Action Failed',
                     description: `Could not perform action: ${error.message}`,
                 });
-                setChats(chats);
+                setChats(originalChats); // Rollback optimistic update
             }
         }
 
@@ -482,3 +489,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
     
 
     
+
