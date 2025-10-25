@@ -341,7 +341,7 @@ export async function getUserGameProgress(gameId: string): Promise<UserGameProgr
 
         const { data, error } = await supabase
             .from('user_game_progress')
-            .select('completed_level_id')
+            .select('level_id')
             .eq('user_id', user.id)
             .eq('game_id', gameId);
 

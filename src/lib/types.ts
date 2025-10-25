@@ -29,7 +29,9 @@ export type Course = Database['public']['Tables']['courses']['Row'] & {
     tags?: Tag[] | null;
     game_id?: string | null; // Added to link to a game
 };
-export type Chapter = Database['public']['Tables']['chapters']['Row'];
+export type Chapter = Database['public']['Tables']['chapters']['Row'] & {
+    image_url?: string | null;
+};
 export type Topic = Database['public']['Tables']['topics']['Row'] & {
     duration_minutes?: number | null;
 };
@@ -48,7 +50,9 @@ export type CourseGift = Database['public']['Tables']['course_gifts']['Row'];
 export type Game = Database['public']['Tables']['games']['Row'] & {
     course_id?: string | null;
 };
-export type GameChapter = Database['public']['Tables']['game_chapters']['Row'];
+export type GameChapter = Database['public']['Tables']['game_chapters']['Row'] & {
+    image_url?: string | null;
+};
 export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
     intro_text?: string | null;
     correct_feedback?: string | null;

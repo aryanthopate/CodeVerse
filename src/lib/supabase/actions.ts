@@ -19,6 +19,7 @@ interface ChapterData extends Omit<Chapter, 'id' | 'created_at' | 'course_id' | 
     id?: string; // id is present when updating
     order: number;
     topics: TopicData[];
+    image_file?: File;
 }
 
 interface CourseData extends Omit<Course, 'id' | 'created_at' > {
@@ -216,13 +217,37 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
     
     const { chapters, related_courses, ...restOfCourseData } = courseData;
 
+    // Handle course image upload
+    let imageUrl = restOfCourseData.image_url;
+    // Assuming image is a base64 string if it's a new upload.
+    if (imageUrl && imageUrl.startsWith('data:image')) {
+        const fileExt = imageUrl.substring(imageUrl.indexOf('/') + 1, imageUrl.indexOf(';'));
+        const filePath = `${courseId}/thumbnail.${fileExt}`;
+        const buffer = Buffer.from(imageUrl.replace(/^data:image\/\w+;base64,/, ""), 'base64');
+        
+        const { error: uploadError } = await supabase.storage
+            .from('course_materials')
+            .upload(filePath, buffer, { 
+                contentType: `image/${fileExt}`, 
+                upsert: true 
+            });
+
+        if (uploadError) {
+            return { success: false, error: `Image upload failed: ${uploadError.message}` };
+        }
+        
+        const { data: { publicUrl } } = supabase.storage.from('course_materials').getPublicUrl(filePath);
+        imageUrl = publicUrl;
+    }
+
+
     const { error: courseError } = await supabase
         .from('courses')
         .update({
             name: restOfCourseData.name,
             slug: restOfCourseData.slug,
             description: restOfCourseData.description,
-            image_url: restOfCourseData.image_url,
+            image_url: imageUrl,
             is_paid: restOfCourseData.is_paid,
             price: restOfCourseData.price,
             what_you_will_learn: restOfCourseData.what_you_will_learn,
@@ -275,11 +300,24 @@ export async function updateCourse(courseId: string, courseData: CourseData) {
     }
 
     for (const chapterData of courseData.chapters) {
+        let chapterImageUrl = chapterData.image_url;
+        if (chapterData.image_file) {
+             const filePath = `${courseId}/chapters/${crypto.randomUUID()}-${chapterData.image_file.name}`;
+             const { error: uploadError } = await supabase.storage
+                .from('chapter_images')
+                .upload(filePath, chapterData.image_file, { upsert: true });
+            
+            if (uploadError) return { success: false, error: `Chapter image upload failed: ${uploadError.message}` };
+            
+            chapterImageUrl = supabase.storage.from('chapter_images').getPublicUrl(filePath).data.publicUrl;
+        }
+
         const isNewChapter = chapterData.id?.startsWith('ch-');
         const chapterToUpsert: any = {
             title: chapterData.title,
             order: chapterData.order,
             course_id: courseId,
+            image_url: chapterImageUrl,
         };
         if(!isNewChapter) {
             chapterToUpsert.id = chapterData.id;
@@ -508,19 +546,22 @@ interface LevelData extends Omit<GameLevel, 'id' | 'created_at' | 'chapter_id' |
 interface GameChapterData extends Omit<GameChapter, 'id' | 'created_at' | 'game_id' | 'order'> {
     id: string; // Temporary client-side ID
     order: number;
+    image_url?: string | null;
+    image_file?: File | null;
     game_levels: LevelData[];
 }
 interface GameData extends Omit<Game, 'id' | 'created_at'> {
     game_chapters: GameChapterData[];
 }
 
-export async function createGame(gameData: GameData) {
+export async function createGame(gameData: GameData, thumbnailFile: File | null, chapterImageFiles: {id: string, file: File | null}[]) {
     const supabase = createClient();
     const { game_chapters, ...restOfGameData } = gameData;
-
+    
+    // Create the game record first
     const { data: newGame, error: gameError } = await supabase
         .from('games')
-        .insert(restOfGameData)
+        .insert({ ...restOfGameData, thumbnail_url: '' })
         .select()
         .single();
 
@@ -528,38 +569,49 @@ export async function createGame(gameData: GameData) {
         return { success: false, error: `Game creation failed: ${gameError.message}` };
     }
 
+    let finalThumbnailUrl = '';
+    if (thumbnailFile) {
+        const filePath = `${newGame.id}/thumbnail-${thumbnailFile.name}`;
+        const { error: uploadError } = await supabase.storage.from('game_thumbnails').upload(filePath, thumbnailFile, { upsert: true });
+        if (uploadError) return { success: false, error: `Thumbnail upload failed: ${uploadError.message}` };
+        finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
+    }
+    
+    // Update game with thumbnail URL
+    const { error: updateError } = await supabase.from('games').update({ thumbnail_url: finalThumbnailUrl }).eq('id', newGame.id);
+    if(updateError) console.error("Failed to update game with thumbnail URL", updateError);
+
+
     for (const chapterData of game_chapters) {
-        const { game_levels, ...restOfChapterData } = chapterData;
-        const chapterPayload: Omit<GameChapter, 'id' | 'created_at'> = {
+        const { game_levels, image_file, ...restOfChapterData } = chapterData;
+        let chapterImageUrl = '';
+        const chapterImageInfo = chapterImageFiles.find(f => f.id === chapterData.id);
+        if (chapterImageInfo?.file) {
+            const filePath = `${newGame.id}/chapters/${crypto.randomUUID()}-${chapterImageInfo.file.name}`;
+            const { error: uploadError } = await supabase.storage.from('game_chapter_images').upload(filePath, chapterImageInfo.file, { upsert: true });
+            if (uploadError) console.error(`Chapter image upload failed: ${uploadError.message}`);
+            else chapterImageUrl = supabase.storage.from('game_chapter_images').getPublicUrl(filePath).data.publicUrl;
+        }
+
+        const chapterPayload = {
             title: restOfChapterData.title,
             order: restOfChapterData.order,
             game_id: newGame.id,
+            image_url: chapterImageUrl,
         };
-        const { data: newChapter, error: chapterError } = await supabase
-            .from('game_chapters')
-            .insert(chapterPayload)
-            .select()
-            .single();
-
+        const { data: newChapter, error: chapterError } = await supabase.from('game_chapters').insert(chapterPayload).select().single();
         if (chapterError) {
-            console.error('Error creating game chapter:', chapterError.message);
-            // Rollback game creation for consistency
             await supabase.from('games').delete().eq('id', newGame.id);
             return { success: false, error: chapterError.message };
         }
 
         if (game_levels && game_levels.length > 0) {
              const levelsToInsert = game_levels.map(level => {
-                const { id, ...restOfLevel } = level; // Exclude the temporary client-side id
-                return {
-                    ...restOfLevel,
-                    chapter_id: newChapter.id,
-                };
+                const { id, ...restOfLevel } = level; 
+                return { ...restOfLevel, chapter_id: newChapter.id };
             });
             const { error: levelsError } = await supabase.from('game_levels').insert(levelsToInsert as any);
-
             if (levelsError) {
-                console.error('Error creating game levels:', levelsError.message);
                 await supabase.from('games').delete().eq('id', newGame.id);
                 return { success: false, error: levelsError.message };
             }
@@ -692,10 +744,10 @@ export async function completeGameLevel(levelId: string) {
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
         game_id: gameId,
-        completed_level_id: levelId,
+        level_id: levelId,
         completed_at: new Date().toISOString(),
     }, {
-        onConflict: 'user_id,completed_level_id'
+        onConflict: 'user_id,level_id'
     });
 
     if (error) {

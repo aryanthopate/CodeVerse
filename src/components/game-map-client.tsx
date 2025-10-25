@@ -27,7 +27,7 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
         const gateX = x;
         const gateY = y_center;
         
-        levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: gateY });
+        levels.push({ type: 'gate', chapterTitle: chapter.title, image_url: chapter.image_url, x: gateX, y: gateY });
         
         // Draw path from previous item (if any) to the gate
         if (levels.length > 1) {
@@ -78,7 +78,7 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
 
 export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAndLevels, userProgress: UserGameProgress[] | null }) {
     const { levels: levelPositions, pathData, width } = generateLevelMap(game.game_chapters, game);
-    const completedLevelIds = userProgress?.map(p => p.completed_level_id) || [];
+    const completedLevelIds = userProgress?.map(p => p.level_id) || [];
     
     const allLevelsFlat = game.game_chapters.flatMap(c => c.game_levels);
     let currentLevelIndex = allLevelsFlat.findIndex(l => !completedLevelIds.includes(l.id));
@@ -110,10 +110,10 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
                         return (
                              <div key={`gate-${index}`} style={{ left: `${item.x}px`, top: `50%`, transform: 'translate(-50%, -50%)' }} className="absolute flex flex-col items-center z-10 text-[hsl(var(--game-accent))]">
                                 <div className="w-20 h-20 rounded-full bg-[hsl(var(--game-surface))] border-4 border-dashed border-[hsl(var(--game-border))] flex items-center justify-center font-bold text-lg overflow-hidden shadow-lg">
-                                     {game.thumbnail_url ? (
-                                        <Image src={game.thumbnail_url} alt={game.title} width={80} height={80} className="object-cover w-full h-full" />
+                                     {item.image_url ? (
+                                        <Image src={item.image_url} alt={item.chapterTitle} width={80} height={80} className="object-cover w-full h-full" />
                                     ) : (
-                                        <span>{game.title.charAt(0)}</span>
+                                        <span>{item.chapterTitle.charAt(0)}</span>
                                     )}
                                 </div>
                                 <p className="text-xs font-bold w-48 text-center mt-3 tracking-widest uppercase text-[hsl(var(--game-text))]/80">{item.chapterTitle}</p>

@@ -19,6 +19,8 @@ import { getGameBySlug, getAllCoursesMinimal } from '@/lib/supabase/queries';
 import type { GameWithChaptersAndLevels, GameChapter, GameLevel, Game, Course } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import crypto from 'crypto';
+
 
 interface GameLevelState extends Partial<GameLevel> {
     id: string;
@@ -38,6 +40,8 @@ interface GameChapterState extends Partial<GameChapter> {
     id: string;
     title: string;
     order: number;
+    image_url?: string | null;
+    image_file?: File | null;
     game_levels: GameLevelState[];
 }
 
@@ -87,6 +91,7 @@ export default function EditGamePage() {
             setCourseId(gameData.course_id);
             setChapters(gameData.game_chapters.map(c => ({
                 ...c,
+                image_url: c.image_url || null,
                 game_levels: (c.game_levels as GameLevelState[]).map(l => ({
                     ...l,
                     slug: l.slug || ''
@@ -117,8 +122,18 @@ export default function EditGamePage() {
         setChapters(chapters.filter(c => c.id !== chapterId));
     };
 
-    const handleChapterChange = (chapterId: string, field: 'title', value: string) => {
-        setChapters(prev => prev.map(c => c.id === chapterId ? { ...c, [field]: value } : c));
+    const handleChapterChange = (chapterId: string, field: 'title' | 'image_file', value: string | File) => {
+        setChapters(prev => prev.map(c => {
+            if (c.id === chapterId) {
+                if (field === 'title' && typeof value === 'string') {
+                    return { ...c, title: value };
+                }
+                if (field === 'image_file' && value instanceof File) {
+                    return { ...c, image_file: value, image_url: URL.createObjectURL(value) };
+                }
+            }
+            return c;
+        }));
     };
 
     const handleAddLevel = (chapterId: string) => {
@@ -162,11 +177,7 @@ export default function EditGamePage() {
         const file = e.target.files?.[0];
         if (file) {
             setThumbnailFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setThumbnailUrl(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            setThumbnailUrl(URL.createObjectURL(file));
         }
     };
 
@@ -182,88 +193,61 @@ export default function EditGamePage() {
 
         try {
             let finalThumbnailUrl = thumbnailUrl;
-
             if (thumbnailFile) {
-                const filePath = `${gameId}/${thumbnailFile.name}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('game_thumbnails')
-                    .upload(filePath, thumbnailFile, { cacheControl: '3600', upsert: true });
-
-                if (uploadError) {
-                    toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
-                } else {
-                    finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
-                }
+                const filePath = `${gameId}/thumbnail-${thumbnailFile.name}`;
+                const { error: uploadError } = await supabase.storage.from('game_thumbnails').upload(filePath, thumbnailFile, { upsert: true });
+                if (uploadError) throw new Error(`Thumbnail Upload Failed: ${uploadError.message}`);
+                finalThumbnailUrl = supabase.storage.from('game_thumbnails').getPublicUrl(filePath).data.publicUrl;
             }
             
-            const gamePayload = {
-                title, 
-                slug, 
-                description, 
-                language, 
-                thumbnail_url: finalThumbnailUrl, 
-                is_free: isFree,
-                course_id: courseId || null, 
-            } as Partial<Game>;
+            const { error: gameError } = await supabase.from('games').update({ title, slug, description, language, thumbnail_url: finalThumbnailUrl, is_free: isFree, course_id: courseId || null }).eq('id', gameId);
+            if (gameError) throw new Error(gameError.message);
 
-            const { error: gameError } = await supabase.from('games').update(gamePayload).eq('id', gameId);
-
-            if (gameError) {
-                throw new Error(gameError.message);
+            const existingChapterIds = (await supabase.from('game_chapters').select('id').eq('game_id', gameId)).data?.map(c => c.id) || [];
+            const incomingChapterIds = chapters.map(c => c.id).filter(id => !id.startsWith('chap-'));
+            const chaptersToDelete = existingChapterIds.filter(id => !incomingChapterIds.includes(id));
+            if (chaptersToDelete.length > 0) {
+                await supabase.from('game_chapters').delete().in('id', chaptersToDelete);
             }
 
             for (const chapter of chapters) {
-                const isNewChapter = chapter.id.startsWith('chap-');
-                const chapterPayload: any = {
-                    game_id: gameId,
-                    title: chapter.title,
-                    order: chapter.order,
-                };
-                if (!isNewChapter) {
-                    chapterPayload.id = chapter.id;
+                let chapterImageUrl = chapter.image_url;
+                if (chapter.image_file) {
+                    const filePath = `${gameId}/chapters/${crypto.randomUUID()}-${chapter.image_file.name}`;
+                    const { error: uploadError } = await supabase.storage.from('game_chapter_images').upload(filePath, chapter.image_file, { upsert: true });
+                    if (uploadError) throw new Error(`Chapter image upload failed: ${uploadError.message}`);
+                    chapterImageUrl = supabase.storage.from('game_chapter_images').getPublicUrl(filePath).data.publicUrl;
                 }
 
+                const isNewChapter = chapter.id.startsWith('chap-');
+                const chapterPayload: any = { game_id: gameId, title: chapter.title, order: chapter.order, image_url: chapterImageUrl };
+                if (!isNewChapter) chapterPayload.id = chapter.id;
+
                 const { data: upsertedChapter, error: chapterError } = await supabase.from('game_chapters').upsert(chapterPayload).select().single();
-                if (chapterError) { 
-                    console.error('Chapter upsert failed:', chapterError);
-                    toast({ variant: 'destructive', title: 'Chapter Save Failed', description: chapterError.message });
-                    continue; 
+                if (chapterError) throw new Error(`Chapter upsert failed: ${chapterError.message}`);
+
+                const existingLevelIds = (await supabase.from('game_levels').select('id').eq('chapter_id', upsertedChapter.id)).data?.map(l => l.id) || [];
+                const incomingLevelIds = chapter.game_levels.map(l => l.id).filter(id => !id.startsWith('lvl-'));
+                const levelsToDelete = existingLevelIds.filter(id => !incomingLevelIds.includes(id));
+                if (levelsToDelete.length > 0) {
+                    await supabase.from('game_levels').delete().in('id', levelsToDelete);
                 }
 
                 for (const level of chapter.game_levels) {
                     const isNewLevel = level.id.startsWith('lvl-');
-                    const levelPayload: any = {
-                        chapter_id: upsertedChapter!.id,
-                        title: level.title,
-                        slug: level.slug,
-                        objective: level.objective,
-                        starter_code: level.starter_code,
-                        expected_output: level.expected_output,
-                        reward_xp: Number(level.reward_xp),
-                        order: level.order,
-                        intro_text: level.intro_text,
-                        correct_feedback: level.correct_feedback,
-                        incorrect_feedback: level.incorrect_feedback,
-                    };
-                    if (!isNewLevel) {
-                        levelPayload.id = level.id;
-                    }
+                    const { id, ...levelData } = level;
+                    const levelPayload: any = { ...levelData, chapter_id: upsertedChapter.id, reward_xp: Number(level.reward_xp) };
+                    if (!isNewLevel) levelPayload.id = id;
+
                     const { error: levelError } = await supabase.from('game_levels').upsert(levelPayload);
-                    if (levelError) {
-                        console.error('Level upsert failed:', levelError);
-                        toast({ variant: 'destructive', title: 'Level Save Failed', description: levelError.message });
-                    }
+                    if (levelError) throw new Error(`Level upsert failed: ${levelError.message}`);
                 }
             }
 
             toast({ title: "Game Updated!", description: `${title} has been saved.` });
             router.push('/admin/games');
         } catch (error: any) {
-            toast({
-                variant: 'destructive',
-                title: 'Update Failed',
-                description: error.message || 'An unexpected error occurred.',
-            });
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message || 'An unexpected error occurred.' });
         } finally {
             setLoading(false);
         }
@@ -312,12 +296,12 @@ export default function EditGamePage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="course-id">Linked Course (Optional)</Label>
-                                        <Select value={courseId || ''} onValueChange={(value) => setCourseId(value)}>
+                                        <Select value={courseId || 'none'} onValueChange={(value) => setCourseId(value === 'none' ? null : value)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a course to link..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">None</SelectItem>
+                                                <SelectItem value="none">None</SelectItem>
                                                 {allCourses.map(course => (
                                                     <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                                                 ))}
@@ -378,6 +362,26 @@ export default function EditGamePage() {
                                         </Button>
                                     </CardHeader>
                                     <CardContent className="space-y-4 pl-10">
+                                         <div className="space-y-2">
+                                            <Label>Chapter Image</Label>
+                                            <Card className="border-dashed">
+                                                <CardContent className="p-4">
+                                                    <div className="flex flex-col items-center justify-center space-y-2">
+                                                        {chapter.image_url ? (
+                                                            <Image src={chapter.image_url} alt="Chapter preview" width={200} height={150} className="rounded-md max-h-32 w-auto object-contain"/>
+                                                        ) : (
+                                                            <div className="w-24 h-24 bg-muted rounded-lg flex items-center justify-center">
+                                                                <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <Input id={`chapter-image-upload-${chapter.id}`} type="file" className="sr-only" onChange={(e) => e.target.files && handleChapterChange(chapter.id, 'image_file', e.target.files[0])} accept="image/*"/>
+                                                        <Label htmlFor={`chapter-image-upload-${chapter.id}`} className="cursor-pointer text-primary text-sm underline">
+                                                            {chapter.image_url ? 'Change image' : 'Upload an image'}
+                                                        </Label>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
                                          <Accordion type="single" collapsible className="w-full">
                                             {chapter.game_levels.map((level, levelIndex) => (
                                                  <AccordionItem key={level.id} value={level.id} className="bg-background border rounded-lg mb-4">
@@ -446,4 +450,3 @@ export default function EditGamePage() {
         </AdminLayout>
     );
 }
-

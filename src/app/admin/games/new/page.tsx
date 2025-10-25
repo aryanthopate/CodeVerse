@@ -38,6 +38,8 @@ interface GameChapterState {
     id: string;
     title: string;
     order: number;
+    image_url?: string | null;
+    image_file?: File | null;
     game_levels: GameLevelState[];
 }
 
@@ -85,8 +87,18 @@ export default function NewGamePage() {
         setChapters(chapters.filter(c => c.id !== chapterId));
     };
 
-    const handleChapterChange = (chapterId: string, field: 'title', value: string) => {
-        setChapters(prev => prev.map(c => c.id === chapterId ? { ...c, [field]: value } : c));
+    const handleChapterChange = (chapterId: string, field: 'title' | 'image_file', value: string | File) => {
+        setChapters(prev => prev.map(c => {
+            if (c.id === chapterId) {
+                if (field === 'title' && typeof value === 'string') {
+                    return { ...c, title: value };
+                }
+                if (field === 'image_file' && value instanceof File) {
+                    return { ...c, image_file: value, image_url: URL.createObjectURL(value) };
+                }
+            }
+            return c;
+        }));
     };
 
     const handleAddLevel = (chapterId: string) => {
@@ -130,11 +142,7 @@ export default function NewGamePage() {
         const file = e.target.files?.[0];
         if (file) {
             setThumbnailFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setThumbnailUrl(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            setThumbnailUrl(URL.createObjectURL(file));
         }
     };
 
@@ -142,7 +150,7 @@ export default function NewGamePage() {
         e.preventDefault();
         setLoading(true);
 
-        const gamePayload = {
+        const gamePayload: any = {
             title,
             slug,
             description,
@@ -153,30 +161,9 @@ export default function NewGamePage() {
             game_chapters: chapters,
         };
 
-        const result = await createGame(gamePayload as any);
+        const result = await createGame(gamePayload, thumbnailFile, chapters.map(c => ({ id: c.id, file: c.image_file })));
 
         if (result.success && result.gameId) {
-             if (thumbnailFile) {
-                const filePath = `${result.gameId}/${thumbnailFile.name}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('game_thumbnails')
-                    .upload(filePath, thumbnailFile, {
-                        cacheControl: '3600',
-                        upsert: true,
-                    });
-                
-                if(uploadError) {
-                    toast({ variant: 'destructive', title: 'Thumbnail Upload Failed', description: uploadError.message });
-                } else {
-                    const { data: { publicUrl } } = supabase.storage.from('game_thumbnails').getPublicUrl(filePath);
-                    
-                    await supabase
-                        .from('games')
-                        .update({ thumbnail_url: publicUrl })
-                        .eq('id', result.gameId);
-                }
-            }
-
             toast({
                 title: "Game Created!",
                 description: `${title} has been successfully added.`,
@@ -233,12 +220,12 @@ export default function NewGamePage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="course-id">Linked Course (Optional)</Label>
-                                        <Select value={courseId || ''} onValueChange={(value) => setCourseId(value)}>
+                                        <Select value={courseId || 'none'} onValueChange={(value) => setCourseId(value === 'none' ? null : value)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a course to link..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">None</SelectItem>
+                                                <SelectItem value="none">None</SelectItem>
                                                 {allCourses.map(course => (
                                                     <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                                                 ))}
@@ -299,6 +286,26 @@ export default function NewGamePage() {
                                         </Button>
                                     </CardHeader>
                                     <CardContent className="space-y-4 pl-10">
+                                        <div className="space-y-2">
+                                            <Label>Chapter Image</Label>
+                                            <Card className="border-dashed">
+                                                <CardContent className="p-4">
+                                                    <div className="flex flex-col items-center justify-center space-y-2">
+                                                        {chapter.image_url ? (
+                                                            <Image src={chapter.image_url} alt="Chapter preview" width={200} height={150} className="rounded-md max-h-32 w-auto object-contain"/>
+                                                        ) : (
+                                                            <div className="w-24 h-24 bg-muted rounded-lg flex items-center justify-center">
+                                                                <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <Input id={`chapter-image-upload-${chapter.id}`} type="file" className="sr-only" onChange={(e) => e.target.files && handleChapterChange(chapter.id, 'image_file', e.target.files[0])} accept="image/*"/>
+                                                        <Label htmlFor={`chapter-image-upload-${chapter.id}`} className="cursor-pointer text-primary text-sm underline">
+                                                            {chapter.image_url ? 'Change image' : 'Upload an image'}
+                                                        </Label>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
                                         <Accordion type="single" collapsible className="w-full">
                                             {chapter.game_levels.map((level, levelIndex) => (
                                                 <AccordionItem key={level.id} value={level.id} className="bg-background border rounded-lg mb-4">
