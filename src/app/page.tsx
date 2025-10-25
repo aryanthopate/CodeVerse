@@ -171,7 +171,7 @@ export default async function Home() {
                  <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
                 <div className="flex flex-col lg:flex-row items-center gap-8">
                     <div className="flex-1 text-center lg:text-left z-10">
-                        <Badge variant="outline" className="mb-4 border-accent text-accent animate-float text-sm">
+                        <Badge variant="outline" className="mb-4 border-primary/50 text-primary animate-float">
                             New Feature!
                         </Badge>
                         <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
@@ -186,11 +186,11 @@ export default async function Home() {
                     </div>
                      <div className="flex-1 w-full flex items-center justify-center z-10 group">
                         <Image
-                            src={gameSettings?.placeholder_image_url || "/images/placeholder-game-home.png"}
+                            src={gameSettings?.placeholder_image_url || `https://picsum.photos/seed/game-placeholder/400/400`}
                             width={400}
                             height={400}
                             alt="Coding Game"
-                            className="object-contain rounded-lg shadow-[0_0_15px_2px] shadow-primary/30 transition-all duration-500 group-hover:scale-105 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
+                            className="object-contain rounded-lg transition-all duration-500 group-hover:scale-105 shadow-[0_0_15px_2px] shadow-primary/30 group-hover:shadow-[0_0_30px_5px] group-hover:shadow-primary/40"
                             data-ai-hint="neon abstract"
                         />
                     </div>
