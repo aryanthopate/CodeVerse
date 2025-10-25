@@ -63,25 +63,20 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [activeChat?.messages, isStreaming]);
 
     const handleNewChat = () => {
-        // Create a temporary chat object
         const tempChatId = `temp-${Date.now()}`;
-        const newTempChat: Chat = {
+        const newTempChat: ActiveChat = {
             id: tempChatId,
             title: 'New Chat',
             user_id: profile?.id || 'anonymous',
             created_at: new Date().toISOString(),
             is_archived: false,
             is_pinned: false,
+            messages: [],
         };
-
-        // Add the temporary chat to the list for immediate UI update
+    
         setChats(prev => [newTempChat, ...prev.filter(c => !c.id.startsWith('temp-'))]);
-        
-        // Navigate to the generic chat page, which will show an empty state
+        setActiveChat(newTempChat);
         router.push('/chat');
-        
-        // Set the active chat to an empty state associated with the temp ID
-        setActiveChat({ ...newTempChat, messages: [] });
     };
     
     const handleSubmit = async (e: React.FormEvent) => {
@@ -129,21 +124,15 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             
             const messagesForApi = tempActiveChat.messages;
 
-            const stream = await streamChat({ messages: messagesForApi as any });
-
-            if (!stream) {
-                 throw new Error("The AI service did not return a stream.");
-            }
+            const readableStream = await streamChat({ messages: messagesForApi as any });
+            const reader = readableStream.getReader();
+            const decoder = new TextDecoder();
+            let streamedResponse = '';
             
-            // Add placeholder for model's response
             setActiveChat(prev => ({
                 ...(prev as ActiveChat),
                 messages: [...(prev?.messages || []), { role: 'model', content: [{ text: '' }] } as ChatMessage]
             }));
-
-            const reader = stream.getReader();
-            const decoder = new TextDecoder();
-            let streamedResponse = '';
 
             while (true) {
                 const { value, done } = await reader.read();
@@ -157,14 +146,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     const latestMessages = [...prev.messages];
                     const lastMessage = latestMessages[latestMessages.length - 1];
                     if (lastMessage && lastMessage.role === 'model') {
-                        // Create a new message object to avoid direct mutation
                         latestMessages[latestMessages.length - 1] = { ...lastMessage, content: [{ text: streamedResponse }]};
                     }
                     return { ...prev, messages: latestMessages };
                 });
             }
             
-            // Save the final conversation if logged in
             if (profile && currentChatId && !currentChatId.startsWith('temp-') && currentChatId !== 'anonymous') {
                 const finalMessages = [
                     ...messagesForApi,
@@ -180,10 +167,8 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 title: "An error occurred",
                 description: error.message || "Could not get a response from the AI. Please try again.",
             });
-            // Rollback optimistic updates on error
             setActiveChat(prev => {
                 if (!prev) return null;
-                // Remove the user's message and the AI placeholder
                 return { ...prev, messages: prev.messages.slice(0, -2) };
             });
         } finally {
@@ -212,7 +197,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             });
         }
         
-        // Optimistically update the UI
         setChats(optimisticChats);
 
         if (params.chatId === chatId) {
@@ -230,7 +214,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
              }
         }
 
-        // Perform the backend action if user is logged in
         if (profile && !chatId.startsWith('temp-')) {
             try {
                 if (action === 'delete') {
@@ -250,7 +233,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     title: 'Action Failed',
                     description: `Could not perform action: ${error.message}`,
                 });
-                // Revert optimistic update on failure
                 setChats(chats);
             }
         }
@@ -258,7 +240,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [chats, profile, params.chatId, router, toast]);
 
     if (!isClient) {
-        return null; // Or a loading skeleton
+        return null;
     }
 
     const pinnedChats = chats.filter(c => c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -389,7 +371,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                 </div>
                              )
                         })}
-                         {(isStreaming && (!activeChat?.messages.length || activeChat.messages[activeChat.messages.length - 1]?.role !== 'model')) && (
+                         {isStreaming && activeChat?.messages[activeChat.messages.length - 1]?.role !== 'model' && (
                              <div className="flex items-start gap-4 justify-start">
                                 <Avatar>
                                     <AvatarImage src={settings?.chat_bot_avatar_url || ''} />
@@ -481,9 +463,9 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 
     if (isArchived) {
         return (
-            <button onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block">
+            <div onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block cursor-pointer">
                 {content}
-            </button>
+            </div>
         );
     }
     
@@ -494,5 +476,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
     );
 }
 
-
-      
+    
