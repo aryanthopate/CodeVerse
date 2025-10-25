@@ -25,23 +25,25 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
         
         // Position the gate before the first level of the chapter
         const gateX = x;
-        levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: y_center });
-        
-        // Advance x for the gate and spacing
-        x += chapterGateSpacing;
+        // Don't add a gate if it's the very first item
+        if (i > 0 || chapters.length === 1) {
+            levels.push({ type: 'gate', chapterTitle: chapter.title, x: gateX, y: y_center });
+            // Advance x for the gate and spacing
+            x += chapterGateSpacing;
 
-        // Draw path from previous item (if any) to the gate
-        if (levels.length > 1) {
-            const prevItem = levels[levels.length-2];
-            const prevX = prevItem.type === 'gate' ? prevItem.x + chapterGateSpacing : prevItem.x;
-            const prevY = prevItem.y;
+             // Draw path from previous item (if any) to the gate
+            if (levels.length > 1) {
+                const prevItem = levels[levels.length-2];
+                const prevX = prevItem.x;
+                const prevY = prevItem.y;
 
-            const cp1x = prevX + (segmentLength * 0.6);
-            const cp1y = prevY;
-            const cp2x = gateX - (segmentLength * 0.6);
-            const cp2y = y_center;
-            
-            pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${gateX},${y_center}`;
+                const cp1x = prevX + (segmentLength * 0.6);
+                const cp1y = prevY;
+                const cp2x = gateX - (segmentLength * 0.6);
+                const cp2y = y_center;
+                
+                pathData += ` M ${prevX},${prevY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${gateX},${y_center}`;
+            }
         }
         
         for (let j = 0; j < chapter.game_levels.length; j++) {
@@ -54,7 +56,7 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
             levels.push({ type: 'level', ...level, x: currentLevelX, y: currentY });
 
             // Path from gate to first level, or from level to level
-            const prevItem = levels[levels.length - 2];
+            const prevItem = levels.length > 1 ? levels[levels.length - 2] : { x: 0, y: currentY };
             const prevX = prevItem.x;
             const prevY = prevItem.y;
 
@@ -85,18 +87,18 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
     }
 
     return (
-        <div className="flex-grow w-full overflow-x-auto overflow-y-hidden relative group py-12 bg-gradient-to-b from-gray-900 to-black">
+        <div className="flex-grow w-full overflow-x-auto overflow-y-hidden relative group py-12 bg-gradient-to-b from-[hsl(var(--game-bg))] to-black">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
             <div className="absolute inset-0 bg-grid-white/[0.02] animate-grid-pan"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-transparent to-gray-900 z-10 pointer-events-none w-[200%]"></div>
-            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-gray-900 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--game-bg))] via-transparent to-[hsl(var(--game-bg))] z-10 pointer-events-none w-[200%]"></div>
+            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[hsl(var(--game-bg))] to-transparent z-10 pointer-events-none"></div>
 
             <div className="relative w-full h-full flex items-center" style={{ minWidth: `${width}px`, minHeight: '400px' }}>
                 <svg width={width} height="400" className="absolute top-1/2 -translate-y-1/2 left-0 h-full">
                     <path 
                         d={pathData} 
                         fill="none" 
-                        stroke="hsl(var(--muted) / 0.3)" 
+                        stroke="hsl(var(--game-border) / 0.3)" 
                         strokeWidth="6" 
                         strokeLinecap="round"
                         strokeDasharray="10 10"
@@ -106,15 +108,15 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
                 {levelPositions.map((item, index) => {
                    if (item.type === 'gate') {
                         return (
-                             <div key={`gate-${index}`} style={{ left: `${item.x}px`, top: `50%`, transform: 'translate(-50%, -50%)' }} className="absolute flex flex-col items-center z-10 text-primary">
-                                <div className="w-16 h-16 rounded-xl bg-gray-800 border-4 border-dashed border-primary/50 flex items-center justify-center font-bold text-lg overflow-hidden">
+                             <div key={`gate-${index}`} style={{ left: `${item.x}px`, top: `50%`, transform: 'translate(-50%, -50%)' }} className="absolute flex flex-col items-center z-10 text-[hsl(var(--game-accent))]">
+                                <div className="w-20 h-20 rounded-full bg-[hsl(var(--game-surface))] border-4 border-dashed border-[hsl(var(--game-border))] flex items-center justify-center font-bold text-lg overflow-hidden shadow-lg">
                                      {game.thumbnail_url ? (
-                                        <Image src={game.thumbnail_url} alt={game.title} width={64} height={64} className="object-cover w-full h-full" />
+                                        <Image src={game.thumbnail_url} alt={game.title} width={80} height={80} className="object-cover w-full h-full" />
                                     ) : (
                                         <span>{game.title.charAt(0)}</span>
                                     )}
                                 </div>
-                                <p className="text-xs font-bold w-48 text-center mt-2 tracking-widest uppercase text-primary/80">{item.chapterTitle}</p>
+                                <p className="text-xs font-bold w-48 text-center mt-3 tracking-widest uppercase text-[hsl(var(--game-text))]/80">{item.chapterTitle}</p>
                             </div>
                         )
                    }
@@ -133,19 +135,19 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
                             href={isLocked ? '#' : `/playground/${game.slug}/${level.slug}`}
                             className={cn(
                                 "absolute w-28 h-28 rounded-full flex flex-col items-center justify-center transition-all duration-300 z-20 group/level",
-                                "border-4 bg-gray-800 shadow-lg",
-                                isCurrent && "border-primary scale-110 shadow-primary/30 animate-pulse",
-                                isCompleted ? "border-green-500 bg-green-900/50 shadow-green-500/20" : "border-gray-700",
-                                isLocked ? "border-gray-800 bg-gray-900/80 cursor-not-allowed opacity-60" : "cursor-pointer hover:scale-110 hover:border-primary",
+                                "border-4 bg-[hsl(var(--game-surface))] shadow-lg",
+                                isCurrent && "border-[hsl(var(--game-accent))] scale-110 shadow-[hsl(var(--game-accent-glow))]/30 animate-pulse",
+                                isCompleted ? "border-green-500 bg-green-900/50 shadow-green-500/20" : "border-[hsl(var(--game-border))]",
+                                isLocked ? "border-[hsl(var(--game-border))]/50 bg-black/50 cursor-not-allowed opacity-60" : "cursor-pointer hover:scale-110 hover:border-[hsl(var(--game-accent))]",
                             )}
-                            style={{ left: `${level.x - 56}px`, top: `${level.y - 56}px` }}
+                             style={{ left: `${level.x}px`, top: `${level.y}px`, transform: `translate(-50%, -50%)`, boxShadow: '0 6px 12px hsla(0,0%,0%,0.4)' }}
                         >
                             <div className="w-10 h-10 flex items-center justify-center mb-1">
                             {isLocked ? <Lock className="w-8 h-8 text-gray-500" /> :
                              isCompleted ? <ShieldCheck className="w-8 h-8 text-green-400" /> :
-                             isCurrent ? <Play className="w-8 h-8 text-primary fill-primary/30" /> :
+                             isCurrent ? <Play className="w-8 h-8 text-[hsl(var(--game-accent))] fill-[hsl(var(--game-accent))]/30" /> :
                              isLastLevelOfChapter ? <Crown className="w-8 h-8 text-yellow-400" /> :
-                             <Play className="w-8 h-8 text-gray-400 group-hover/level:text-primary" />
+                             <Play className="w-8 h-8 text-gray-400 group-hover/level:text-[hsl(var(--game-accent))]" />
                             }
                             </div>
                             <p className="text-xs font-bold text-center truncate w-full px-1 text-gray-300 group-hover/level:text-white">{level.title}</p>
@@ -156,6 +158,3 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
         </div>
     );
 }
-
-
-    

@@ -25,6 +25,14 @@
     --ring: 217.2 91.2% 59.8%;
     --radius: 0.75rem;
 
+    /* New Game UI Theme Variables */
+    --game-bg: 30 54% 25%; /* Dark wood color */
+    --game-surface: 30 52% 35%; /* Lighter wood panel */
+    --game-border: 35 65% 45%; /* Wood border color */
+    --game-accent: 40 90% 55%; /* Gold/Amber accent */
+    --game-accent-glow: 40 90% 65%;
+    --game-text: 35 33% 95%; /* Light text color */
+
     --chart-1: 210 40% 96.1%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -96,5 +104,28 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer components {
+  /* New Game UI Button Style */
+  .btn-game {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    background-color: hsl(var(--game-surface));
+    border: 2px solid hsl(var(--game-border));
+    color: hsl(var(--game-text));
+    text-shadow: 1px 1px 2px hsl(var(--game-bg) / 0.5);
+    box-shadow: 0 4px 0 hsl(var(--game-bg)), 0 6px 12px hsla(0, 0%, 0%, 0.4), inset 0 1px 1px hsl(var(--game-border));
+    padding: 0.75rem 1.5rem;
+    transform: translateY(-2px);
+  }
+  .btn-game:hover {
+    transform: translateY(-4px);
+    filter: brightness(1.1);
+    box-shadow: 0 6px 0 hsl(var(--game-bg)), 0 8px 16px hsla(0, 0%, 0%, 0.4), inset 0 1px 1px hsl(var(--game-border));
+  }
+  .btn-game:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 0 hsl(var(--game-bg)), 0 2px 4px hsla(0, 0%, 0%, 0.3), inset 0 1px 1px hsl(var(--game-border));
   }
 }
