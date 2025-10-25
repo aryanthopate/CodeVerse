@@ -130,7 +130,7 @@ export default async function Home() {
               <Link href="/signup">Start Learning Free</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="#">Watch Demo <Film className="ml-2 w-4 h-4" /></Link>
+              <Link href="/playground">Enter Playground <Gamepad2 className="ml-2 w-4 h-4" /></Link>
             </Button>
           </div>
         </section>
