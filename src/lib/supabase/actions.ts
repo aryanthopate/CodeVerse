@@ -760,46 +760,15 @@ export async function completeGameLevel(levelId: string) {
     return { success: true };
 }
 
-export async function getChats(): Promise<{chats: Chat[] | null, error: string | null}> {
+export async function deleteChat(chatId: string) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { chats: [], error: null };
-
-    const { data, error } = await supabase
-        .from('chats')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
+    const { error } = await supabase.from('chats').delete().eq('id', chatId);
     if (error) {
-        return { chats: null, error: error.message };
+        console.error('Error deleting chat:', error);
+        return { success: false, error: error.message };
     }
-    return { chats: data, error: null };
-}
-
-export async function getChat(id: string): Promise<{chat: Chat | null, messages: ChatMessage[] | null, error: string | null}> {
-     const supabase = createClient();
-     const { data: { user } } = await supabase.auth.getUser();
-     if (!user) return { chat: null, messages: null, error: "Unauthorized" };
-
-     const { data: chatData, error: chatError } = await supabase
-        .from('chats')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
-    
-    if(chatError) return { chat: null, messages: null, error: chatError.message };
-
-    const { data: messagesData, error: messagesError } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('chat_id', id)
-        .order('created_at', { ascending: true });
-    
-    if(messagesError) return { chat: chatData, messages: null, error: messagesError.message };
-
-    return { chat: chatData, messages: messagesData as ChatMessage[], error: null };
+    revalidatePath('/admin/users'); // Revalidate all user pages
+    return { success: true };
 }
     
 
@@ -813,6 +782,7 @@ export async function getChat(id: string): Promise<{chat: Chat | null, messages:
 
 
     
+
 
 
 
