@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -41,8 +42,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [initialActiveChat]);
 
     useEffect(() => {
-        setChats(initialChats || []);
+        // Filter out any temporary chats from the initial server-provided list
+        setChats(initialChats?.filter(c => !c.id.startsWith('temp-')) || []);
     }, [initialChats]);
+
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -60,11 +63,25 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [activeChat?.messages, isStreaming]);
 
     const handleNewChat = () => {
-        if (!params.chatId) {
-             setActiveChat(null); // Clear view if already on new chat page
-        } else {
-             router.push('/chat');
-        }
+        // Create a temporary chat object
+        const tempChatId = `temp-${Date.now()}`;
+        const newTempChat: Chat = {
+            id: tempChatId,
+            title: 'New Chat',
+            user_id: profile?.id || 'anonymous',
+            created_at: new Date().toISOString(),
+            is_archived: false,
+            is_pinned: false,
+        };
+
+        // Add the temporary chat to the list for immediate UI update
+        setChats(prev => [newTempChat, ...prev.filter(c => !c.id.startsWith('temp-'))]);
+        
+        // Navigate to the generic chat page, which will show an empty state
+        router.push('/chat');
+        
+        // Set the active chat to an empty state associated with the temp ID
+        setActiveChat({ ...newTempChat, messages: [] });
     };
     
     const handleSubmit = async (e: React.FormEvent) => {
@@ -76,12 +93,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         setInput('');
 
         let currentChatId = activeChat?.id;
-        let isNewChat = !activeChat || activeChat.id === 'anonymous';
+        let isNewChat = !currentChatId || currentChatId.startsWith('temp-');
 
         // Optimistically update UI
         const tempActiveChat = {
             id: currentChatId || 'anonymous',
-            title: activeChat?.title || currentInput.substring(0, 50),
+            title: activeChat?.title === 'New Chat' ? currentInput.substring(0, 50) : (activeChat?.title || currentInput.substring(0,50)),
             user_id: profile?.id || 'anonymous',
             created_at: activeChat?.created_at || new Date().toISOString(),
             is_archived: activeChat?.is_archived || false,
@@ -89,22 +106,25 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             messages: [...(activeChat?.messages || []), userInput as ChatMessage],
         };
 
-        setActiveChat(tempActiveChat);
+        setActiveChat(tempActiveChat as ActiveChat);
         setIsStreaming(true);
         
         try {
-             // 1. Create chat record if it's a new chat and user is logged in
             if (isNewChat && profile) {
+                const tempId = currentChatId;
                 const newChat = await createNewChat(currentInput);
                 if (newChat) {
                     currentChatId = newChat.id;
-                    setChats(prev => [newChat, ...prev]);
-                    setActiveChat(prev => ({...prev!, id: newChat.id}));
+                    // Replace temporary chat with the real one
+                    setChats(prev => [newChat, ...prev.filter(c => c.id !== tempId)]);
+                    setActiveChat(prev => ({...(prev as ActiveChat), id: newChat.id}));
                     // Replace URL without full reload
                     window.history.replaceState(null, '', `/chat/${newChat.id}`);
                 } else {
                     throw new Error("Failed to create new chat session.");
                 }
+            } else if (isNewChat && !profile) {
+                currentChatId = 'anonymous';
             }
             
             const messagesForApi = tempActiveChat.messages;
@@ -117,8 +137,8 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             
             // Add placeholder for model's response
             setActiveChat(prev => ({
-                ...prev!,
-                messages: [...prev!.messages, { role: 'model', content: [{ text: '' }] } as unknown as ChatMessage]
+                ...(prev as ActiveChat),
+                messages: [...(prev?.messages || []), { role: 'model', content: [{ text: '' }] } as ChatMessage]
             }));
 
             const reader = stream.getReader();
@@ -145,7 +165,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }
             
             // Save the final conversation if logged in
-            if (profile && currentChatId && currentChatId !== 'anonymous') {
+            if (profile && currentChatId && !currentChatId.startsWith('temp-') && currentChatId !== 'anonymous') {
                 const finalMessages = [
                     ...messagesForApi,
                     { role: 'model', content: [{text: streamedResponse}] } as ChatMessage
@@ -199,16 +219,19 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             if(action === 'delete' || action === 'archive') {
                 router.push('/chat');
             } else if (action === 'unarchive') {
-                router.push(`/chat/${chatId}`);
+                 setActiveChat(prev => prev ? {...prev, is_archived: false} : null);
             }
         }
         
-        if (action === 'unarchive') {
-             router.push(`/chat/${chatId}`);
+        if (action === 'unarchive' && params.chatId !== chatId) {
+             const chatToUnarchive = chats.find(c => c.id === chatId);
+             if (chatToUnarchive) {
+                 router.push(`/chat/${chatId}`);
+             }
         }
 
         // Perform the backend action if user is logged in
-        if (profile) {
+        if (profile && !chatId.startsWith('temp-')) {
             try {
                 if (action === 'delete') {
                     await deleteChatAction(chatId);
@@ -419,7 +442,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         <div className="relative group">
             <div className={cn(
                 "flex items-center gap-3 p-3 rounded-xl text-sm hover:bg-muted",
-                 params.chatId === chat.id && "bg-muted"
+                 params.chatId === chat.id && !chat.id.startsWith('temp-') && "bg-muted"
             )}>
                 <MessageSquare className="w-4 h-4 shrink-0" />
                 <span className="truncate flex-1">{chat.title}</span>
@@ -465,8 +488,11 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
     }
     
     return (
-        <Link href={`/chat/${chat.id}`} className="block">
+        <Link href={chat.id.startsWith('temp-') ? '/chat' : `/chat/${chat.id}`} className="block">
             {content}
         </Link>
     );
 }
+
+
+      

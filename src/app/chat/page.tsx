@@ -10,7 +10,10 @@ export default async function ChatPage() {
   const settings = await getWebsiteSettings();
   const profile = await getUserProfile();
 
+  // Passing null activeChat tells the client to render the "new chat" state
   return <ChatClient chats={chats || []} activeChat={null} settings={settings} profile={profile} />;
 }
 
     
+
+      
