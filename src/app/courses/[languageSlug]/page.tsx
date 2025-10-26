@@ -30,6 +30,10 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
   const reviewsCount = (course.course_reviews as any)?.[0]?.count || 0;
   const enrolledCount = (course.user_enrollments as any)?.[0]?.count || 0;
 
+  const isBestseller = enrolledCount > 10;
+  const isBestRated = (course.rating || 0) >= 4.5;
+
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -48,7 +52,8 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                     <div className="flex items-start gap-4">
                         <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
                         <div className="flex flex-wrap items-start gap-2 pt-1">
-                            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>
+                             {isBestseller && <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>}
+                            {isBestRated && <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Best Rated</Badge>}
                             {(course.tags || []).map(tag => (
                                 <Badge key={tag.text} className={cn("border-none", tag.color)}>
                                     {tag.text}

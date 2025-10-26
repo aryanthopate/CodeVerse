@@ -127,6 +127,12 @@ export default function CoursesShopPage() {
         case 'oldest':
             processedCourses.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
             break;
+        case 'rating':
+            processedCourses.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            break;
+        case 'popularity':
+             processedCourses.sort((a, b) => ((b.user_enrollments?.[0]?.count) || 0) - ((a.user_enrollments?.[0]?.count) || 0));
+            break;
         default:
             break;
     }
@@ -230,6 +236,8 @@ export default function CoursesShopPage() {
                         <SelectContent>
                             <SelectItem value="newest">Sort by: Newest</SelectItem>
                             <SelectItem value="oldest">Sort by: Oldest</SelectItem>
+                            <SelectItem value="rating">Sort by: Best Rating</SelectItem>
+                            <SelectItem value="popularity">Sort by: Popularity</SelectItem>
                             <SelectItem value="name-asc">Sort by: A-Z</SelectItem>
                             <SelectItem value="name-desc">Sort by: Z-A</SelectItem>
                         </SelectContent>
@@ -247,6 +255,11 @@ export default function CoursesShopPage() {
                         const userProgress: UserCourseProgress | null = null; // This will be replaced with user progress data
                         const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
                         const reviewsCount = 0; // Placeholder
+                        
+                        const enrollments = (course.user_enrollments?.[0]?.count) || 0;
+                        const isBestseller = enrollments > 10; // Example logic
+                        const isBestRated = (course.rating || 0) >= 4.5;
+
 
                         const wishlistButton = (
                              <Button variant="ghost" size="icon" className="absolute top-3 right-3 bg-black/30 hover:bg-black/50 text-white hover:text-red-500 z-20">
@@ -266,6 +279,8 @@ export default function CoursesShopPage() {
                                     </div>
                                 </Link>
                                 <div className="absolute top-2 left-2 z-10 flex gap-2">
+                                    {isBestseller && <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>}
+                                    {isBestRated && <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Best Rated</Badge>}
                                     {(course.tags || []).map(tag => (
                                         <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
                                             {tag.text}

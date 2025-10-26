@@ -29,6 +29,7 @@ export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChapt
         .from('courses')
         .select(`
             *,
+            user_enrollments(count),
             chapters (
                 *,
                 topics (
