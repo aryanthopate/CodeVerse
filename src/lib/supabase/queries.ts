@@ -477,6 +477,55 @@ export async function getUserNoteForTopic(topicId: string): Promise<UserNote | n
     return data;
 }
 
+export async function getInProgressGames(userId: string): Promise<GameWithChaptersAndLevels[]> {
+    const supabase = createClient();
+    
+    // Get unique game_ids the user has made progress in, ordered by most recent
+    const { data: progressData, error: progressError } = await supabase
+        .from('user_game_progress')
+        .select('game_id, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+    if (progressError) {
+        console.error("Error fetching in-progress games:", progressError.message);
+        return [];
+    }
+
+    if (!progressData || progressData.length === 0) {
+        return [];
+    }
+
+    // Get unique game IDs, maintaining the order of most recently played
+    const uniqueGameIds = [...new Map(progressData.map(item => [item.game_id, item])).values()].map(item => item.game_id);
+
+    // Fetch the full details for those games
+    const { data: gamesData, error: gamesError } = await supabase
+        .from('games')
+        .select(`
+            *,
+            game_chapters (
+                *,
+                game_levels (
+                    *
+                )
+            )
+        `)
+        .in('id', uniqueGameIds)
+        .order('order', { foreignTable: 'game_chapters', ascending: true })
+        .order('order', { foreignTable: 'game_chapters.game_levels', ascending: true });
+
+    if (gamesError) {
+        console.error("Error fetching game details for in-progress games:", gamesError.message);
+        return [];
+    }
+
+    // Sort the final gamesData array based on the order from uniqueGameIds
+    const sortedGames = uniqueGameIds.map(id => gamesData.find(game => game.id === id)).filter(Boolean) as GameWithChaptersAndLevels[];
+
+    return sortedGames;
+}
+
 
 // Admin-specific queries
 export async function getUsersWithChatCount(): Promise<(UserProfile & { chat_count: number })[] | null> {
