@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -88,7 +87,7 @@ function VideoPreviewDialog({ previewUrl, courseTitle, children }: { previewUrl:
             console.error("Invalid YouTube URL:", e);
         }
     } else {
-        // Assume it's a direct link to a video file
+        // It's a direct link to a video file
         embedUrl = previewUrl;
     }
     
