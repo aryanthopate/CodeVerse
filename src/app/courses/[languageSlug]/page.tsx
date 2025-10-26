@@ -28,6 +28,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
   
   const isEnrolled = user ? await getIsUserEnrolled(course.id, user.id) : false;
   const reviewsCount = (course.course_reviews as any)?.[0]?.count || 0;
+  const enrolledCount = (course.user_enrollments as any)?.[0]?.count || 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -64,7 +65,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                             <span className="text-muted-foreground ml-1">({reviewsCount} ratings)</span>
                         </div>
-                        <p className="text-muted-foreground">{course.students_enrolled || 0} students</p>
+                        <p className="text-muted-foreground">{enrolledCount} students</p>
                         {course.language && <div className="flex items-center gap-2 text-muted-foreground"><Globe2 className="w-4 h-4" /><span>{course.language}</span></div>}
                         <div className="flex items-center gap-2 text-muted-foreground"><RefreshCw className="w-4 h-4" /><span>Last updated {format(new Date(course.created_at), 'MM/yyyy')}</span></div>
                     </div>
