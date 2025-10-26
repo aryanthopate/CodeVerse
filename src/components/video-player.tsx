@@ -218,7 +218,7 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
                      <Slider
                         value={[progress]}
                         onValueChange={handleSeek}
-                        className="w-full h-2 cursor-pointer [&>span:first-child]:h-1.5 [&>span>span]:h-1.5 [&>span>span]:w-1.5"
+                        className="w-full h-2 cursor-pointer"
                     />
 
                     <div className="flex justify-between items-center text-white">
