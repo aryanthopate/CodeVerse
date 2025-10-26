@@ -219,7 +219,7 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
             {course.games && (
                 <Button size="lg" variant="secondary" className="w-full" asChild>
                     <Link href={`/playground/${course.games.slug}`}>
-                        <Gamepad2 className="mr-2"/> Play the Game
+                        <Gamepad2 className="mr-2"/> Play the Game - {course.games.title}
                     </Link>
                 </Button>
             )}
@@ -309,7 +309,9 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
                             {course.games && (
                                 <li className="flex items-center gap-2">
                                     <Gamepad2 className="w-4 h-4 text-primary" />
-                                    <span>Game: {course.games.title}</span>
+                                     <Link href={`/playground/${course.games.slug}`} className="hover:text-primary">
+                                        Interactive Coding Game - {course.games.title}
+                                    </Link>
                                 </li>
                             )}
                         </ul>
