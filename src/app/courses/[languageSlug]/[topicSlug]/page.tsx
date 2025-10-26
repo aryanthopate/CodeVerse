@@ -17,43 +17,48 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { completeTopic, markCompleteAction } from '@/lib/supabase/actions';
+import { completeTopic } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 
 function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: string } }) {
     if (!topic.video_url) {
         return (
             <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center text-muted-foreground border border-border/50">
-                <span>Video not available.</span>
+                <span>Video not available for this topic.</span>
             </div>
         );
     }
 
-    const isYoutubeVideo = topic.video_url.includes('youtube.com') || topic.video_url.includes('youtu.be');
-
-    if (isYoutubeVideo) {
-        // Extract video ID from URL
-        let videoId;
-        try {
-            const url = new URL(topic.video_url);
+    let isYoutube = false;
+    let videoId = '';
+    
+    try {
+        const url = new URL(topic.video_url);
+        isYoutube = url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be');
+        
+        if (isYoutube) {
             if (url.hostname === 'youtu.be') {
                 videoId = url.pathname.slice(1);
             } else {
-                videoId = url.searchParams.get('v');
+                videoId = url.searchParams.get('v') || '';
             }
-        } catch (error) {
-             // Handle cases where the URL might be malformed but contains the ID
-            const match = topic.video_url.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
-            videoId = match ? match[1] : null;
         }
+    } catch (e) {
+        // If URL parsing fails, it's not a standard URL, might be just an ID or malformed.
+        // Let's try a regex for youtube IDs just in case.
+        const youtubeRegex = /(?:v=|\/)([0-9A-Za-z_-]{11}).*/;
+        const match = topic.video_url.match(youtubeRegex);
+        if (match && match[1]) {
+            isYoutube = true;
+            videoId = match[1];
+        }
+    }
 
-
+    if (isYoutube) {
         if (!videoId) {
             return <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center text-muted-foreground border border-border/50">Invalid YouTube URL</div>;
         }
-
         const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&modestbranding=1&rel=0`;
-
         return (
             <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
                  <iframe 
@@ -68,7 +73,7 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
         );
     }
     
-    // For direct video links (e.g., from Supabase Storage)
+    // Fallback for direct video links (e.g., from Supabase Storage)
     return (
         <div className="aspect-video w-full bg-black rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
             <video className="w-full h-full" controls>
@@ -163,8 +168,6 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
         notFound();
     }
     
-    const boundMarkCompleteAction = markCompleteAction.bind(null, topic.id, course.id);
-
     const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
     
@@ -185,6 +188,14 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
         nextStepUrl = `/courses/${course.slug}`;
         nextStepText = "Finish Course";
     }
+    
+    const handleCompletion = async () => {
+        'use server';
+        if (user) {
+            await completeTopic(topic.id, course.id);
+        }
+    };
+
 
     return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -235,7 +246,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                 </Button>
                             ) : <div></div>}
                         
-                            <form action={boundMarkCompleteAction}>
+                           <form action={handleCompletion}>
                                  <Button asChild>
                                     <Link href={nextStepUrl}>
                                         {nextStepText} 
