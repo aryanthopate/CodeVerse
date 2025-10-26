@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
@@ -522,3 +521,5 @@ export async function getChatForAdmin(chatId: string) {
 
     return { chat: data };
 }
+
+    
