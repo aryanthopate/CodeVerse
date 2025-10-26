@@ -1,12 +1,11 @@
 
-
 'use server';
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText, LogIn, Edit, Book } from 'lucide-react';
+import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails, getUserNoteForTopic } from '@/lib/supabase/queries';
 import { Topic } from '@/lib/types';
@@ -15,59 +14,14 @@ import { createClient } from '@/lib/supabase/server';
 import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 import { CourseSidebar } from '@/components/course-sidebar';
 import { VideoPlayer } from '@/components/video-player';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { AddNoteDialog } from '@/components/add-note-dialog';
 
-function AddNoteDialog({
-    initialContent,
-    children,
-    formAction,
-}: {
-    initialContent: string | null;
-    children: React.ReactNode;
-    formAction: (formData: FormData) => void;
-}) {
-    return (
-        <Dialog>
-            <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent>
-                <form action={formAction}>
-                    <DialogHeader>
-                        <DialogTitle>Add a Note</DialogTitle>
-                        <DialogDescription>
-                            Jot down your thoughts for this topic. Your notes will be saved and you can review them later.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Label htmlFor="note_content" className="sr-only">Note Content</Label>
-                        <Textarea 
-                            id="note_content" 
-                            name="note_content" 
-                            className="min-h-[200px]" 
-                            defaultValue={initialContent || ''}
-                            placeholder="Your notes here..."
-                        />
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                             <Button type="button" variant="secondary">Cancel</Button>
-                        </DialogClose>
-                        <DialogClose asChild>
-                            <Button type="submit">Save Note</Button>
-                        </DialogClose>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { course, chapter, topic, prevTopic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug, params.topicSlug);
+    const { course, chapter, topic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug, params.topicSlug);
 
     if (!course || !topic || !chapter) {
         notFound();
@@ -96,12 +50,6 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     }
     
     const codeSnippetForExplanation = topic.content?.match(/### Solution\s*```(?:\w+)\n([\s\S]*?)```/)?.[1]?.trim() || topic.summary;
-
-    const handleNoteSubmit = async (formData: FormData) => {
-        'use server';
-        const content = formData.get('note_content') as string;
-        await upsertUserNote(topic.id, content);
-    };
 
     return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -133,16 +81,16 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                             <Lightbulb className="mr-2"/> Explain It To Me
                                         </Button>
                                     </ExplainCodeDialog>
-                                    {user ? (
+                                    {user && (
                                         <AddNoteDialog 
+                                            topicId={topic.id}
                                             initialContent={userNote?.note_content || null}
-                                            formAction={handleNoteSubmit}
                                         >
                                             <Button variant="outline">
                                                 <FileText className="mr-2" /> Add Note
                                             </Button>
                                         </AddNoteDialog>
-                                    ) : null}
+                                    )}
                                 </div>
                             
                                 <form action={completeTopicAction}>

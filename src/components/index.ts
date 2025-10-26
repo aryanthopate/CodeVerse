@@ -11,3 +11,4 @@ export * from './logo';
 export * from './review-rating-section';
 export * from './game-map-client';
 export * from './explain-code-dialog';
+export * from './add-note-dialog';
