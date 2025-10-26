@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, Volume1, VolumeX, Maximize, Minimize, Wind } from 'lucide-react';
+import { Play, Pause, Volume2, Volume1, VolumeX, Maximize, Minimize, Wind, PictureInPicture } from 'lucide-react';
 import { Topic } from '@/lib/types';
 import Image from 'next/image';
 import { Slider } from './ui/slider';
@@ -24,7 +24,12 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1);
     const [controlsVisible, setControlsVisible] = useState(true);
+    const [isPipSupported, setIsPipSupported] = useState(false);
     let controlsTimeout = useRef<NodeJS.Timeout | null>(null);
+    
+    useEffect(() => {
+        setIsPipSupported(document.pictureInPictureEnabled);
+    }, []);
 
     const isYoutube = topic.video_url?.includes('youtube.com') || topic.video_url?.includes('youtu.be');
     
@@ -93,6 +98,15 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             }
+        }
+    };
+    
+    const handlePipToggle = () => {
+        if (!videoRef.current) return;
+        if (document.pictureInPictureElement) {
+            document.exitPictureInPicture();
+        } else {
+            videoRef.current.requestPictureInPicture();
         }
     };
 
@@ -249,6 +263,11 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
                                     ))}
                                 </PopoverContent>
                             </Popover>
+                            {isPipSupported && (
+                                <Button variant="ghost" size="icon" onClick={handlePipToggle}>
+                                    <PictureInPicture className="w-6 h-6" />
+                                </Button>
+                            )}
                             <Button variant="ghost" size="icon" onClick={handleFullScreenToggle}>
                                 {isFullScreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
                             </Button>
