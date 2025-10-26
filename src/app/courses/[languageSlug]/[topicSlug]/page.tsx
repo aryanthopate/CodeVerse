@@ -17,6 +17,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { completeTopic } from '@/lib/supabase/actions';
+import { createClient } from '@/lib/supabase/server';
 
 function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: string } }) {
     if (!topic.video_url) {
@@ -152,30 +154,44 @@ function NotesSection() {
 }
 
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { course, chapter, topic, prevTopic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug, params.topicSlug);
 
     if (!course || !topic || !chapter) {
         notFound();
     }
+    
+    // Server action to mark topic as complete
+    const markCompleteAction = async () => {
+        'use server';
+        if (user) {
+            await completeTopic(topic.id, course.id);
+        }
+    };
+
 
     const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
     
-    const nextStepUrl = hasQuiz 
-        ? `/courses/${course.slug}/${topic.slug}/quiz`
-        : hasPractice
-            ? `/courses/${course.slug}/${topic.slug}/practice`
-            : nextTopic
-                ? `/courses/${course.slug}/${nextTopic.slug}`
-                : `/courses/${course.slug}`;
+    // Determine the next logical step
+    let nextStepUrl: string;
+    let nextStepText: string;
 
-    const nextStepText = hasQuiz 
-        ? 'Take Quiz' 
-        : hasPractice
-            ? 'Start Practice'
-            : nextTopic
-                ? 'Next Topic'
-                : 'Finish Course';
+    if (hasQuiz) {
+        nextStepUrl = `/courses/${course.slug}/${topic.slug}/quiz`;
+        nextStepText = "Take the Quiz";
+    } else if (hasPractice) {
+        nextStepUrl = `/courses/${course.slug}/${topic.slug}/practice`;
+        nextStepText = "Start Practice";
+    } else if (nextTopic) {
+        nextStepUrl = `/courses/${course.slug}/${nextTopic.slug}`;
+        nextStepText = "Next Topic";
+    } else {
+        nextStepUrl = `/courses/${course.slug}`;
+        nextStepText = "Finish Course";
+    }
 
     return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -226,12 +242,14 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                 </Button>
                             ) : <div></div>}
                         
-                             <Button asChild>
-                                <Link href={nextStepUrl}>
-                                    {nextStepText} 
-                                    {nextTopic || hasPractice || hasQuiz ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
-                                </Link>
-                            </Button>
+                            <form action={markCompleteAction}>
+                                 <Button asChild>
+                                    <Link href={nextStepUrl}>
+                                        {nextStepText} 
+                                        {nextStepText !== "Finish Course" ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
+                                    </Link>
+                                </Button>
+                            </form>
                         </div>
                     </div>
                 </div>

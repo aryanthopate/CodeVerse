@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -16,6 +16,8 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import Confetti from 'react-confetti';
+import { completeTopic } from '@/lib/supabase/actions';
+import { createClient } from '@/lib/supabase/client';
 
 // A mock code editor component
 function CodeEditor({ value, onChange }: { value: string, onChange: (value: string) => void }) {
@@ -29,10 +31,8 @@ function CodeEditor({ value, onChange }: { value: string, onChange: (value: stri
     )
 }
 
-function MarkdownRenderer({ content }: { content: string }) {
-    // This is a very basic renderer. A real app would use a library like 'react-markdown'.
+function MarkdownRenderer({ content, showSolution, topic }: { content: string, showSolution: boolean, topic: TopicWithContent | null }) {
     const renderContent = () => {
-        // Extract content up to the solution section
         const problemContent = content.split('### Solution')[0];
 
         return problemContent
@@ -63,13 +63,12 @@ function MarkdownRenderer({ content }: { content: string }) {
     )
 }
 
-let topic: TopicWithContent | null = null;
-let showSolution = false;
-
 export default function CodePracticePage() {
     const params = useParams();
     const router = useRouter();
-    const [internalTopic, setInternalTopic] = useState<TopicWithContent | null>(null);
+    const supabase = createClient();
+    const [user, setUser] = useState<any>(null);
+    const [topic, setTopic] = useState<TopicWithContent | null>(null);
     const [course, setCourse] = useState<CourseWithChaptersAndTopics | null>(null);
     const [nextTopic, setNextTopic] = useState<Topic | null>(null);
     const [loading, setLoading] = useState(true);
@@ -79,19 +78,23 @@ export default function CodePracticePage() {
     const [hint, setHint] = useState('');
     const [isReviewing, setIsReviewing] = useState(false);
     const [isGettingHint, setIsGettingHint] = useState(false);
-    const [internalShowSolution, setInternalShowSolution] = useState(false);
+    const [showSolution, setShowSolution] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
     const [showConfetti, setShowConfetti] = useState(false);
 
-    topic = internalTopic;
-    showSolution = internalShowSolution;
-
     useEffect(() => {
         const fetchDetails = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push(`/login?redirect=/courses/${params.languageSlug}/${params.topicSlug}/practice`);
+                return;
+            }
+            setUser(user);
+
             const { course, topic: fetchedTopic, nextTopic: fetchedNextTopic } = await getCourseAndTopicDetails(params.languageSlug as string, params.topicSlug as string);
             if (course && fetchedTopic) {
                 setCourse(course);
-                setInternalTopic(fetchedTopic as TopicWithContent);
+                setTopic(fetchedTopic as TopicWithContent);
                 setNextTopic(fetchedNextTopic);
 
                 // Extract starter code from the content
@@ -104,35 +107,39 @@ export default function CodePracticePage() {
             setLoading(false);
         };
         fetchDetails();
-    }, [params]);
+    }, [params, supabase, router]);
 
     const handleReviewCode = async () => {
-        if (!internalTopic || !course) return;
+        if (!topic || !course) return;
         setIsReviewing(true);
         setFeedback('');
         setHint('');
         try {
             // Extract solution from the content markdown
-            const solutionMatch = internalTopic.content?.match(/### Solution\s*```(?:\w+)\n([\s\S]*?)```/);
+            const solutionMatch = topic.content?.match(/### Solution\s*```(?:\w+)\n([\s\S]*?)```/);
             const solution = solutionMatch ? solutionMatch[1].trim() : '';
-
-            const result = await reviewCodeAndProvideFeedback({
-                code: userCode,
-                solution: solution,
-                programmingLanguage: course.language || 'code',
-            });
-
-            setFeedback(result.feedback);
             
-            // A simple check if feedback indicates success
-            if (result.feedback.toLowerCase().includes('correct') || result.feedback.toLowerCase().includes('well done')) {
+            // Simple string comparison for correctness.
+            const userCodeCleaned = userCode.replace(/\s+/g, ' ').trim();
+            const solutionCleaned = solution.replace(/\s+/g, ' ').trim();
+
+            if (userCodeCleaned === solutionCleaned) {
+                setFeedback(topic.explanation || "Correct! Well done.");
                 setIsCorrect(true);
                 setShowConfetti(true);
-                setTimeout(() => setShowConfetti(false), 8000); // Confetti for 8 seconds
+                setTimeout(() => setShowConfetti(false), 8000);
+                if(user) await completeTopic(topic.id, course.id);
+
             } else {
+                 const result = await reviewCodeAndProvideFeedback({
+                    code: userCode,
+                    solution: solution,
+                    programmingLanguage: course.language || 'code',
+                });
+
+                setFeedback(result.feedback);
                 setIsCorrect(false);
             }
-
         } catch (e: any) {
             setFeedback(`Error getting feedback: ${e.message}`);
         } finally {
@@ -141,12 +148,12 @@ export default function CodePracticePage() {
     };
     
     const handleGetHint = async () => {
-        if (!internalTopic) return;
+        if (!topic) return;
         setIsGettingHint(true);
         setHint('');
          try {
             const result = await provideHintForCodePractice({
-                problemStatement: internalTopic.content || '',
+                problemStatement: topic.content || '',
                 userCode: userCode,
             });
             setHint(result.hint);
@@ -164,7 +171,7 @@ export default function CodePracticePage() {
         return <div className="flex items-center justify-center h-screen">Loading Code Practice...</div>;
     }
 
-    if (!internalTopic || !internalTopic.content || !course) {
+    if (!topic || !topic.content || !course) {
         notFound();
     }
 
@@ -175,11 +182,11 @@ export default function CodePracticePage() {
             <main className="flex-grow pt-16 flex flex-col">
                 <div className="p-4 border-b border-border/50 flex items-center justify-between">
                     <Button variant="ghost" asChild>
-                        <Link href={`/courses/${course.slug}/${internalTopic.slug}`}>
-                            <ArrowLeft className="mr-2" /> Back to Lesson
+                        <Link href={`/courses/${course.slug}/${topic.slug}/quiz`}>
+                            <ArrowLeft className="mr-2" /> Back to Quiz
                         </Link>
                     </Button>
-                    <h1 className="text-xl font-bold text-center truncate">{internalTopic.title}: Code Challenge</h1>
+                    <h1 className="text-xl font-bold text-center truncate">{topic.title}: Code Challenge</h1>
                     {isCorrect ? (
                          <Button asChild>
                             <Link href={nextStepUrl}>
@@ -195,7 +202,7 @@ export default function CodePracticePage() {
                 <ResizablePanelGroup direction="horizontal" className="flex-grow">
                     <ResizablePanel defaultSize={50}>
                         <ScrollArea className="h-full p-6">
-                            <MarkdownRenderer content={internalTopic.content} />
+                            <MarkdownRenderer content={topic.content} showSolution={showSolution} topic={topic} />
                         </ScrollArea>
                     </ResizablePanel>
                     <ResizableHandle withHandle />
@@ -224,13 +231,13 @@ export default function CodePracticePage() {
                                 <ScrollArea className="h-full p-6">
                                      <div className="flex justify-between items-center mb-4">
                                         <h2 className="text-lg font-semibold flex items-center gap-2"><Bot /> AI Feedback</h2>
-                                        <Button size="sm" variant="secondary" onClick={() => setInternalShowSolution(!internalShowSolution)}>
-                                            <BookOpen className="mr-2"/>{internalShowSolution ? 'Hide' : 'Show'} Solution
+                                        <Button size="sm" variant="secondary" onClick={() => setShowSolution(!showSolution)}>
+                                            <BookOpen className="mr-2"/>{showSolution ? 'Hide' : 'Show'} Solution
                                         </Button>
                                     </div>
                                     {isReviewing && <p className="text-muted-foreground">Analyzing your code...</p>}
                                     {feedback && (
-                                        <div className={`p-4 rounded-lg text-sm whitespace-pre-line font-mono ${isCorrect ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                                        <div className={`p-4 rounded-lg text-sm whitespace-pre-line font-mono ${isCorrect ? 'bg-green-500/10 border border-green-500/30 text-green-300' : 'bg-red-500/10 border border-red-500/30 text-red-300'}`}>
                                             {feedback}
                                         </div>
                                     )}

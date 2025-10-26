@@ -16,6 +16,7 @@ import { AlertCircle, CheckCircle, ArrowRight, ArrowLeft, RotateCw } from 'lucid
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
+import { completeTopic } from '@/lib/supabase/actions';
 
 
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
@@ -24,6 +25,8 @@ type SelectedAnswers = { [optionId: string]: boolean };
 export default function QuizPage() {
     const params = useParams();
     const router = useRouter();
+    const supabase = createClient();
+    const [user, setUser] = useState<any>(null);
 
     const [course, setCourse] = useState<CourseWithChaptersAndTopics | null>(null);
     const [topic, setTopic] = useState<TopicWithContent | null>(null);
@@ -39,6 +42,13 @@ export default function QuizPage() {
 
     useEffect(() => {
         const fetchDetails = async () => {
+             const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push(`/login?redirect=/courses/${params.languageSlug}/${params.topicSlug}/quiz`);
+                return;
+            }
+            setUser(user);
+
             const { course, topic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug as string, params.topicSlug as string);
             if (course && topic) {
                 setCourse(course);
@@ -48,7 +58,7 @@ export default function QuizPage() {
             setLoading(false);
         };
         fetchDetails();
-    }, [params]);
+    }, [params, supabase, router]);
     
     const quiz = useMemo(() => topic?.quizzes?.[0], [topic]);
     const currentQuestion = useMemo(() => quiz?.questions?.[currentQuestionIndex], [quiz, currentQuestionIndex]);
@@ -92,12 +102,13 @@ export default function QuizPage() {
         setIsSubmitting(false);
     };
 
-    const handleNextQuestion = () => {
+    const handleNextQuestion = async () => {
         if (currentQuestionIndex < (quiz?.questions.length || 0) - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
             setAnswerStatus('unanswered');
             setSelectedAnswers({});
         } else {
+            if(user && topic && course) await completeTopic(topic.id, course.id);
             setShowResults(true);
         }
     };
