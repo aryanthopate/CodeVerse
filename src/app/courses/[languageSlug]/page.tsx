@@ -43,27 +43,27 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                         <span>{course.name}</span>
                     </nav>
                     
-                    <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
+                    <div className="flex flex-wrap items-center gap-4">
+                        <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
+                        <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>
+                        {(course.tags || []).map(tag => (
+                            <Badge key={tag.text} className={cn("border-none", tag.color)}>
+                                {tag.text}
+                            </Badge>
+                        ))}
+                    </div>
+
                     <p className="text-lg text-muted-foreground">{course.description}</p>
                     
-                     <div className="flex items-center gap-4 text-sm flex-wrap bg-muted/50 p-3 rounded-lg">
-                        <div className="flex items-center gap-2">
-                           {(course.tags || []).map(tag => (
-                                <Badge key={tag.text} className={cn("border-none", tag.color)}>
-                                    {tag.text}
-                                </Badge>
-                           ))}
-                        </div>
+                     <div className="flex items-center gap-x-6 gap-y-2 text-sm flex-wrap bg-muted/50 p-3 rounded-lg">
                         <div className="flex items-center gap-1.5">
                             <span className="font-bold text-yellow-400">{course.rating?.toFixed(1) || 'N/A'}</span>
                             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                            <span className="text-muted-foreground ml-1">(1,234 ratings)</span>
                         </div>
-                        <p className="text-muted-foreground">(1,234 ratings)</p>
                         <p className="text-muted-foreground">{course.students_enrolled || 0} students</p>
-                    </div>
-                     <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                        {course.language && <div className="flex items-center gap-2"><Globe2 className="w-4 h-4" /><span>{course.language}</span></div>}
-                        <div className="flex items-center gap-2"><RefreshCw className="w-4 h-4" /><span>Last updated {format(new Date(course.created_at), 'MM/yyyy')}</span></div>
+                        {course.language && <div className="flex items-center gap-2 text-muted-foreground"><Globe2 className="w-4 h-4" /><span>{course.language}</span></div>}
+                        <div className="flex items-center gap-2 text-muted-foreground"><RefreshCw className="w-4 h-4" /><span>Last updated {format(new Date(course.created_at), 'MM/yyyy')}</span></div>
                     </div>
                 </div>
             </div>
