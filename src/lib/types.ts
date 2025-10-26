@@ -62,6 +62,7 @@ export type Chat = Database['public']['Tables']['chats']['Row'];
 export type ChatMessage = Database['public']['Tables']['chat_messages']['Row'];
 export type UserTopicProgress = Database['public']['Tables']['user_topic_progress']['Row'];
 export type UserQuizAttempt = Database['public']['Tables']['user_quiz_attempts']['Row'];
+export type UserNote = Database['public']['Tables']['user_notes']['Row'];
 
 
 // The type from the DB has a different column name
@@ -115,5 +116,3 @@ declare module 'next/navigation' {
         levelSlug?: string;
     }
 }
-
-    

@@ -608,6 +608,32 @@ export async function saveQuizAttempt(quizId: string, score: number, totalQuesti
 }
 
 
+export async function upsertUserNote(topicId: string, content: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: "User not authenticated" };
+    }
+
+    const { error } = await supabase.from('user_notes').upsert({
+        user_id: user.id,
+        topic_id: topicId,
+        note_content: content
+    }, {
+        onConflict: 'user_id,topic_id'
+    });
+
+    if (error) {
+        console.error("Error upserting note:", error);
+        return { success: false, error: "Could not save your note." };
+    }
+
+    revalidatePath(`/courses/[languageSlug]/[topicSlug]`, 'page');
+    return { success: true };
+}
+
+
 
 interface LevelData extends Omit<GameLevel, 'id' | 'created_at' | 'chapter_id' | 'order' | 'slug'> {
     id: string; // Temporary client-side ID

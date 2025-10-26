@@ -3,7 +3,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter, WebsiteSettings, Chat, UserProfile, ChatMessage } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter, WebsiteSettings, Chat, UserProfile, ChatMessage, UserNote } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -456,6 +456,25 @@ export async function getChat(chatId: string): Promise<{ chat: Chat | null, mess
     }
 
     return { chat, messages };
+}
+
+export async function getUserNoteForTopic(topicId: string): Promise<UserNote | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+        .from('user_notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('topic_id', topicId)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching user note:", error.message);
+    }
+
+    return data;
 }
 
 

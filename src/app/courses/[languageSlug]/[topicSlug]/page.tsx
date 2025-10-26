@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { Header } from '@/components/header';
@@ -7,28 +8,56 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText, LogIn } from 'lucide-react';
 import Link from 'next/link';
-import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
+import { getCourseAndTopicDetails, getUserNoteForTopic } from '@/lib/supabase/queries';
 import { Topic } from '@/lib/types';
-import { completeTopicAction } from '@/lib/supabase/actions';
+import { completeTopicAction, upsertUserNote } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 import { CourseSidebar } from '@/components/course-sidebar';
 import { VideoPlayer } from '@/components/video-player';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
-function AddNoteDialog({ children }: { children: React.ReactNode }) {
+function AddNoteDialog({ topicId, initialContent, children }: { topicId: string, initialContent: string | null, children: React.ReactNode }) {
+    
+    const handleSubmit = async (formData: FormData) => {
+        'use server'
+        const content = formData.get('note_content') as string;
+        await upsertUserNote(topicId, content);
+    };
 
     return (
         <Dialog>
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add a Note</DialogTitle>
-                    <DialogDescription>
-                        This feature is currently under development. Soon you'll be able to take notes directly on the platform!
-                    </DialogDescription>
-                </DialogHeader>
+                <form action={handleSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Add a Note</DialogTitle>
+                        <DialogDescription>
+                            Jot down your thoughts for this topic. Your notes will be saved and you can review them later.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="note-content" className="sr-only">Note Content</Label>
+                        <Textarea 
+                            id="note-content" 
+                            name="note_content" 
+                            className="min-h-[200px]" 
+                            defaultValue={initialContent || ''}
+                            placeholder="Your notes here..."
+                        />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                             <Button type="button" variant="secondary">Cancel</Button>
+                        </DialogClose>
+                        <DialogClose asChild>
+                            <Button type="submit">Save Note</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     );
@@ -44,6 +73,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
         notFound();
     }
     
+    const userNote = user ? await getUserNoteForTopic(topic.id) : null;
     const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
     
@@ -98,11 +128,13 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                             <Lightbulb className="mr-2"/> Explain It To Me
                                         </Button>
                                     </ExplainCodeDialog>
-                                    <AddNoteDialog>
-                                        <Button variant="outline">
-                                            <FileText className="mr-2" /> Add Note
-                                        </Button>
-                                    </AddNoteDialog>
+                                    {user ? (
+                                        <AddNoteDialog topicId={topic.id} initialContent={userNote?.note_content || null}>
+                                            <Button variant="outline">
+                                                <FileText className="mr-2" /> Add Note
+                                            </Button>
+                                        </AddNoteDialog>
+                                    ) : null}
                                 </div>
                             
                                 <form action={completeTopicAction}>
@@ -132,6 +164,3 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     </div>
     );
 }
-    
-
-    
