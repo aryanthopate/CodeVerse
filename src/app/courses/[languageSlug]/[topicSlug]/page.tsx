@@ -22,17 +22,6 @@ import { CourseSidebar } from '@/components/course-sidebar';
 import { VideoPlayer } from '@/components/video-player';
 
 
-async function handleCompletion(topicId: string, courseId: string) {
-    'use server';
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-        await completeTopic(topicId, courseId);
-    }
-};
-
-
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -65,6 +54,13 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     }
     
     const codeSnippetForExplanation = topic.content?.match(/### Solution\s*```(?:\w+)\n([\s\S]*?)```/)?.[1]?.trim() || topic.summary;
+
+    const completeTopicAction = async () => {
+        'use server';
+        if (user) {
+            await completeTopic(topic.id, course.id);
+        }
+    };
 
 
     return (
@@ -105,12 +101,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                 </Button>
                             </ExplainCodeDialog>
                         
-                           <form action={async () => {
-                                'use server';
-                                if (user) {
-                                    await completeTopic(topic.id, course.id);
-                                }
-                           }}>
+                           <form action={completeTopicAction}>
                                  <Button asChild>
                                     <Link href={nextStepUrl}>
                                         {nextStepText} 
