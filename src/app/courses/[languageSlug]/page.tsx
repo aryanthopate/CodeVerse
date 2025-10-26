@@ -44,14 +44,16 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                         <span>{course.name}</span>
                     </nav>
                     
-                    <div className="flex flex-wrap items-start gap-4">
+                    <div className="flex items-start gap-4">
                         <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
-                        <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>
-                        {(course.tags || []).map(tag => (
-                            <Badge key={tag.text} className={cn("border-none", tag.color)}>
-                                {tag.text}
-                            </Badge>
-                        ))}
+                        <div className="flex flex-wrap items-start gap-2 pt-1">
+                            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>
+                            {(course.tags || []).map(tag => (
+                                <Badge key={tag.text} className={cn("border-none", tag.color)}>
+                                    {tag.text}
+                                </Badge>
+                            ))}
+                        </div>
                     </div>
 
                     <p className="text-lg text-muted-foreground">{course.description}</p>
