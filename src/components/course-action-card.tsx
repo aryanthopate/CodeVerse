@@ -69,20 +69,27 @@ function AuthRequiredDialog({ children, fullWidth = false }: { children: React.R
 function VideoPreviewDialog({ previewUrl, courseTitle, children }: { previewUrl: string, courseTitle: string, children: React.ReactNode }) {
     if (!previewUrl) return <>{children}</>;
 
+    const isYoutube = previewUrl.includes('youtube.com') || previewUrl.includes('youtu.be');
     let embedUrl = '';
-    if (previewUrl.includes('youtube.com') || previewUrl.includes('youtu.be')) {
-        let videoId;
-        if (previewUrl.includes('youtu.be')) {
-            videoId = previewUrl.split('/').pop()?.split('?')[0];
-        } else {
+
+    if (isYoutube) {
+        try {
             const url = new URL(previewUrl);
-            videoId = url.searchParams.get('v');
-        }
-        if (videoId) {
-            embedUrl = `https://www.youtube.com/embed/${videoId}`;
+            let videoId = '';
+            if (url.hostname === 'youtu.be') {
+                videoId = url.pathname.substring(1);
+            } else {
+                videoId = url.searchParams.get('v') || '';
+            }
+            if (videoId) {
+                embedUrl = `https://www.youtube.com/embed/${videoId}`;
+            }
+        } catch (e) {
+            console.error("Invalid YouTube URL:", e);
         }
     } else {
-        embedUrl = previewUrl; // Assume it's a direct link
+        // Assume it's a direct link to a video file
+        embedUrl = previewUrl;
     }
     
 
@@ -95,14 +102,25 @@ function VideoPreviewDialog({ previewUrl, courseTitle, children }: { previewUrl:
                 </DialogHeader>
                 <div className="aspect-video">
                      {embedUrl ? (
-                         <iframe 
-                            className="w-full h-full"
-                            src={embedUrl}
-                            title="Course Preview" 
-                            frameBorder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen
-                        ></iframe>
+                        isYoutube ? (
+                            <iframe 
+                                className="w-full h-full"
+                                src={embedUrl}
+                                title="Course Preview" 
+                                frameBorder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowFullScreen
+                            ></iframe>
+                        ) : (
+                            <video
+                                className="w-full h-full"
+                                controls
+                                autoPlay
+                                src={embedUrl}
+                            >
+                                Your browser does not support the video tag.
+                            </video>
+                        )
                      ) : (
                         <div className="w-full h-full flex items-center justify-center bg-black text-white">
                             Invalid video URL provided.
@@ -339,5 +357,3 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
         </div>
     )
 }
-
-    
