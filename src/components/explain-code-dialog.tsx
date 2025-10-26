@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from './ui/button';
-import { explainCodeSnippet } from '@/ai/flows/explain-code-snippet';
+import { explainCodeSnippet, type ExplainCodeSnippetOutput } from '@/ai/flows/explain-code-snippet';
 import { Loader2, Sparkles } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -32,7 +32,7 @@ export function ExplainCodeDialog({
       // Fetch explanation when the dialog opens for the first time
       setIsLoading(true);
       try {
-        const result = await explainCodeSnippet({ codeSnippet });
+        const result: ExplainCodeSnippetOutput = await explainCodeSnippet({ codeSnippet });
         setExplanation(result.explanation);
       } catch (error) {
         console.error('Failed to get explanation:', error);
