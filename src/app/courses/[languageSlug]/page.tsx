@@ -43,7 +43,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                         <span>{course.name}</span>
                     </nav>
                     
-                    <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex flex-wrap items-baseline gap-4">
                         <h1 className="text-4xl md:text-5xl font-bold">{course.name}</h1>
                         <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>
                         {(course.tags || []).map(tag => (
