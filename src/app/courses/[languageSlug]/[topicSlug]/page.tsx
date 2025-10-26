@@ -6,8 +6,7 @@ import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home, Video, HelpCircle, FileCode2, CheckCircle } from 'lucide-react';
+import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home, Video, HelpCircle, FileCode2, CheckCircle, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics, Topic } from '@/lib/types';
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/accordion';
 import { completeTopic } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
+import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 
 function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: string } }) {
     if (!topic.video_url) {
@@ -137,19 +137,15 @@ async function CourseSidebar({ activeCourseSlug, activeTopicSlug }: { activeCour
     )
 }
 
-function NotesSection() {
-    return (
-        <div className="space-y-4">
-            <h3 className="font-semibold">My Notes</h3>
-            <Textarea placeholder="Add a timestamped note... e.g., '03:15 - Explain this concept further'"/>
-            <div className="flex gap-2">
-                <Button className="w-full">Save Note</Button>
-                <Button variant="outline" className="w-full"><Mic className="mr-2" /> Record Voice Note</Button>
-            </div>
-            <div className="text-sm text-center text-muted-foreground">Your notes will be saved here.</div>
-        </div>
-    );
-}
+async function handleCompletion(topicId: string, courseId: string) {
+    'use server';
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+        await completeTopic(topicId, courseId);
+    }
+};
 
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const supabase = createClient();
@@ -182,12 +178,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
         nextStepText = "Finish Course";
     }
     
-    const handleCompletion = async () => {
-        'use server';
-        if (user) {
-            await completeTopic(topic.id, course.id);
-        }
-    };
+    const codeSnippetForExplanation = topic.content?.match(/### Solution\s*```(?:\w+)\n([\s\S]*?)```/)?.[1]?.trim() || topic.summary;
 
 
     return (
@@ -216,16 +207,12 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                             <Tabs defaultValue="summary" className="w-full">
                                 <TabsList>
                                     <TabsTrigger value="summary"><Book className="mr-2 w-4 h-4"/> Summary</TabsTrigger>
-                                    <TabsTrigger value="notes"><Edit className="mr-2 w-4 h-4"/> My Notes</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="summary" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
                                     <h3 className="font-semibold mb-2">Video Summary</h3>
                                     <p className="text-sm text-muted-foreground whitespace-pre-line">
                                         {topic.summary || 'Summary not available.'}
                                     </p>
-                                </TabsContent>
-                                <TabsContent value="notes" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
-                                   <NotesSection />
                                 </TabsContent>
                             </Tabs>
                         </div>
@@ -239,14 +226,24 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                 </Button>
                             ) : <div></div>}
                         
-                           <form action={handleCompletion}>
-                                 <Button asChild>
-                                    <Link href={nextStepUrl}>
-                                        {nextStepText} 
-                                        {nextStepText !== "Finish Course" ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
-                                    </Link>
-                                </Button>
-                            </form>
+                            <div className="flex items-center gap-2">
+                                <ExplainCodeDialog codeSnippet={codeSnippetForExplanation || ''}>
+                                    <Button variant="secondary">
+                                        <Lightbulb className="mr-2"/> Explain It To Me
+                                    </Button>
+                                </ExplainCodeDialog>
+                               <form action={async () => {
+                                    'use server';
+                                    await handleCompletion(topic.id, course.id);
+                               }}>
+                                     <Button asChild>
+                                        <Link href={nextStepUrl}>
+                                            {nextStepText} 
+                                            {nextStepText !== "Finish Course" ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
+                                        </Link>
+                                    </Button>
+                                </form>
+                           </div>
                         </div>
                     </div>
                 </div>

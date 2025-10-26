@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -35,9 +36,9 @@ const prompt = ai.definePrompt({
 
 Here is the code snippet that needs explanation:
 
-```
+\`\`\`
 {{{codeSnippet}}}
-```
+\`\`\`
 
 Explain this code snippet as if you were talking to a student. Provide code examples if possible.
 `,
