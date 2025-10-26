@@ -720,6 +720,51 @@ export type Database = {
           },
         ]
       }
+      user_quiz_attempts: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          id: string
+          quiz_id: string
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          quiz_id: string
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          quiz_id?: string
+          score?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_quiz_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_topic_progress: {
         Row: {
           completed_at: string
@@ -896,3 +941,5 @@ export type Composites<
   : PublicCompositeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeNameOrOptions]
     : never
+
+    

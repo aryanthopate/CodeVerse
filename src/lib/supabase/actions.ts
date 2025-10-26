@@ -565,6 +565,49 @@ export async function completeTopicAction(formData: FormData) {
     }
 }
 
+export async function saveQuizAttempt(quizId: string, score: number, totalQuestions: number) {
+    'use server';
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: 'User not authenticated' };
+    }
+
+    // Get the latest attempt number for this user and quiz
+    const { data: latestAttempt, error: attemptError } = await supabase
+        .from('user_quiz_attempts')
+        .select('attempt_number')
+        .eq('user_id', user.id)
+        .eq('quiz_id', quizId)
+        .order('attempt_number', { ascending: false })
+        .limit(1)
+        .single();
+    
+    if (attemptError && attemptError.code !== 'PGRST116') { // Ignore "no rows found" error
+        console.error('Error fetching latest quiz attempt:', attemptError);
+        return { success: false, error: 'Could not fetch previous attempts.' };
+    }
+
+    const nextAttemptNumber = (latestAttempt?.attempt_number || 0) + 1;
+
+    const { error: insertError } = await supabase.from('user_quiz_attempts').insert({
+        user_id: user.id,
+        quiz_id: quizId,
+        score,
+        total_questions: totalQuestions,
+        attempt_number: nextAttemptNumber,
+    });
+
+    if (insertError) {
+        console.error('Error saving quiz attempt:', insertError);
+        return { success: false, error: 'Failed to save quiz result.' };
+    }
+
+    return { success: true };
+}
+
+
 
 interface LevelData extends Omit<GameLevel, 'id' | 'created_at' | 'chapter_id' | 'order' | 'slug'> {
     id: string; // Temporary client-side ID
@@ -885,3 +928,4 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
 
     
 
+    

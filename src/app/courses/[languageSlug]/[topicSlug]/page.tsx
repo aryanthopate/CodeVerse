@@ -32,7 +32,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
         notFound();
     }
     
-    const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && (topic.quizzes[0] as any).questions && (topic.quizzes[0] as any).questions.length > 0;
+    const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
     
     // Determine the next logical step
@@ -118,4 +118,6 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     </div>
     );
 }
+    
+
     

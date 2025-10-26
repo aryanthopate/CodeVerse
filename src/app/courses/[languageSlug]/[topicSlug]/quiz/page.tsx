@@ -16,7 +16,7 @@ import { AlertCircle, CheckCircle, ArrowRight, ArrowLeft, RotateCw } from 'lucid
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
-import { completeTopicAction } from '@/lib/supabase/actions';
+import { completeTopicAction, saveQuizAttempt } from '@/lib/supabase/actions';
 
 
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
@@ -108,6 +108,9 @@ export default function QuizPage() {
             setAnswerStatus('unanswered');
             setSelectedAnswers({});
         } else {
+            if (quiz && user) {
+                await saveQuizAttempt(quiz.id, score, quiz.questions.length);
+            }
             setShowResults(true);
         }
     };
@@ -330,3 +333,5 @@ export default function QuizPage() {
         </div>
     );
 }
+
+    
