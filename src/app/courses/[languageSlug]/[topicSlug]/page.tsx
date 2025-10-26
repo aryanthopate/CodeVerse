@@ -6,7 +6,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText, LogIn } from 'lucide-react';
+import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText, LogIn, Edit, Book } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails, getUserNoteForTopic } from '@/lib/supabase/queries';
 import { Topic } from '@/lib/types';
@@ -16,23 +16,23 @@ import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 import { CourseSidebar } from '@/components/course-sidebar';
 import { VideoPlayer } from '@/components/video-player';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
-function AddNoteDialog({ topicId, initialContent, children }: { topicId: string, initialContent: string | null, children: React.ReactNode }) {
-    
-    const handleSubmit = async (formData: FormData) => {
-        'use server'
-        const content = formData.get('note_content') as string;
-        await upsertUserNote(topicId, content);
-    };
-
+function AddNoteDialog({
+    initialContent,
+    children,
+    formAction,
+}: {
+    initialContent: string | null;
+    children: React.ReactNode;
+    formAction: (formData: FormData) => void;
+}) {
     return (
         <Dialog>
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent>
-                <form action={handleSubmit}>
+                <form action={formAction}>
                     <DialogHeader>
                         <DialogTitle>Add a Note</DialogTitle>
                         <DialogDescription>
@@ -40,9 +40,9 @@ function AddNoteDialog({ topicId, initialContent, children }: { topicId: string,
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <Label htmlFor="note-content" className="sr-only">Note Content</Label>
+                        <Label htmlFor="note_content" className="sr-only">Note Content</Label>
                         <Textarea 
-                            id="note-content" 
+                            id="note_content" 
                             name="note_content" 
                             className="min-h-[200px]" 
                             defaultValue={initialContent || ''}
@@ -74,7 +74,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     }
     
     const userNote = user ? await getUserNoteForTopic(topic.id) : null;
-    const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions && topic.quizzes[0].questions.length > 0;
+    const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
     
     // Determine the next logical step
@@ -97,6 +97,11 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     
     const codeSnippetForExplanation = topic.content?.match(/### Solution\s*```(?:\w+)\n([\s\S]*?)```/)?.[1]?.trim() || topic.summary;
 
+    const handleNoteSubmit = async (formData: FormData) => {
+        'use server';
+        const content = formData.get('note_content') as string;
+        await upsertUserNote(topic.id, content);
+    };
 
     return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -121,7 +126,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                         <div className="space-y-6">
                             <VideoPlayer topic={topic} />
 
-                            <div className="flex justify-between items-center -mt-2">
+                             <div className="flex justify-between items-center -mt-2">
                                 <div className="flex gap-2">
                                     <ExplainCodeDialog codeSnippet={codeSnippetForExplanation || ''}>
                                         <Button variant="secondary">
@@ -129,7 +134,10 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                         </Button>
                                     </ExplainCodeDialog>
                                     {user ? (
-                                        <AddNoteDialog topicId={topic.id} initialContent={userNote?.note_content || null}>
+                                        <AddNoteDialog 
+                                            initialContent={userNote?.note_content || null}
+                                            formAction={handleNoteSubmit}
+                                        >
                                             <Button variant="outline">
                                                 <FileText className="mr-2" /> Add Note
                                             </Button>
