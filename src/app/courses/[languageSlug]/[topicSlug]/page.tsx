@@ -44,14 +44,7 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
             }
         }
     } catch (e) {
-        // If URL parsing fails, it's not a standard URL, might be just an ID or malformed.
-        // Let's try a regex for youtube IDs just in case.
-        const youtubeRegex = /(?:v=|\/)([0-9A-Za-z_-]{11}).*/;
-        const match = topic.video_url.match(youtubeRegex);
-        if (match && match[1]) {
-            isYoutube = true;
-            videoId = match[1];
-        }
+        // If URL parsing fails, it's not a standard URL. This is expected for direct links.
     }
 
     if (isYoutube) {
