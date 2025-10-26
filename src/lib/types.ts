@@ -60,6 +60,7 @@ export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
 };
 export type Chat = Database['public']['Tables']['chats']['Row'];
 export type ChatMessage = Database['public']['Tables']['chat_messages']['Row'];
+export type UserTopicProgress = Database['public']['Tables']['user_topic_progress']['Row'];
 
 
 // The type from the DB has a different column name
@@ -89,6 +90,8 @@ export type CourseWithChaptersAndTopics = Course & {
   related_courses?: Course[];
   games?: Game | null;
   course_reviews: { count: number }[];
+  user_enrollments: { count: number }[];
+  user_topic_progress?: UserTopicProgress[];
 };
 
 // This was the old flat structure, it has been replaced by GameWithChaptersAndLevels
@@ -111,5 +114,3 @@ declare module 'next/navigation' {
         levelSlug?: string;
     }
 }
-
-    

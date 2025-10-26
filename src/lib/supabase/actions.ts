@@ -538,6 +538,35 @@ export async function giftCourseToUser(courseId: string, recipientEmail: string)
     return { success: true, message: `Successfully gifted the course to ${recipientEmail}!` };
 }
 
+export async function completeTopic(topicId: string, courseId: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: "You must be logged in to save progress." };
+    }
+
+    const { error } = await supabase.from('user_topic_progress').upsert({
+        user_id: user.id,
+        topic_id: topicId,
+        course_id: courseId,
+        completed_at: new Date().toISOString(),
+    }, {
+        onConflict: 'user_id,topic_id,course_id'
+    });
+
+    if (error) {
+        console.error("Error saving topic progress:", error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/dashboard');
+    revalidatePath(`/courses/${courseId}`);
+
+    return { success: true };
+}
+
+
 interface LevelData extends Omit<GameLevel, 'id' | 'created_at' | 'chapter_id' | 'order' | 'slug'> {
     id: string; // Temporary client-side ID
     order: number;
