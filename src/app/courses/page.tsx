@@ -5,14 +5,14 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
-import { CourseWithChaptersAndTopics, UserCourseProgress, UserProfile } from '@/lib/types';
+import { getCoursesWithChaptersAndTopics, getUserEnrollments } from '@/lib/supabase/queries';
+import { CourseWithChaptersAndTopics, UserCourseProgress, UserProfile, UserEnrollment } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState, useMemo, startTransition } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book, ArrowRight, Clock, Star } from 'lucide-react';
+import { Search, ListFilter, ShoppingCart, Heart, GitCompareArrows, Zap, LogIn, Book, ArrowRight, Clock, Star, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -73,6 +73,7 @@ export default function CoursesShopPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [filterBy, setFilterBy] = useState('all');
   const [user, setUser] = useState<User | null>(null);
+  const [userEnrollments, setUserEnrollments] = useState<UserEnrollment[]>([]);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -89,6 +90,12 @@ export default function CoursesShopPage() {
         
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
+        if (user) {
+            const enrollmentsData = await getUserEnrollments(user.id);
+            if(enrollmentsData) {
+                setUserEnrollments(enrollmentsData.enrollments);
+            }
+        }
 
         setLoading(false);
     }
@@ -141,6 +148,8 @@ export default function CoursesShopPage() {
   }, [courses, debouncedSearchTerm, sortBy, filterBy]);
   
     const ActionButtons = ({course}: {course: CourseWithChaptersAndTopics}) => {
+        const isEnrolled = userEnrollments.some(e => e.course_id === course.id);
+
         const handleEnroll = async () => {
             if (!user) return; // Should be handled by AuthRequiredDialog, but good practice
             
@@ -186,6 +195,16 @@ export default function CoursesShopPage() {
                 </div>
             </div>
         );
+
+        if (isEnrolled) {
+            return (
+                <Button className="w-full max-w-xs" asChild>
+                    <Link href="/dashboard">
+                        <CheckCircle className="mr-2 h-4 w-4" /> Go to Dashboard
+                    </Link>
+                </Button>
+            );
+        }
 
         if (course.is_paid) {
             return user ? paidActions : <AuthRequiredDialog>{paidActions}</AuthRequiredDialog>;
@@ -351,3 +370,4 @@ export default function CoursesShopPage() {
     </div>
   );
 }
+
