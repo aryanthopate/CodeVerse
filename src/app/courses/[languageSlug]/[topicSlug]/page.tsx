@@ -41,7 +41,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
 
     if (hasQuiz) {
         nextStepUrl = `/courses/${course.slug}/${topic.slug}/quiz`;
-        nextStepText = "Take the Quiz";
+        nextStepText = "Start Quiz";
     } else if (hasPractice) {
         nextStepUrl = `/courses/${course.slug}/${topic.slug}/practice`;
         nextStepText = "Start Practice";

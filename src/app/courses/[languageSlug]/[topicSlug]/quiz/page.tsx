@@ -16,7 +16,7 @@ import { AlertCircle, CheckCircle, ArrowRight, ArrowLeft, RotateCw } from 'lucid
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
-import { completeTopic } from '@/lib/supabase/actions';
+import { completeTopicAction } from '@/lib/supabase/actions';
 
 
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
@@ -108,7 +108,6 @@ export default function QuizPage() {
             setAnswerStatus('unanswered');
             setSelectedAnswers({});
         } else {
-            if(user && topic && course) await completeTopic(topic.id, course.id);
             setShowResults(true);
         }
     };
@@ -151,12 +150,15 @@ export default function QuizPage() {
                             <p>There is no quiz for this topic yet.</p>
                         </CardContent>
                         <CardFooter className="flex-col gap-2">
-                             <Button asChild className="w-full">
-                                <Link href={nextStepUrl}>
+                             <form action={completeTopicAction} className="w-full">
+                                <input type="hidden" name="topicId" value={topic?.id || ''} />
+                                <input type="hidden" name="courseId" value={course?.id || ''} />
+                                <input type="hidden" name="nextUrl" value={nextStepUrl} />
+                                <Button type="submit" className="w-full">
                                     {nextStepText} 
                                     {hasPractice || nextTopic ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
-                                </Link>
-                            </Button>
+                                </Button>
+                            </form>
                             <Button variant="ghost" asChild className="w-full">
                                 <Link href={`/courses/${params.languageSlug}/${params.topicSlug}`}>
                                     <ArrowLeft className="mr-2"/> Back to Lesson
@@ -192,12 +194,15 @@ export default function QuizPage() {
                         </CardContent>
                         <CardFooter className="flex-col sm:flex-row gap-4">
                             <Button variant="outline" onClick={handleRetryQuiz} className="w-full"><RotateCw className="mr-2"/> Retry Quiz</Button>
-                            <Button asChild className="w-full">
-                                <Link href={nextStepUrl}>
+                            <form action={completeTopicAction} className="w-full">
+                                <input type="hidden" name="topicId" value={topic.id} />
+                                <input type="hidden" name="courseId" value={course.id} />
+                                <input type="hidden" name="nextUrl" value={nextStepUrl} />
+                                <Button type="submit" className="w-full">
                                     {nextStepText} 
                                     {hasPractice || nextTopic ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
-                                </Link>
-                            </Button>
+                                </Button>
+                            </form>
                         </CardFooter>
                     </Card>
                 </main>

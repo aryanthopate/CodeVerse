@@ -16,7 +16,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import Confetti from 'react-confetti';
-import { completeTopic } from '@/lib/supabase/actions';
+import { completeTopicAction } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/client';
 
 // A mock code editor component
@@ -130,8 +130,6 @@ export default function CodePracticePage() {
                 setIsCorrect(true);
                 setShowConfetti(true);
                 setTimeout(() => setShowConfetti(false), 8000);
-                if(user) await completeTopic(topic.id, course.id);
-
             } else {
                  const result = await reviewCodeAndProvideFeedback({
                     code: userCode,
@@ -191,16 +189,15 @@ export default function CodePracticePage() {
                         </Link>
                     </Button>
                     <h1 className="text-xl font-bold text-center truncate">{topic.title}: Code Challenge</h1>
-                    {isCorrect ? (
-                         <Button asChild>
-                            <Link href={nextStepUrl}>
-                                {nextStepText}
-                                {nextTopic ? <ArrowRight className="ml-2" /> : <CheckCircle className="ml-2" />}
-                            </Link>
+                    <form action={completeTopicAction}>
+                         <input type="hidden" name="topicId" value={topic.id} />
+                        <input type="hidden" name="courseId" value={course.id} />
+                        <input type="hidden" name="nextUrl" value={nextStepUrl} />
+                        <Button type="submit" disabled={!isCorrect}>
+                            {nextStepText}
+                            {nextTopic ? <ArrowRight className="ml-2" /> : <CheckCircle className="ml-2" />}
                         </Button>
-                    ) : (
-                         <div className="w-[150px]"></div>
-                    )}
+                    </form>
                 </div>
 
                 <ResizablePanelGroup direction="horizontal" className="flex-grow">
