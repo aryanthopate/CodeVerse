@@ -66,7 +66,7 @@ function AuthRequiredDialog({ children, fullWidth = false }: { children: React.R
     );
 }
 
-function VideoPreviewDialog({ previewUrl, children }: { previewUrl: string, children: React.ReactNode }) {
+function VideoPreviewDialog({ previewUrl, courseTitle, children }: { previewUrl: string, courseTitle: string, children: React.ReactNode }) {
     if (!previewUrl) return <>{children}</>;
 
     let embedUrl = '';
@@ -90,6 +90,9 @@ function VideoPreviewDialog({ previewUrl, children }: { previewUrl: string, chil
         <Dialog>
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-4xl p-0">
+                <DialogHeader className="p-4">
+                    <DialogTitle>Course Preview: {courseTitle}</DialogTitle>
+                </DialogHeader>
                 <div className="aspect-video">
                      {embedUrl ? (
                          <iframe 
@@ -283,7 +286,7 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
     return (
         <div className="sticky top-24 w-full">
             <div className="rounded-xl border bg-card text-card-foreground shadow-lg backdrop-blur-lg bg-card/50">
-                <VideoPreviewDialog previewUrl={course.preview_video_url || ''}>
+                <VideoPreviewDialog previewUrl={course.preview_video_url || ''} courseTitle={course.name}>
                     {imagePreview}
                 </VideoPreviewDialog>
 
@@ -336,3 +339,5 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
         </div>
     )
 }
+
+    

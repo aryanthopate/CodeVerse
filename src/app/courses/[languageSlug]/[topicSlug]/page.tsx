@@ -20,6 +20,16 @@ import { completeTopic } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 
+async function handleCompletion(topicId: string, courseId: string) {
+    'use server';
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+        await completeTopic(topicId, courseId);
+    }
+};
+
 function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: string } }) {
     if (!topic.video_url) {
         return (
@@ -137,16 +147,6 @@ async function CourseSidebar({ activeCourseSlug, activeTopicSlug }: { activeCour
     )
 }
 
-async function handleCompletion(topicId: string, courseId: string) {
-    'use server';
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-        await completeTopic(topicId, courseId);
-    }
-};
-
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -232,10 +232,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                         <Lightbulb className="mr-2"/> Explain It To Me
                                     </Button>
                                 </ExplainCodeDialog>
-                               <form action={async () => {
-                                    'use server';
-                                    await handleCompletion(topic.id, course.id);
-                               }}>
+                               <form action={handleCompletion.bind(null, topic.id, course.id)}>
                                      <Button asChild>
                                         <Link href={nextStepUrl}>
                                             {nextStepText} 
@@ -253,3 +250,4 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     </div>
     );
 }
+    
