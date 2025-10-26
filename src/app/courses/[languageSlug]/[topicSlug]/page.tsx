@@ -7,10 +7,10 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home, Video, HelpCircle, FileCode2 } from 'lucide-react';
+import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home, Video, HelpCircle, FileCode2, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
-import { CourseWithChaptersAndTopics } from '@/lib/types';
+import { CourseWithChaptersAndTopics, Topic } from '@/lib/types';
 import {
   Accordion,
   AccordionContent,
@@ -71,8 +71,7 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
 }
 
 async function CourseSidebar({ activeCourseSlug, activeTopicSlug }: { activeCourseSlug: string, activeTopicSlug: string }) {
-    const courses = await getCoursesWithChaptersAndTopics() || [];
-    const course = courses.find(c => c.slug === activeCourseSlug);
+    const { course } = await getCourseAndTopicDetails(activeCourseSlug, activeTopicSlug);
 
     if (!course) return null;
 
@@ -222,7 +221,11 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                         </Link>
                                     </Button>
                                 ): (
-                                    <Button>Finish Course</Button>
+                                    <Button asChild>
+                                        <Link href={`/courses/${course.slug}`}>
+                                            Finish Course <CheckCircle className="ml-2"/>
+                                        </Link>
+                                    </Button>
                                 )}
                             </div>
                         </div>

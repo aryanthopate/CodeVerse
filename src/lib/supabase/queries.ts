@@ -28,6 +28,7 @@ export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChapt
         .from('courses')
         .select(`
             *,
+            course_reviews(count),
             user_enrollments(count),
             chapters (
                 *,
@@ -521,5 +522,3 @@ export async function getChatForAdmin(chatId: string) {
 
     return { chat: data };
 }
-
-    

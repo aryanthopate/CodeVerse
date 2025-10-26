@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { TopicWithContent, QuestionWithOptions, QuestionOption } from '@/lib/types';
+import type { TopicWithContent, QuestionWithOptions, QuestionOption, Course, CourseWithChaptersAndTopics } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { AlertCircle, CheckCircle, ArrowRight, ArrowLeft, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
 
 
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
@@ -23,9 +24,10 @@ type SelectedAnswers = { [optionId: string]: boolean };
 export default function QuizPage() {
     const params = useParams();
     const router = useRouter();
-    const supabase = createClient();
+
+    const [course, setCourse] = useState<CourseWithChaptersAndTopics | null>(null);
     const [topic, setTopic] = useState<TopicWithContent | null>(null);
-    const [courseSlug, setCourseSlug] = useState('');
+    const [nextTopic, setNextTopic] = useState<Topic | null>(null);
     const [loading, setLoading] = useState(true);
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -36,27 +38,17 @@ export default function QuizPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const fetchTopic = async () => {
-            if (!params.languageSlug || !params.topicSlug) return;
-            
-            const { data: courseData } = await supabase
-                .from('courses')
-                .select('id, slug, chapters(*, topics(*, quizzes(*, questions(*, question_options(*)))))')
-                .eq('slug', params.languageSlug)
-                .single();
-
-            if (courseData) {
-                setCourseSlug(courseData.slug);
-                const allTopics = courseData.chapters.flatMap(c => c.topics);
-                const currentTopic = allTopics.find(t => t.slug === params.topicSlug);
-                if (currentTopic) {
-                    setTopic(currentTopic as TopicWithContent);
-                }
+        const fetchDetails = async () => {
+            const { course, topic, nextTopic } = await getCourseAndTopicDetails(params.languageSlug as string, params.topicSlug as string);
+            if (course && topic) {
+                setCourse(course);
+                setTopic(topic as TopicWithContent);
+                setNextTopic(nextTopic as Topic | null);
             }
             setLoading(false);
         };
-        fetchTopic();
-    }, [params, supabase]);
+        fetchDetails();
+    }, [params]);
     
     const quiz = useMemo(() => topic?.quizzes?.[0], [topic]);
     const currentQuestion = useMemo(() => quiz?.questions?.[currentQuestionIndex], [quiz, currentQuestionIndex]);
@@ -122,8 +114,30 @@ export default function QuizPage() {
         return <div className="flex justify-center items-center h-screen">Loading Quiz...</div>
     }
 
-    if (!topic || !quiz || !currentQuestion) {
-        notFound();
+    if (!topic || !quiz || quiz.questions.length === 0 || !currentQuestion || !course) {
+        return (
+            <div className="flex flex-col min-h-screen bg-background">
+                <Header />
+                <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
+                    <Card className="w-full max-w-2xl text-center">
+                        <CardHeader>
+                            <CardTitle className="text-3xl">Quiz Not Available</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p>There is no quiz for this topic yet.</p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button asChild className="w-full">
+                                <Link href={`/courses/${params.languageSlug}/${params.topicSlug}`}>
+                                    <ArrowLeft className="mr-2"/> Back to Lesson
+                                </Link>
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </main>
+                <Footer />
+            </div>
+        )
     }
     
     const progress = (currentQuestionIndex / quiz.questions.length) * 100;
@@ -148,11 +162,19 @@ export default function QuizPage() {
                         </CardContent>
                         <CardFooter className="flex-col sm:flex-row gap-4">
                             <Button variant="outline" onClick={handleRetryQuiz} className="w-full"><RotateCw className="mr-2"/> Retry Quiz</Button>
-                            <Button asChild className="w-full">
-                                <Link href={`/courses/${courseSlug}/${topic.slug}/practice`}>
-                                    Start Code Practice <ArrowRight className="ml-2"/>
-                                </Link>
-                            </Button>
+                            {nextTopic ? (
+                                <Button asChild className="w-full">
+                                    <Link href={`/courses/${course.slug}/${nextTopic.slug}`}>
+                                        Next Topic <ArrowRight className="ml-2"/>
+                                    </Link>
+                                </Button>
+                            ) : (
+                                 <Button asChild className="w-full">
+                                    <Link href={`/courses/${course.slug}`}>
+                                        Finish Course <CheckCircle className="ml-2"/>
+                                    </Link>
+                                </Button>
+                            )}
                         </CardFooter>
                     </Card>
                 </main>
@@ -218,7 +240,7 @@ export default function QuizPage() {
                                     )})}
                                 </div>
                             ) : (
-                               <RadioGroup onValueChange={handleAnswerSelect} value={Object.keys(selectedAnswers)[0] || ''}>
+                               <RadioGroup onValueChange={handleAnswerSelect} value={Object.keys(selectedAnswers)[0] || ''} disabled={answerStatus !== 'unanswered'}>
                                     {currentQuestion.question_options.map(opt => {
                                          const isSelected = selectedAnswers[opt.id];
                                          const isCorrect = opt.is_correct;
@@ -233,7 +255,7 @@ export default function QuizPage() {
                                             'bg-green-500/10 border-green-500/50': state === 'correct',
                                             'bg-red-500/10 border-red-500/50': state === 'incorrect',
                                         })}>
-                                            <RadioGroupItem value={opt.id} id={opt.id} disabled={answerStatus !== 'unanswered'}/>
+                                            <RadioGroupItem value={opt.id} id={opt.id}/>
                                              <div className="flex-1 space-y-2">
                                                 <label htmlFor={opt.id} className="font-medium leading-none">
                                                     {opt.option_text}
@@ -269,7 +291,7 @@ export default function QuizPage() {
                             )}
                             <div className="flex justify-between w-full">
                                 <Button variant="ghost" asChild>
-                                    <Link href={`/courses/${courseSlug}/${topic.slug}`}><ArrowLeft className="mr-2"/> Back to Video</Link>
+                                    <Link href={`/courses/${course.slug}/${topic.slug}`}><ArrowLeft className="mr-2"/> Back to Video</Link>
                                 </Button>
                             </div>
                         </CardFooter>
