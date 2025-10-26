@@ -87,9 +87,16 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                             initialContent={userNote?.note_content || null}
                                         >
                                             <Button variant="outline">
-                                                <FileText className="mr-2" /> Add Note
+                                                <FileText className="mr-2" /> My Notes
                                             </Button>
                                         </AddNoteDialog>
+                                    )}
+                                    {course.notes_url && (
+                                        <Button variant="outline" asChild>
+                                            <a href={course.notes_url} target="_blank" rel="noopener noreferrer">
+                                                <FileText className="mr-2" /> View Notes
+                                            </a>
+                                        </Button>
                                     )}
                                 </div>
                             
