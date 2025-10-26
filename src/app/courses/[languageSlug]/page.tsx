@@ -27,6 +27,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
   }
   
   const isEnrolled = user ? await getIsUserEnrolled(course.id, user.id) : false;
+  const reviewsCount = (course.course_reviews as any)?.[0]?.count || 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -59,7 +60,7 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
                         <div className="flex items-center gap-1.5">
                             <span className="font-bold text-yellow-400">{course.rating?.toFixed(1) || 'N/A'}</span>
                             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                            <span className="text-muted-foreground ml-1">(1,234 ratings)</span>
+                            <span className="text-muted-foreground ml-1">({reviewsCount} ratings)</span>
                         </div>
                         <p className="text-muted-foreground">{course.students_enrolled || 0} students</p>
                         {course.language && <div className="flex items-center gap-2 text-muted-foreground"><Globe2 className="w-4 h-4" /><span>{course.language}</span></div>}

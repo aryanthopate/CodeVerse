@@ -89,7 +89,8 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
                   description
                 )
             ),
-            games!inner(slug, title)
+            games(slug, title),
+            course_reviews(count)
         `)
         .eq('slug', slug)
         .order('order', { foreignTable: 'chapters', ascending: true })

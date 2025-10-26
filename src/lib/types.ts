@@ -88,6 +88,7 @@ export type CourseWithChaptersAndTopics = Course & {
   chapters: ChapterWithTopics[];
   related_courses?: Course[];
   games?: Game | null;
+  course_reviews: { count: number }[];
 };
 
 // This was the old flat structure, it has been replaced by GameWithChaptersAndLevels
