@@ -89,9 +89,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
                   description
                 )
             ),
-            games (
-                *
-            )
+            games!inner(slug, title)
         `)
         .eq('slug', slug)
         .order('order', { foreignTable: 'chapters', ascending: true })
@@ -100,17 +98,25 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
         .single();
     
     if (error) {
-        console.error("Error fetching course by slug:", error.message);
+        // If the error is that no rows are found, that's fine, we'll return null.
+        // But if it's another error (like the join on 'games' fails), we should log it.
+        if (error.code !== 'PGRST116') {
+             console.error("Error fetching course by slug:", error.message);
+        }
         return null;
     }
     
     if (!course) {
         return null;
     }
+    
+    // Check if the query returned a single game object or an array
+    const gameData = Array.isArray(course.games) ? course.games[0] : course.games;
 
     const transformedCourse = {
         ...course,
-        related_courses: course.related_courses?.map((rc: any) => rc.courses) || []
+        related_courses: course.related_courses?.map((rc: any) => rc.courses) || [],
+        games: gameData || null
     };
 
     return transformedCourse as unknown as CourseWithChaptersAndTopics;
