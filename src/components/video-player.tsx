@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { PlayCircle, Youtube } from 'lucide-react';
 import { Topic } from '@/lib/types';
+import Image from 'next/image';
 
 export function VideoPlayer({ topic }: { topic: Topic }) {
     const [showVideo, setShowVideo] = useState(false);
@@ -24,7 +25,7 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
             const url = new URL(topic.video_url);
             let videoId = url.hostname === 'youtu.be' ? url.pathname.substring(1) : url.searchParams.get('v');
             if (videoId) {
-                embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&rel=0`;
             }
         } catch (e) {
             console.error("Invalid YouTube URL:", e);
@@ -41,7 +42,14 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
                 onClick={() => setShowVideo(true)}
             >
                 <div className="absolute inset-0 bg-black/50 z-10"></div>
-                <PlayCircle className="w-16 h-16 text-white z-20 transition-transform duration-300 group-hover:scale-110" />
+                <Image 
+                    src={`https://img.youtube.com/vi/${embedUrl.split('/').pop()?.split('?')[0]}/maxresdefault.jpg`}
+                    alt={topic.title}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                />
+                <PlayCircle className="w-20 h-20 text-white/80 z-20 transition-all duration-300 group-hover:scale-110 group-hover:text-white" />
                 {isYoutube && <Youtube className="absolute top-4 right-4 text-white/70 z-20" />}
             </div>
         );
@@ -65,6 +73,7 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
                         controls
                         autoPlay
                         src={embedUrl}
+                        controlsList="nodownload"
                     >
                         Your browser does not support the video tag.
                     </video>

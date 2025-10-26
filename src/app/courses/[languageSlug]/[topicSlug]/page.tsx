@@ -32,7 +32,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
         notFound();
     }
     
-    const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
+    const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && (topic.quizzes[0] as any).questions && (topic.quizzes[0] as any).questions.length > 0;
     const hasPractice = !!topic.content;
     
     // Determine the next logical step
@@ -79,7 +79,30 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                         <div className="space-y-6">
                             <VideoPlayer topic={topic} />
 
-                            <div className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
+                            <div className="flex justify-between items-center -mt-2">
+                                <div className="flex gap-2">
+                                    <ExplainCodeDialog codeSnippet={codeSnippetForExplanation || ''}>
+                                        <Button variant="secondary">
+                                            <Lightbulb className="mr-2"/> Explain It To Me
+                                        </Button>
+                                    </ExplainCodeDialog>
+                                    <Button variant="outline">
+                                        <FileText className="mr-2" /> Add Note
+                                    </Button>
+                                </div>
+                            
+                                <form action={completeTopicAction}>
+                                    <input type="hidden" name="topicId" value={topic.id} />
+                                    <input type="hidden" name="courseId" value={course.id} />
+                                    <input type="hidden" name="nextUrl" value={nextStepUrl} />
+                                    <Button type="submit">
+                                        {nextStepText} 
+                                        {nextStepText !== "Finish Course" ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
+                                    </Button>
+                                </form>
+                            </div>
+
+                            <div className="mt-8 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
                                 <h3 className="font-semibold mb-2">Video Summary</h3>
                                 <p className="text-sm text-muted-foreground whitespace-pre-line">
                                     {topic.summary || 'Summary not available.'}
@@ -87,28 +110,6 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-center mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
-                             <div className="flex gap-2">
-                                <ExplainCodeDialog codeSnippet={codeSnippetForExplanation || ''}>
-                                    <Button variant="secondary">
-                                        <Lightbulb className="mr-2"/> Explain It To Me
-                                    </Button>
-                                </ExplainCodeDialog>
-                                <Button variant="outline">
-                                    <FileText className="mr-2" /> Add Note
-                                </Button>
-                            </div>
-                        
-                           <form action={completeTopicAction}>
-                                <input type="hidden" name="topicId" value={topic.id} />
-                                <input type="hidden" name="courseId" value={course.id} />
-                                <input type="hidden" name="nextUrl" value={nextStepUrl} />
-                                 <Button type="submit">
-                                    {nextStepText} 
-                                    {nextStepText !== "Finish Course" ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
-                                </Button>
-                            </form>
-                        </div>
                     </div>
                 </div>
             </div>

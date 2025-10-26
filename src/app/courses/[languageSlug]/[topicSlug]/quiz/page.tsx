@@ -137,7 +137,7 @@ export default function QuizPage() {
         return <div className="flex justify-center items-center h-screen">Loading Quiz...</div>
     }
 
-    if (!topic || !quiz || quiz.questions.length === 0 || !currentQuestion || !course) {
+    if (!topic || !quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0 || !currentQuestion || !course) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
                 <Header />
