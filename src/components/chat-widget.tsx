@@ -55,8 +55,8 @@ export function ChatWidget() {
     }, [messages, isStreaming]);
 
 
-  // Do not render the widget on any playground or main chat pages
-  if (pathname.startsWith('/playground') || pathname.startsWith('/chat')) {
+  // Do not render the widget on any playground, chat, or course pages
+  if (pathname.startsWith('/playground') || pathname.startsWith('/chat') || pathname.startsWith('/courses')) {
     return null;
   }
   
@@ -130,7 +130,7 @@ export function ChatWidget() {
       <PopoverContent align="end" sideOffset={16} className="w-[26rem] h-[70vh] mr-4 mb-2 bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden rounded-2xl flex flex-col">
           <div className="p-4 border-b border-border/50 flex justify-between items-center">
              <div>
-                <h4 className="font-medium leading-none">Chatlify AI</h4>
+                <h4 className="font-medium leading-none">AI Assistant</h4>
                 <p className="text-sm text-muted-foreground mt-1">Your personal coding assistant.</p>
              </div>
              <Button asChild variant="ghost" size="icon" className="group">
