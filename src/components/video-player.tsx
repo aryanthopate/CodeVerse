@@ -4,7 +4,6 @@
 import { useState } from 'react';
 import { PlayCircle, Youtube } from 'lucide-react';
 import { Topic } from '@/lib/types';
-import { createClient } from '@/lib/supabase/client';
 
 export function VideoPlayer({ topic }: { topic: Topic }) {
     const [showVideo, setShowVideo] = useState(false);
@@ -19,9 +18,7 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
 
     const isYoutube = topic.video_url.includes('youtube.com') || topic.video_url.includes('youtu.be');
     
-    let videoSrc = topic.video_url;
     let embedUrl = '';
-
     if (isYoutube) {
         try {
             const url = new URL(topic.video_url);
@@ -33,10 +30,8 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
             console.error("Invalid YouTube URL:", e);
         }
     } else {
-        // This is a Supabase URL, which might not be the public one.
-        // We will assume it is and the policies are correct for direct playback.
-        // The component does not have enough context to rebuild the public URL if it's just a path.
-        videoSrc = topic.video_url;
+        // Assume it's a direct Supabase or other video URL
+        embedUrl = topic.video_url;
     }
 
     if (!showVideo) {
@@ -52,10 +47,10 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
         );
     }
 
-    if (isYoutube) {
-        return (
-            <div className="aspect-video bg-black rounded-xl overflow-hidden">
-                 {embedUrl ? (
+    return (
+        <div className="aspect-video bg-black rounded-xl overflow-hidden">
+             {embedUrl ? (
+                isYoutube ? (
                     <iframe
                         className="w-full h-full"
                         src={embedUrl}
@@ -64,24 +59,19 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
                     ></iframe>
-                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-destructive-foreground">Invalid YouTube URL.</div>
-                 )}
-            </div>
-        );
-    }
-
-    // Default to HTML5 video player for direct links (e.g., Supabase Storage)
-    return (
-        <div className="aspect-video bg-black rounded-xl overflow-hidden">
-            <video
-                className="w-full h-full"
-                controls
-                autoPlay
-                src={videoSrc}
-            >
-                Your browser does not support the video tag.
-            </video>
+                ) : (
+                     <video
+                        className="w-full h-full"
+                        controls
+                        autoPlay
+                        src={embedUrl}
+                    >
+                        Your browser does not support the video tag.
+                    </video>
+                )
+             ) : (
+                <div className="w-full h-full flex items-center justify-center text-destructive-foreground">Invalid video URL provided.</div>
+             )}
         </div>
     );
 }

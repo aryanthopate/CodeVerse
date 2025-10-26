@@ -5,7 +5,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, ArrowRight, CheckCircle, Lightbulb } from 'lucide-react';
+import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
 import { Topic } from '@/lib/types';
@@ -88,11 +88,16 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                         </div>
 
                         <div className="flex justify-between items-center mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
-                             <ExplainCodeDialog codeSnippet={codeSnippetForExplanation || ''}>
-                                <Button variant="secondary">
-                                    <Lightbulb className="mr-2"/> Explain It To Me
+                             <div className="flex gap-2">
+                                <ExplainCodeDialog codeSnippet={codeSnippetForExplanation || ''}>
+                                    <Button variant="secondary">
+                                        <Lightbulb className="mr-2"/> Explain It To Me
+                                    </Button>
+                                </ExplainCodeDialog>
+                                <Button variant="outline">
+                                    <FileText className="mr-2" /> Add Note
                                 </Button>
-                            </ExplainCodeDialog>
+                            </div>
                         
                            <form action={completeTopicAction}>
                                 <input type="hidden" name="topicId" value={topic.id} />
