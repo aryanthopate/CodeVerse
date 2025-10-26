@@ -17,7 +17,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { completeTopic } from '@/lib/supabase/actions';
+import { completeTopic, markCompleteAction } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 
 function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: string } }) {
@@ -163,14 +163,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
         notFound();
     }
     
-    // Server action to mark topic as complete
-    const markCompleteAction = async () => {
-        'use server';
-        if (user) {
-            await completeTopic(topic.id, course.id);
-        }
-    };
-
+    const boundMarkCompleteAction = markCompleteAction.bind(null, topic.id, course.id);
 
     const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
@@ -242,7 +235,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                 </Button>
                             ) : <div></div>}
                         
-                            <form action={markCompleteAction}>
+                            <form action={boundMarkCompleteAction}>
                                  <Button asChild>
                                     <Link href={nextStepUrl}>
                                         {nextStepText} 
