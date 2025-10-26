@@ -103,6 +103,8 @@ export default function CodePracticePage() {
                     setUserCode(starterCodeMatch[1].trim());
                 }
 
+            } else {
+                 notFound();
             }
             setLoading(false);
         };
@@ -122,7 +124,7 @@ export default function CodePracticePage() {
             // Simple string comparison for correctness.
             const userCodeCleaned = userCode.replace(/\s+/g, ' ').trim();
             const solutionCleaned = solution.replace(/\s+/g, ' ').trim();
-
+            
             if (userCodeCleaned === solutionCleaned) {
                 setFeedback(topic.explanation || "Correct! Well done.");
                 setIsCorrect(true);
@@ -172,7 +174,9 @@ export default function CodePracticePage() {
     }
 
     if (!topic || !topic.content || !course) {
-        notFound();
+        // Redirect to quiz if practice content is missing
+        router.push(`/courses/${params.languageSlug}/${params.topicSlug}/quiz`);
+        return null;
     }
 
     return (

@@ -150,8 +150,14 @@ export default function QuizPage() {
                         <CardContent>
                             <p>There is no quiz for this topic yet.</p>
                         </CardContent>
-                        <CardFooter>
-                            <Button asChild className="w-full">
+                        <CardFooter className="flex-col gap-2">
+                             <Button asChild className="w-full">
+                                <Link href={nextStepUrl}>
+                                    {nextStepText} 
+                                    {hasPractice || nextTopic ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
+                                </Link>
+                            </Button>
+                            <Button variant="ghost" asChild className="w-full">
                                 <Link href={`/courses/${params.languageSlug}/${params.topicSlug}`}>
                                     <ArrowLeft className="mr-2"/> Back to Lesson
                                 </Link>

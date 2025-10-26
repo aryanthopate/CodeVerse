@@ -5,7 +5,6 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bot, ChevronRight, Code, Book, Edit, Mic, Clock, ArrowLeft, ArrowRight, Home, Video, HelpCircle, FileCode2, CheckCircle, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
@@ -54,7 +53,8 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
             }
         }
     } catch (e) {
-        // If URL parsing fails, it's not a standard URL. This is expected for direct links.
+        // If URL parsing fails, it's likely a direct link.
+        isYoutube = false;
     }
 
     if (isYoutube) {
@@ -79,7 +79,7 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
     // Fallback for direct video links (e.g., from Supabase Storage)
     return (
         <div className="aspect-video w-full bg-black rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
-            <video className="w-full h-full" controls>
+            <video className="w-full h-full" controls src={topic.video_url}>
                 <source src={topic.video_url} type="video/mp4" />
                 Your browser does not support the video tag.
             </video>
@@ -204,17 +204,12 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                         <div className="space-y-6">
                             <VideoPlayer topic={topic} />
 
-                            <Tabs defaultValue="summary" className="w-full">
-                                <TabsList>
-                                    <TabsTrigger value="summary"><Book className="mr-2 w-4 h-4"/> Summary</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="summary" className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
-                                    <h3 className="font-semibold mb-2">Video Summary</h3>
-                                    <p className="text-sm text-muted-foreground whitespace-pre-line">
-                                        {topic.summary || 'Summary not available.'}
-                                    </p>
-                                </TabsContent>
-                            </Tabs>
+                            <div className="mt-4 p-4 bg-card/50 rounded-xl border border-border/50 min-h-[200px]">
+                                <h3 className="font-semibold mb-2">Video Summary</h3>
+                                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                    {topic.summary || 'Summary not available.'}
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex justify-between items-center mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
