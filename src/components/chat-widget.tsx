@@ -64,13 +64,15 @@ export function ChatWidget() {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
 
-    const userInput = { role: 'user', content: [{ text: input }] };
+    const userInput: Partial<ChatMessage> = { role: 'user', content: [{ text: input }] };
     setMessages(prev => [...prev, userInput]);
+    const currentInput = input;
     setInput('');
     setIsStreaming(true);
 
     try {
-        const stream = await streamChat({ messages: [...messages, userInput] as any });
+        const messagesForApi = [...messages, userInput];
+        const stream = await streamChat({ messages: messagesForApi as any });
         if (!stream) throw new Error("AI service did not return a stream.");
 
         setMessages(prev => [...prev, { role: 'model', content: [{ text: '' }] }]);
@@ -100,15 +102,7 @@ export function ChatWidget() {
             description: error.message || "Could not get a response from the AI."
         });
         // Rollback optimistic update
-        setMessages(prev => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length -1];
-            // Remove the empty model message and the user's message
-            if(lastMessage.role === 'model' && lastMessage.content?.[0].text === '') {
-                return newMessages.slice(0, -2);
-            }
-            return newMessages.slice(0, -1);
-        });
+        setMessages(prev => prev.filter(msg => msg.role !== 'user' || msg.content?.[0]?.text !== currentInput));
     } finally {
         setIsStreaming(false);
     }
@@ -168,7 +162,7 @@ export function ChatWidget() {
                     </div>
                     )
                 })}
-                 {isStreaming && (
+                 {isStreaming && messages[messages.length - 1]?.role !== 'model' && (
                     <div className="flex items-start gap-3 justify-start">
                         <Avatar className="h-8 w-8">
                             <AvatarImage src={settings?.chat_bot_avatar_url || ''} />
