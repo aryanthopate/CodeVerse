@@ -108,7 +108,7 @@ function VideoPreviewDialog({ previewUrl, children }: { previewUrl: string, chil
                 </div>
             </DialogContent>
         </Dialog>
-    )
+    );
 }
 
 function GiftCourseDialog({ courseId, children }: { courseId: string, children: React.ReactNode }) {
@@ -309,7 +309,7 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
                             {course.games && (
                                 <li className="flex items-center gap-2">
                                     <Gamepad2 className="w-4 h-4 text-primary" />
-                                    <span>Interactive Coding Game</span>
+                                    <span>Game: {course.games.title}</span>
                                 </li>
                             )}
                         </ul>
@@ -334,5 +334,3 @@ export function CourseActionCard({ course, user, isEnrolledInitial }: { course: 
         </div>
     )
 }
-
-    
