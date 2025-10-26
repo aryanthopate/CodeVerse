@@ -6,6 +6,7 @@ import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
 import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter, Chat, ChatMessage } from '@/lib/types';
 import placeholderGames from '@/lib/placeholder-games.json';
+import { redirect } from 'next/navigation';
 
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
     id?: string; // id is present when updating
@@ -538,32 +539,30 @@ export async function giftCourseToUser(courseId: string, recipientEmail: string)
     return { success: true, message: `Successfully gifted the course to ${recipientEmail}!` };
 }
 
-export async function completeTopic(topicId: string, courseId: string) {
+export async function completeTopicAction(formData: FormData) {
+    const topicId = formData.get('topicId') as string;
+    const courseId = formData.get('courseId') as string;
+    const nextUrl = formData.get('nextUrl') as string;
+
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-        return { success: false, error: "You must be logged in to save progress." };
+    if (user && topicId && courseId) {
+        await supabase.from('user_topic_progress').upsert({
+            user_id: user.id,
+            topic_id: topicId,
+            course_id: courseId,
+            completed_at: new Date().toISOString(),
+        }, {
+            onConflict: 'user_id,topic_id,course_id'
+        });
+        revalidatePath('/dashboard');
+        revalidatePath(`/courses/${courseId}`);
     }
 
-    const { error } = await supabase.from('user_topic_progress').upsert({
-        user_id: user.id,
-        topic_id: topicId,
-        course_id: courseId,
-        completed_at: new Date().toISOString(),
-    }, {
-        onConflict: 'user_id,topic_id,course_id'
-    });
-
-    if (error) {
-        console.error("Error saving topic progress:", error);
-        return { success: false, error: error.message };
+    if (nextUrl) {
+        redirect(nextUrl);
     }
-
-    revalidatePath('/dashboard');
-    revalidatePath(`/courses/${courseId}`);
-
-    return { success: true };
 }
 
 
@@ -885,3 +884,4 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
 }
 
     
+

@@ -15,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { completeTopic } from '@/lib/supabase/actions';
+import { completeTopicAction } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 import { CourseSidebar } from '@/components/course-sidebar';
@@ -54,13 +54,6 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     }
     
     const codeSnippetForExplanation = topic.content?.match(/### Solution\s*```(?:\w+)\n([\s\S]*?)```/)?.[1]?.trim() || topic.summary;
-
-    const completeTopicAction = async () => {
-        'use server';
-        if (user) {
-            await completeTopic(topic.id, course.id);
-        }
-    };
 
 
     return (
@@ -102,11 +95,12 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                             </ExplainCodeDialog>
                         
                            <form action={completeTopicAction}>
-                                 <Button asChild>
-                                    <Link href={nextStepUrl}>
-                                        {nextStepText} 
-                                        {nextStepText !== "Finish Course" ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
-                                    </Link>
+                                <input type="hidden" name="topicId" value={topic.id} />
+                                <input type="hidden" name="courseId" value={course.id} />
+                                <input type="hidden" name="nextUrl" value={nextStepUrl} />
+                                 <Button type="submit">
+                                    {nextStepText} 
+                                    {nextStepText !== "Finish Course" ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
                                 </Button>
                             </form>
                         </div>
