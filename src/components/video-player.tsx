@@ -22,27 +22,25 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
     if (isYoutubeVideo) {
         let videoId = '';
         try {
-             if (topic.video_url.includes('youtu.be')) {
-                videoId = new URL(topic.video_url).pathname.substring(1);
+            const url = new URL(topic.video_url);
+            if (url.hostname === 'youtu.be') {
+                videoId = url.pathname.substring(1);
             } else {
-                videoId = new URL(topic.video_url).searchParams.get('v') || '';
+                videoId = url.searchParams.get('v') || '';
             }
             if (videoId) {
                 embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
             }
         } catch (e) {
-            console.error("Invalid URL:", e);
+            console.error("Invalid YouTube URL:", e);
         }
-    } else {
-        embedUrl = topic.video_url;
     }
-
 
     if (!showVideo) {
         return (
             <div 
                 className="aspect-video bg-muted rounded-xl flex items-center justify-center cursor-pointer group relative overflow-hidden"
-                onClick={() => embedUrl && setShowVideo(true)}
+                onClick={() => setShowVideo(true)}
             >
                 <div className="absolute inset-0 bg-black/50 z-10"></div>
                 <PlayCircle className="w-16 h-16 text-white z-20 transition-transform duration-300 group-hover:scale-110" />
@@ -51,24 +49,39 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
         );
     }
 
-    if (!embedUrl) {
-         return (
-            <div className="aspect-video bg-muted rounded-xl flex items-center justify-center">
-                <p className="text-destructive-foreground">Could not load video. Invalid URL.</p>
+    if (isYoutubeVideo) {
+        if (!embedUrl) {
+            return (
+                <div className="aspect-video bg-black rounded-xl flex items-center justify-center text-destructive-foreground">
+                    Could not load YouTube video. Invalid URL.
+                </div>
+            );
+        }
+        return (
+            <div className="aspect-video bg-black rounded-xl overflow-hidden">
+                <iframe
+                    className="w-full h-full"
+                    src={embedUrl}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                ></iframe>
             </div>
         );
     }
 
+    // Default to HTML5 video player for direct links (e.g., Supabase Storage)
     return (
         <div className="aspect-video bg-black rounded-xl overflow-hidden">
-            <iframe
+            <video
                 className="w-full h-full"
-                src={embedUrl}
-                title="Video lesson player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-            ></iframe>
+                controls
+                autoPlay
+                src={topic.video_url}
+            >
+                Your browser does not support the video tag.
+            </video>
         </div>
     );
 }
