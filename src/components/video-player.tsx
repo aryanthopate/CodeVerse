@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { PlayCircle, Youtube } from 'lucide-react';
 import { Topic } from '@/lib/types';
+import { createClient } from '@/lib/supabase/client';
 
 export function VideoPlayer({ topic }: { topic: Topic }) {
     const [showVideo, setShowVideo] = useState(false);
@@ -16,24 +17,26 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
         );
     }
 
-    const isYoutubeVideo = topic.video_url.includes('youtube.com') || topic.video_url.includes('youtu.be');
-
+    const isYoutube = topic.video_url.includes('youtube.com') || topic.video_url.includes('youtu.be');
+    
+    let videoSrc = topic.video_url;
     let embedUrl = '';
-    if (isYoutubeVideo) {
-        let videoId = '';
+
+    if (isYoutube) {
         try {
             const url = new URL(topic.video_url);
-            if (url.hostname === 'youtu.be') {
-                videoId = url.pathname.substring(1);
-            } else {
-                videoId = url.searchParams.get('v') || '';
-            }
+            let videoId = url.hostname === 'youtu.be' ? url.pathname.substring(1) : url.searchParams.get('v');
             if (videoId) {
                 embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
             }
         } catch (e) {
             console.error("Invalid YouTube URL:", e);
         }
+    } else {
+        // This is a Supabase URL, which might not be the public one.
+        // We will assume it is and the policies are correct for direct playback.
+        // The component does not have enough context to rebuild the public URL if it's just a path.
+        videoSrc = topic.video_url;
     }
 
     if (!showVideo) {
@@ -44,29 +47,26 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
             >
                 <div className="absolute inset-0 bg-black/50 z-10"></div>
                 <PlayCircle className="w-16 h-16 text-white z-20 transition-transform duration-300 group-hover:scale-110" />
-                {isYoutubeVideo && <Youtube className="absolute top-4 right-4 text-white/70 z-20" />}
+                {isYoutube && <Youtube className="absolute top-4 right-4 text-white/70 z-20" />}
             </div>
         );
     }
 
-    if (isYoutubeVideo) {
-        if (!embedUrl) {
-            return (
-                <div className="aspect-video bg-black rounded-xl flex items-center justify-center text-destructive-foreground">
-                    Could not load YouTube video. Invalid URL.
-                </div>
-            );
-        }
+    if (isYoutube) {
         return (
             <div className="aspect-video bg-black rounded-xl overflow-hidden">
-                <iframe
-                    className="w-full h-full"
-                    src={embedUrl}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                ></iframe>
+                 {embedUrl ? (
+                    <iframe
+                        className="w-full h-full"
+                        src={embedUrl}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                    ></iframe>
+                 ) : (
+                    <div className="w-full h-full flex items-center justify-center text-destructive-foreground">Invalid YouTube URL.</div>
+                 )}
             </div>
         );
     }
@@ -78,7 +78,7 @@ export function VideoPlayer({ topic }: { topic: Topic }) {
                 className="w-full h-full"
                 controls
                 autoPlay
-                src={topic.video_url}
+                src={videoSrc}
             >
                 Your browser does not support the video tag.
             </video>

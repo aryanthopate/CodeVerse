@@ -74,20 +74,15 @@ function VideoPreviewDialog({ previewUrl, courseTitle, children }: { previewUrl:
     if (isYoutube) {
         try {
             const url = new URL(previewUrl);
-            let videoId = '';
-            if (url.hostname === 'youtu.be') {
-                videoId = url.pathname.substring(1);
-            } else {
-                videoId = url.searchParams.get('v') || '';
-            }
+            let videoId = url.hostname === 'youtu.be' ? url.pathname.substring(1) : url.searchParams.get('v');
             if (videoId) {
-                embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
             }
         } catch (e) {
             console.error("Invalid YouTube URL:", e);
         }
     } else {
-        // It's a direct link to a video file
+        // It's a direct link to a video file, use it as is.
         embedUrl = previewUrl;
     }
     
