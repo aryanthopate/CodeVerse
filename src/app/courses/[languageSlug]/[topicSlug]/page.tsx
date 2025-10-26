@@ -70,8 +70,8 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
     
     // For direct video links (e.g., from Supabase Storage)
     return (
-        <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
-            <video className="w-full h-full" controls poster={`https://picsum.photos/seed/${topic.slug}/1280/720`}>
+        <div className="aspect-video w-full bg-black rounded-xl flex items-center justify-center relative overflow-hidden border border-border/50">
+            <video className="w-full h-full" controls>
                 <source src={topic.video_url} type="video/mp4" />
                 Your browser does not support the video tag.
             </video>
