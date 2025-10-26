@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { TopicWithContent, QuestionWithOptions, QuestionOption, Course, CourseWithChaptersAndTopics } from '@/lib/types';
+import type { TopicWithContent, QuestionWithOptions, QuestionOption, Course, CourseWithChaptersAndTopics, Topic } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -109,6 +109,19 @@ export default function QuizPage() {
         setShowResults(false);
         setScore(0);
     }
+
+    const hasPractice = !!topic?.content;
+    const nextStepUrl = hasPractice 
+        ? `/courses/${course?.slug}/${topic?.slug}/practice`
+        : nextTopic
+            ? `/courses/${course?.slug}/${nextTopic.slug}`
+            : `/courses/${course?.slug}`;
+
+    const nextStepText = hasPractice 
+        ? 'Start Practice' 
+        : nextTopic
+            ? 'Next Topic'
+            : 'Finish Course';
     
     if (loading) {
         return <div className="flex justify-center items-center h-screen">Loading Quiz...</div>
@@ -162,19 +175,12 @@ export default function QuizPage() {
                         </CardContent>
                         <CardFooter className="flex-col sm:flex-row gap-4">
                             <Button variant="outline" onClick={handleRetryQuiz} className="w-full"><RotateCw className="mr-2"/> Retry Quiz</Button>
-                            {nextTopic ? (
-                                <Button asChild className="w-full">
-                                    <Link href={`/courses/${course.slug}/${nextTopic.slug}`}>
-                                        Next Topic <ArrowRight className="ml-2"/>
-                                    </Link>
-                                </Button>
-                            ) : (
-                                 <Button asChild className="w-full">
-                                    <Link href={`/courses/${course.slug}`}>
-                                        Finish Course <CheckCircle className="ml-2"/>
-                                    </Link>
-                                </Button>
-                            )}
+                            <Button asChild className="w-full">
+                                <Link href={nextStepUrl}>
+                                    {nextStepText} 
+                                    {hasPractice || nextTopic ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
+                                </Link>
+                            </Button>
                         </CardFooter>
                     </Card>
                 </main>

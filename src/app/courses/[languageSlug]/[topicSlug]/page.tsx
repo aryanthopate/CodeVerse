@@ -161,6 +161,22 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
     
+    const nextStepUrl = hasQuiz 
+        ? `/courses/${course.slug}/${topic.slug}/quiz`
+        : hasPractice
+            ? `/courses/${course.slug}/${topic.slug}/practice`
+            : nextTopic
+                ? `/courses/${course.slug}/${nextTopic.slug}`
+                : `/courses/${course.slug}`;
+
+    const nextStepText = hasQuiz 
+        ? 'Take Quiz' 
+        : hasPractice
+            ? 'Start Practice'
+            : nextTopic
+                ? 'Next Topic'
+                : 'Finish Course';
+
     return (
     <div className="flex flex-col min-h-screen bg-background">
         <Header />
@@ -201,7 +217,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                             </Tabs>
                         </div>
 
-                        <div className="flex justify-between mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
+                        <div className="flex justify-between items-center mt-8 p-4 bg-card/50 rounded-xl border border-border/50">
                             {prevTopic ? (
                                 <Button variant="outline" asChild>
                                     <Link href={`/courses/${course.slug}/${prevTopic.slug}`}>
@@ -210,31 +226,12 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                 </Button>
                             ) : <div></div>}
                         
-                            <div className="flex gap-4">
-                                {hasQuiz ? (
-                                    <Button variant="secondary" className="bg-accent/80 hover:bg-accent" asChild>
-                                        <Link href={`/courses/${course.slug}/${topic.slug}/quiz`}>Take Quiz</Link>
-                                    </Button>
-                                ) : hasPractice ? (
-                                     <Button variant="secondary" className="bg-accent/80 hover:bg-accent" asChild>
-                                        <Link href={`/courses/${course.slug}/${topic.slug}/practice`}>Start Practice</Link>
-                                    </Button>
-                                ) : null}
-
-                                {nextTopic ? (
-                                    <Button asChild>
-                                        <Link href={`/courses/${course.slug}/${nextTopic.slug}`}>
-                                            Next Topic <ArrowRight className="ml-2"/>
-                                        </Link>
-                                    </Button>
-                                ): (
-                                    <Button asChild>
-                                        <Link href={`/courses/${course.slug}`}>
-                                            Finish Course <CheckCircle className="ml-2"/>
-                                        </Link>
-                                    </Button>
-                                )}
-                            </div>
+                             <Button asChild>
+                                <Link href={nextStepUrl}>
+                                    {nextStepText} 
+                                    {nextTopic || hasPractice || hasQuiz ? <ArrowRight className="ml-2"/> : <CheckCircle className="ml-2"/>}
+                                </Link>
+                            </Button>
                         </div>
                     </div>
                 </div>
