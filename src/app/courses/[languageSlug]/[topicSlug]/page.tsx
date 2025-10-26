@@ -32,15 +32,22 @@ function VideoPlayer({ topic }: { topic: { video_url: string | null, slug: strin
     if (isYoutubeVideo) {
         // Extract video ID from URL
         let videoId;
-        if (topic.video_url.includes('youtu.be')) {
-            videoId = topic.video_url.split('/').pop()?.split('?')[0];
-        } else {
+        try {
             const url = new URL(topic.video_url);
-            videoId = url.searchParams.get('v');
+            if (url.hostname === 'youtu.be') {
+                videoId = url.pathname.slice(1);
+            } else {
+                videoId = url.searchParams.get('v');
+            }
+        } catch (error) {
+             // Handle cases where the URL might be malformed but contains the ID
+            const match = topic.video_url.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
+            videoId = match ? match[1] : null;
         }
 
+
         if (!videoId) {
-            return <div>Invalid YouTube URL</div>;
+            return <div className="aspect-video w-full bg-card rounded-xl flex items-center justify-center text-muted-foreground border border-border/50">Invalid YouTube URL</div>;
         }
 
         const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&modestbranding=1&rel=0`;
