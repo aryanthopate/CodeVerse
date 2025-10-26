@@ -129,7 +129,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersA
 export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: string) {
     const supabase = createClient();
 
-    // 1. Fetch the course with all its chapters and topics
+    // 1. Fetch the course with all its chapters and topics, making sure quizzes and questions are included.
     const { data: course, error: courseError } = await supabase
         .from('courses')
         .select(`
@@ -144,10 +144,18 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
                 topics (
                     *,
                     quizzes (
-                        *,
+                        id,
                         questions (
-                            *,
-                            question_options (*)
+                            id,
+                            question_text,
+                            question_type,
+                            "order",
+                            question_options (
+                                id,
+                                option_text,
+                                is_correct,
+                                explanation
+                            )
                         )
                     )
                 )
@@ -167,7 +175,7 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
     const typedCourse = course as unknown as CourseWithChaptersAndTopics;
 
     // 2. Flatten topics and find the current one
-    const allTopics = typedCourse.chapters.flatMap(ch => ch.topics);
+    const allTopics = typedCourse.chapters.flatMap(ch => ch.topics.map(t => ({...t, chapterId: ch.id})));
     const currentTopicIndex = allTopics.findIndex(t => t.slug === topicSlug);
 
     if (currentTopicIndex === -1) {
@@ -177,7 +185,7 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
     const currentTopic = allTopics[currentTopicIndex];
     
     // 3. Find the chapter for the current topic
-    const currentChapter = typedCourse.chapters.find(ch => ch.id === (currentTopic as any).chapter_id);
+    const currentChapter = typedCourse.chapters.find(ch => ch.id === currentTopic.chapterId);
 
     // 4. Determine previous and next topics
     const prevTopic = currentTopicIndex > 0 ? allTopics[currentTopicIndex - 1] : null;

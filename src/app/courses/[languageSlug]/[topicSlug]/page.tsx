@@ -5,22 +5,34 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText } from 'lucide-react';
+import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { getCourseAndTopicDetails } from '@/lib/supabase/queries';
 import { Topic } from '@/lib/types';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { completeTopicAction } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 import { CourseSidebar } from '@/components/course-sidebar';
 import { VideoPlayer } from '@/components/video-player';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
+function AddNoteDialog({ children }: { children: React.ReactNode }) {
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add a Note</DialogTitle>
+                    <DialogDescription>
+                        This feature is currently under development. Soon you'll be able to take notes directly on the platform!
+                    </DialogDescription>
+                </DialogHeader>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default async function TopicPage({ params }: { params: { languageSlug: string, topicSlug: string } }) {
     const supabase = createClient();
@@ -86,9 +98,11 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
                                             <Lightbulb className="mr-2"/> Explain It To Me
                                         </Button>
                                     </ExplainCodeDialog>
-                                    <Button variant="outline">
-                                        <FileText className="mr-2" /> Add Note
-                                    </Button>
+                                    <AddNoteDialog>
+                                        <Button variant="outline">
+                                            <FileText className="mr-2" /> Add Note
+                                        </Button>
+                                    </AddNoteDialog>
                                 </div>
                             
                                 <form action={completeTopicAction}>
