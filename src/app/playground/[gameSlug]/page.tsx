@@ -4,7 +4,7 @@
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { getGameBySlug, getUserGameProgress } from '@/lib/supabase/queries';
+import { getGameBySlug, getUserGameProgress, getIsUserEnrolled } from '@/lib/supabase/queries';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
@@ -19,7 +19,9 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
         notFound();
     }
     
-    const userProgress = await getUserGameProgress(game.id);
+    const { data: { user } } = await supabase.auth.getUser();
+    const userProgress = user ? await getUserGameProgress(game.id) : [];
+    const isEnrolled = user && game.course_id ? await getIsUserEnrolled(game.course_id, user.id) : !game.course_id;
     
     return (
         <div className="flex flex-col min-h-screen bg-[hsl(var(--game-bg))] text-[hsl(var(--game-text))]">
@@ -47,7 +49,7 @@ export default async function GameDetailPage({ params }: { params: { gameSlug: s
                 </div>
 
                 {/* Levels Map */}
-                <GameMapClient game={game} userProgress={userProgress} />
+                <GameMapClient game={game} userProgress={userProgress} isEnrolled={isEnrolled} />
 
             </main>
             <Footer />
