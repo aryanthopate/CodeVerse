@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
 import type { GameWithChaptersAndLevels, UserGameProgress } from '@/lib/types';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
 
 // Helper function to generate SVG path data and level positions
 const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
@@ -77,32 +76,7 @@ const generateLevelMap = (chapters: any[], game: GameWithChaptersAndLevels) => {
     return { levels, pathData, width };
 };
 
-export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAndLevels, userProgress: UserGameProgress[] | null }) {
-    const [isEnrolled, setIsEnrolled] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const supabase = createClient();
-    
-    useEffect(() => {
-        const checkEnrollment = async () => {
-            if (!game.course_id) {
-                setIsEnrolled(true); // Free game not linked to a course
-                setLoading(false);
-                return;
-            }
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data, error } = await supabase
-                    .from('user_enrollments')
-                    .select('id')
-                    .eq('course_id', game.course_id)
-                    .eq('user_id', user.id)
-                    .single();
-                setIsEnrolled(!!data);
-            }
-            setLoading(false);
-        };
-        checkEnrollment();
-    }, [game.course_id, supabase]);
+export function GameMapClient({ game, userProgress, isEnrolled }: { game: GameWithChaptersAndLevels, userProgress: UserGameProgress[] | null, isEnrolled: boolean }) {
     
     const { levels: levelPositions, pathData, width } = generateLevelMap(game.game_chapters, game);
     const completedLevelIds = userProgress?.map(p => p.completed_level_id) || [];
@@ -111,10 +85,6 @@ export function GameMapClient({ game, userProgress }: { game: GameWithChaptersAn
     let currentLevelIndex = allLevelsFlat.findIndex(l => !completedLevelIds.includes(l.id));
     if (currentLevelIndex === -1 && allLevelsFlat.length > 0) {
         currentLevelIndex = allLevelsFlat.length;
-    }
-
-    if (loading) {
-        return <div className="text-center p-8">Loading game map...</div>;
     }
 
     return (
