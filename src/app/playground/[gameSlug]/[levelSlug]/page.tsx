@@ -415,7 +415,7 @@ export default function GameLevelPage() {
     const handleLevelComplete = useCallback(async () => {
         if (!level || !game || gameState === 'levelComplete') return;
         setGameState('levelComplete');
-        await completeGameLevel(level.id, game.id);
+        await completeGameLevel(level.id, game.id, level.reward_xp);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 8000);
     }, [level, game, gameState]);
@@ -724,3 +724,4 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
