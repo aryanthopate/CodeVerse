@@ -1,4 +1,5 @@
 
+
 'use server';
 
 /**
@@ -57,6 +58,13 @@ export const generateDistractorsFlow = ai.defineFlow(
     outputSchema: GenerateDistractorsOutputSchema,
   },
   async (input) => {
+    // If there are no correct snippets, return some generic distractors
+    if (!input.correctSnippets || input.correctSnippets.length === 0) {
+        return {
+            distractors: ['error', 'bug', 'null', 'undefined', 'SyntaxError', 'TypeError', 'fail', 'wrong', 'mistake', 'invalid'],
+        };
+    }
+    
     const { output } = await distractorsPrompt(input);
     
     if (!output || !output.distractors || output.distractors.length === 0) {

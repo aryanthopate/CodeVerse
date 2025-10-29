@@ -413,12 +413,12 @@ export default function GameLevelPage() {
     }, []);
     
     const handleLevelComplete = useCallback(async () => {
-        if (!level || gameState === 'levelComplete') return;
+        if (!level || !game || gameState === 'levelComplete') return;
         setGameState('levelComplete');
-        await completeGameLevel(level.id);
+        await completeGameLevel(level.id, game.id);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 8000);
-    }, [level, gameState]);
+    }, [level, game, gameState]);
 
     const handleRunCode = useCallback(async (codeToRun: string) => {
         if (!level || !codeToRun) return;

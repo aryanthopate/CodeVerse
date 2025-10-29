@@ -818,25 +818,13 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string) {
+export async function completeGameLevel(levelId: string, gameId: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
         return { success: false, error: "User not authenticated" };
     }
-    
-    const { data: levelData, error: levelError } = await supabase
-        .from('game_levels')
-        .select('game_chapters(game_id)')
-        .eq('id', levelId)
-        .single();
-    
-    if (levelError || !levelData || !levelData.game_chapters) {
-        console.error("Could not find the game for this level:", levelError?.message);
-        return { success: false, error: "Could not find the game for this level." };
-    }
-    const gameId = levelData.game_chapters.game_id;
 
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
