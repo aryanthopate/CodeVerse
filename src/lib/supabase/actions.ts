@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from './server';
@@ -825,6 +826,21 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         return { success: false, error: "User not authenticated" };
     }
     
+    // Check if the level has already been completed to prevent duplicate XP
+    const { data: existingProgress, error: fetchError } = await supabase
+        .from('user_game_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completed_level_id', levelId)
+        .maybeSingle();
+
+    if (fetchError) {
+        console.error("Error checking existing game progress:", fetchError);
+        // Decide if you want to stop or continue. Let's continue but log the error.
+    }
+    
+    const isFirstCompletion = !existingProgress;
+
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
         game_id: gameId,
@@ -839,16 +855,14 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         return { success: false, error: "Could not save progress." };
     }
     
-    // Add XP to user profile if they haven't completed this level before
-    // This check prevents users from farming XP by replaying levels.
-    // The upsert logic above simplifies this; if the row already existed, this RPC won't be called.
-    const { error: rpcError } = await supabase.rpc('add_xp', { user_id: user.id, xp_to_add: rewardXp });
+    if (isFirstCompletion) {
+        const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp });
 
-     if (rpcError) {
-        console.error("Error updating user XP:", rpcError);
-        // This is not a critical failure, so we don't return an error to the client
+        if (rpcError) {
+            console.error("Error updating user XP:", rpcError);
+            // This is not a critical failure, so we don't return an error to the client
+        }
     }
-
 
     revalidatePath(`/playground/${gameId}`);
     revalidatePath('/dashboard');
@@ -955,3 +969,4 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     revalidatePath('/chat', 'layout');
     return { success: true, error: null };
 }
+
