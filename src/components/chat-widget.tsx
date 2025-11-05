@@ -64,18 +64,22 @@ export function ChatWidget() {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
 
-    const userInput: Partial<ChatMessage> = { role: 'user', content: [{ text: input }] };
+    const userInput: Partial<ChatMessage> = { role: 'user', content: input };
     setMessages(prev => [...prev, userInput]);
     const currentInput = input;
     setInput('');
     setIsStreaming(true);
 
     try {
-        const messagesForApi = [...messages, userInput];
-        const stream = await streamChat({ messages: messagesForApi as any });
+        const messagesForApi = [...messages, userInput].map(m => ({
+            role: m.role as 'user' | 'model',
+            content: m.content as string
+        }));
+        
+        const stream = await streamChat({ messages: messagesForApi });
         if (!stream) throw new Error("AI service did not return a stream.");
 
-        setMessages(prev => [...prev, { role: 'model', content: [{ text: '' }] }]);
+        setMessages(prev => [...prev, { role: 'model', content: '' }]);
         
         const reader = stream.getReader();
         const decoder = new TextDecoder();
@@ -90,7 +94,7 @@ export function ChatWidget() {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
                 if (lastMessage && lastMessage.role === 'model') {
-                    lastMessage.content = [{ text: streamedResponse }];
+                    lastMessage.content = streamedResponse;
                 }
                 return newMessages;
             });
@@ -102,7 +106,7 @@ export function ChatWidget() {
             description: error.message || "Could not get a response from the AI."
         });
         // Rollback optimistic update
-        setMessages(prev => prev.filter(msg => msg.role !== 'user' || msg.content?.[0]?.text !== currentInput));
+        setMessages(prev => prev.filter(msg => msg.role !== 'user' || msg.content !== currentInput));
     } finally {
         setIsStreaming(false);
     }
@@ -143,7 +147,7 @@ export function ChatWidget() {
               )}
                {messages.map((message, index) => {
                     const isUser = message.role === 'user';
-                    const textContent = (message.content as any[])?.find(p => p.text)?.text || '';
+                    const textContent = message.content as string;
                     
                     return (
                     <div key={index} className={cn("flex items-start gap-3", isUser ? 'justify-end' : 'justify-start')}>

@@ -14,7 +14,7 @@ const ChatInputSchema = z.object({
   messages: z.array(
     z.object({
       role: z.enum(['user', 'model']),
-      content: z.string(), // Corrected: content is a simple string
+      content: z.string(),
     })
   ),
 });
@@ -23,7 +23,7 @@ export type ChatInput = z.infer<typeof ChatInputSchema>;
 export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>> {
     const { stream, response } = await ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
-      prompt: input.messages, 
+      prompt: input.messages,
     });
 
     const readableStream = new ReadableStream({

@@ -71,7 +71,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         e.preventDefault();
         if (!input.trim() || isStreaming) return;
         
-        const userInput: Partial<ChatMessage> = { role: 'user', content: input };
+        const userInput: ChatMessage = { role: 'user', content: [{ text: input }] } as ChatMessage;
         const currentInput = input;
         setInput('');
 
@@ -89,13 +89,13 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 created_at: new Date().toISOString(),
                 is_archived: false,
                 is_pinned: false,
-                messages: [userInput as ChatMessage],
+                messages: [userInput],
             };
             setChats(prev => [tempActiveChat, ...prev]);
         } else {
             tempActiveChat = {
                 ...(activeChat as ActiveChat),
-                messages: [...(activeChat?.messages || []), userInput as ChatMessage],
+                messages: [...(activeChat?.messages || []), userInput],
             };
         }
 
@@ -112,10 +112,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                         return [newChat, ...prev.filter(c => c.id !== tempActiveChat.id)]
                     });
                     
-                    setActiveChat(prev => ({
-                        ...newChat,
-                        messages: prev ? prev.messages : [],
-                    }));
+                    setActiveChat(prev => {
+                       const finalChat = {
+                         ...(prev ? { ...newChat, messages: prev.messages } : newChat)
+                       };
+                       return finalChat as ActiveChat;
+                    });
 
                     window.history.replaceState(null, '', `/chat/${newChat.id}`);
                 } else {
@@ -125,7 +127,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             
             const messagesForApi = tempActiveChat.messages.map(m => ({
                 role: m.role,
-                content: typeof m.content === 'string' ? m.content : (m.content as any[])?.find(p => p.text)?.text || '',
+                content: (m.content as any[])?.find(p => p.text)?.text || '',
             }));
 
             const readableStream = await streamChat({ messages: messagesForApi as any });
@@ -135,7 +137,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             
             setActiveChat(prev => {
                 if (!prev) return null;
-                const newMessages = [...prev.messages, { role: 'model', content: '' } as ChatMessage];
+                const newMessages = [...prev.messages, { role: 'model', content: [{ text: '' }] } as ChatMessage];
                 return {...prev, messages: newMessages};
             });
             scrollToBottom();
@@ -152,7 +154,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     const latestMessages = [...prev.messages];
                     const lastMessage = latestMessages[latestMessages.length - 1];
                     if (lastMessage && lastMessage.role === 'model') {
-                        latestMessages[latestMessages.length - 1] = { ...lastMessage, content: streamedResponse };
+                        latestMessages[latestMessages.length - 1] = { ...lastMessage, content: [{ text: streamedResponse }] };
                     }
                     return { ...prev, messages: latestMessages };
                 });
@@ -161,7 +163,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             if (currentChatId) {
                 const finalMessages = [
                     ...tempActiveChat.messages,
-                    { role: 'model', content: streamedResponse } as ChatMessage
+                    { role: 'model', content: [{text: streamedResponse}] } as ChatMessage
                 ];
                 await saveChat(currentChatId, finalMessages);
             }
@@ -176,7 +178,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
              setActiveChat(prev => {
                 if (!prev) return null;
                 // remove user message and potential empty model message
-                return { ...prev, messages: prev.messages.filter(m => m.role !== 'user' || m.content !== currentInput) };
+                return { ...prev, messages: prev.messages.filter(m => m !== userInput) };
             });
         } finally {
             setIsStreaming(false);
@@ -366,7 +368,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     <div className="p-6 space-y-6">
                         {activeChat?.messages.map((message, index) => {
                              const isUser = message.role === 'user';
-                             const textContent = typeof message.content === 'string' ? message.content : '';
+                             const textContent = (message.content as any[])?.find(p => p.text)?.text || '';
                              
                              return (
                                 <div key={index} className={cn("flex items-start gap-4", isUser ? 'justify-end' : 'justify-start')}>

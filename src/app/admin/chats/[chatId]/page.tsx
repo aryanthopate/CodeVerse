@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -88,7 +87,7 @@ export default function AdminChatViewPage() {
                 <div className="p-6 space-y-6 border rounded-lg bg-muted/20">
                     {chatData.chat_messages.map((message: any, index: number) => {
                         const isUser = message.role === 'user';
-                        const textContent = (message.content as any[])?.find(p => p.text)?.text || '';
+                        const textContent = typeof message.content === 'string' ? message.content : (message.content as any[])?.find(p => p.text)?.text || '';
                         
                         return (
                             <div key={index} className={cn("flex items-start gap-4", isUser ? 'justify-end' : 'justify-start')}>
@@ -114,4 +113,3 @@ export default function AdminChatViewPage() {
         </AdminLayout>
     );
 }
-

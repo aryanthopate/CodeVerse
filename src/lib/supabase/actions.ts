@@ -910,15 +910,9 @@ export async function createNewChat(title: string): Promise<Chat | null> {
 export async function saveChat(chatId: string, messages: Partial<ChatMessage>[]) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    // Allow anonymous chat saving for simplicity, though it won't be retrievable later without a user ID.
-    // A more robust solution might involve session-based tracking for anonymous users.
-    if (!user && chatId.startsWith('temp-')) {
-        console.log("Anonymous chat, not saving to DB.");
-        return { success: true };
-    }
     
     if (!user) {
-        return { success: false, error: "User not authenticated" };
+         return { success: false, error: "User not authenticated" };
     }
 
     // Verify user owns the chat
@@ -930,11 +924,14 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
     // Delete existing messages and insert new ones to ensure consistency
     await supabase.from('chat_messages').delete().eq('chat_id', chatId);
 
-    const messagesToInsert = messages.map(msg => ({
-        chat_id: chatId,
-        role: msg.role!,
-        content: msg.content!
-    }));
+    const messagesToInsert = messages.map(msg => {
+        const textContent = (msg.content as any[])?.find(p => p.text)?.text || '';
+        return {
+            chat_id: chatId,
+            role: msg.role!,
+            content: textContent // Save as plain string
+        };
+    });
 
     const { error: insertError } = await supabase.from('chat_messages').insert(messagesToInsert);
      if(insertError) {
@@ -961,8 +958,3 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     revalidatePath('/chat', 'layout');
     return { success: true, error: null };
 }
-
-    
-
-    
-
