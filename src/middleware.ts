@@ -1,6 +1,6 @@
+
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/middleware'
-import { notFound } from 'next/navigation';
 
 export async function middleware(request: NextRequest) {
   const { supabase, response } = createClient(request)
@@ -39,11 +39,11 @@ export async function middleware(request: NextRequest) {
   // Define public routes
   const publicRoutes = ['/', '/login', '/signup', '/auth/confirm']
   const courseDetailRoutePattern = /^\/courses(\/.*)?$/;
+  const playgroundRoutePattern = /^\/playground(\/.*)?$/;
 
-  const isPublicRoute = publicRoutes.includes(pathname) || courseDetailRoutePattern.test(pathname)
 
-  // Define authenticated routes prefix
-  const isAuthenticatedRoute = pathname.startsWith('/dashboard')
+  // Define authenticated routes prefixes
+  const authenticatedRoutes = ['/dashboard', '/chat'];
 
   // If user is logged in and tries to access login or signup, redirect to dashboard
   if (user && (pathname === '/login' || pathname === '/signup')) {
@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is not logged in and tries to access a protected route, redirect to login
-  if (!user && isAuthenticatedRoute) {
+  if (!user && authenticatedRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
