@@ -68,12 +68,6 @@ export function ChatWidget() {
         scrollToBottom();
     }, [messages, isStreaming]);
 
-
-  // Do not render the widget on any playground, chat, or course pages
-  if (pathname.startsWith('/playground') || pathname.startsWith('/chat') || pathname.startsWith('/courses')) {
-    return null;
-  }
-  
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     // Reset chat when closing if user is not logged in
@@ -215,6 +209,10 @@ export function ChatWidget() {
         });
     };
 
+    // Do not render the widget on any playground, chat, or course pages
+    if (pathname.startsWith('/playground') || pathname.startsWith('/chat') || pathname.startsWith('/courses')) {
+        return null;
+    }
 
   return (
     <>

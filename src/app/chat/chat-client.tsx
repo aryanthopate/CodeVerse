@@ -385,14 +385,13 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         });
     };
 
-    if (!isClient) {
-        return null;
-    }
-
     const pinnedChats = chats.filter(c => c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     const recentChats = chats.filter(c => !c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     const archivedChats = chats.filter(c => c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+    if (!isClient) {
+        return null;
+    }
 
     return (
         <div className="flex h-screen bg-background">
