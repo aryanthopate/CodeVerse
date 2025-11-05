@@ -137,6 +137,7 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
             name,
             slug,
             language,
+            notes_url,
             chapters (
                 id,
                 title,

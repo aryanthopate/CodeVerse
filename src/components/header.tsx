@@ -12,6 +12,9 @@ import { createClient } from '@/lib/supabase/client';
 import type { UserProfile } from '@/lib/types';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from './ui/dropdown-menu';
+import { LogOut, User, Settings } from 'lucide-react';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -95,17 +98,35 @@ export function Header() {
             <div className={cn("w-px h-6 mx-2", isPlayground ? "bg-[hsl(var(--game-border))]" : "bg-border")}></div>
           {loading ? null : user ? (
             <>
-              {user.role === 'admin' && (
-                <Button variant="outline" asChild>
-                  <Link href="/admin"><Shield className="mr-2 h-4 w-4" />Admin Panel</Link>
-                </Button>
-              )}
-              <Button variant="ghost" onClick={handleLogout} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>Logout</Button>
-              <Link href="/dashboard" className={cn(isPlayground ? 'btn-game' : '')}>
-                  <Button asChild={!isPlayground} className={cn(isPlayground ? 'pointer-events-none' : 'shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300')}>
-                      <span>Go to Dashboard</span>
-                  </Button>
-              </Link>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full">
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
+                                <AvatarFallback>{user.full_name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel>{user.full_name}</DropdownMenuLabel>
+                         {user.role === 'admin' && (
+                            <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/admin"><Shield className="mr-2 h-4 w-4" />Admin Panel</Link>
+                            </DropdownMenuItem>
+                            </>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild><Link href="/dashboard"><User className="mr-2 h-4 w-4" />Dashboard</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Logout
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </>
           ) : (
             <>

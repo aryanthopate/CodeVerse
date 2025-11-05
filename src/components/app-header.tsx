@@ -87,7 +87,7 @@ export function AppHeader({
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage
-                  src={profile?.avatar_url}
+                  src={profile?.avatar_url || ''}
                   alt={profile?.full_name || "User"}
                 />
                 <AvatarFallback>
