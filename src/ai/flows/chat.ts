@@ -33,7 +33,7 @@ export type ChatInput = z.infer<typeof ChatInputSchema>;
 export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>> {
     const { stream, response } = await ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
-      prompt: input.messages.map(m => ({ role: m.role, content: m.content.map(c => c.text).join('') })),
+      prompt: input.messages, // Pass the messages directly without mapping
     });
 
     const readableStream = new ReadableStream({
