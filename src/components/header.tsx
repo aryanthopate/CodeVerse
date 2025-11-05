@@ -1,0 +1,262 @@
+
+
+"use client"
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/logo';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu, X, Shield, ShoppingCart, Heart, Gamepad2, LogIn } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import type { UserProfile } from '@/lib/types';
+import { useRouter, usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from './ui/dropdown-menu';
+import { LogOut, User, Settings } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                {children}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <div className="flex justify-center mb-2">
+                        <LogIn className="w-12 h-12 text-primary"/>
+                    </div>
+                    <AlertDialogTitle className="text-center text-2xl">Authentication Required</AlertDialogTitle>
+                    <AlertDialogDescription className="text-center">
+                        Please log in or create an account to access the chat.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                        <Link href="/login">Login</Link>
+                    </AlertDialogAction>
+                    <AlertDialogAction asChild>
+                        <Link href="/signup">Sign Up</Link>
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+export function Header() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const isPlayground = pathname.startsWith('/playground');
+
+  useEffect(() => {
+    const getProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(data);
+      }
+      setLoading(false);
+    };
+    getProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        setProfile(data);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase, supabase.auth]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
+    router.push('/');
+    router.refresh();
+  };
+
+  const navLinks = [
+    { name: 'Courses', href: '/courses' },
+    { name: 'Playground', href: '/playground' },
+    { name: 'Chatlify', href: '/chat', requiresAuth: true },
+  ];
+
+  const user = profile; // for clarity
+  
+  const navLinkClasses = isPlayground 
+    ? "text-sm font-medium text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))] transition-colors"
+    : "text-sm font-medium text-muted-foreground hover:text-primary transition-colors";
+
+  return (
+    <header className={cn(
+        "fixed top-0 left-0 right-0 z-50",
+        isPlayground 
+            ? "bg-[hsl(var(--game-surface))] border-b-2 border-[hsl(var(--game-border))]" 
+            : "bg-background/50 backdrop-blur-lg"
+    )}>
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+        <Logo isGameTheme={isPlayground} />
+        
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-6">
+          {navLinks.map((link) => {
+            const linkElement = <Link key={link.name} href={link.href} className={navLinkClasses}>{link.name}</Link>;
+            if (link.requiresAuth && !user) {
+              return <AuthRequiredDialog key={link.name}><span className={cn(navLinkClasses, "cursor-pointer")}>{link.name}</span></AuthRequiredDialog>
+            }
+            return linkElement;
+          })}
+        </nav>
+
+        <div className="hidden md:flex items-center gap-2">
+           <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                <Link href="/wishlist"><Heart className="h-5 w-5" /></Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                <Link href="/cart"><ShoppingCart className="h-5 w-5" /></Link>
+            </Button>
+            <div className={cn("w-px h-6 mx-2", isPlayground ? "bg-[hsl(var(--game-border))]" : "bg-border")}></div>
+          {loading ? null : user ? (
+            <>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full">
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
+                                <AvatarFallback>{user.full_name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel>{user.full_name}</DropdownMenuLabel>
+                         {user.role === 'admin' && (
+                            <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/admin"><Shield className="mr-2 h-4 w-4" />Admin Panel</Link>
+                            </DropdownMenuItem>
+                            </>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild><Link href="/dashboard"><User className="mr-2 h-4 w-4" />Dashboard</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Logout
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                <Link href="/login">Login</Link>
+              </Button>
+               <Link href="/signup" className={cn(isPlayground ? 'btn-game' : '')}>
+                  <Button asChild={!isPlayground} className={cn(isPlayground ? 'pointer-events-none' : 'shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300')}>
+                    <span>Start Learning</span>
+                  </Button>
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden flex items-center gap-2">
+            <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                <Link href="/wishlist"><Heart className="h-5 w-5" /></Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                <Link href="/cart"><ShoppingCart className="h-5 w-5" /></Link>
+            </Button>
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className={cn("w-[300px] sm:w-[400px]", isPlayground ? "bg-[hsl(var(--game-bg))] border-[hsl(var(--game-border))]" : "bg-background")}>
+              <div className="p-4">
+                <div className="flex justify-between items-center mb-8">
+                  <Logo isGameTheme={isPlayground} />
+                  <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                    <X className="h-6 w-6" />
+                    <span className="sr-only">Close menu</span>
+                  </Button>
+                </div>
+
+                <nav className="flex flex-col gap-6">
+                  {navLinks.map((link) => {
+                    const linkElement = (
+                        <Link
+                          key={link.name}
+                          href={link.href}
+                          className={cn("text-lg font-medium", isPlayground ? "text-[hsl(var(--game-text))]" : "text-foreground", "hover:text-primary transition-colors")}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          {link.name}
+                        </Link>
+                    );
+                     if (link.requiresAuth && !user) {
+                        return <AuthRequiredDialog key={link.name}><span className={cn("text-lg font-medium cursor-pointer", isPlayground ? "text-[hsl(var(--game-text))]" : "text-foreground", "hover:text-primary transition-colors")}>{link.name}</span></AuthRequiredDialog>
+                    }
+                    return linkElement;
+                  })}
+                  <div className={cn("border-t pt-6 mt-4 flex flex-col gap-4", isPlayground ? "border-[hsl(var(--game-border))]" : "border-border")}>
+                     {loading ? null : user ? (
+                        <>
+                          {user.role === 'admin' && (
+                            <Button variant="outline" asChild>
+                              <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Panel</Link>
+                            </Button>
+                          )}
+                          <Button variant="ghost" onClick={() => { handleLogout(); setIsOpen(false); }} className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>Logout</Button>
+                          <Button asChild>
+                              <Link href="/dashboard" onClick={() => setIsOpen(false)}>Go to Dashboard</Link>
+                          </Button>
+                        </>
+                     ) : (
+                        <>
+                            <Button variant="ghost" asChild className={isPlayground ? 'text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-accent))]' : ''}>
+                                <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
+                            </Button>
+                            <Button asChild>
+                                <Link href="/signup" onClick={() => setIsOpen(false)}>Start Learning</Link>
+                            </Button>
+                        </>
+                     )}
+                  </div>
+                </nav>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </header>
+  );
+}
