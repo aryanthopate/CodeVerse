@@ -8,84 +8,53 @@ interface MarkdownRendererProps {
     content: string;
 }
 
-// More advanced regex-based markdown parser
-const parseMarkdown = (text: string) => {
-    const elements: React.ReactNode[] = [];
-    let remainingText = text;
-    let key = 0;
-
-    const parsers = [
-        { regex: /\[-----]([\s\S]*?)\[-----]/g, render: (match: RegExpMatchArray) => <CodeBlock key={key++} code={match[1].trim()} /> },
-        { regex: /### (.*?)(?=\n|\[-----]|$)/g, render: (match: RegExpMatchArray) => <h3 key={key++} className="text-xl font-semibold mt-4 mb-2">{match[1].trim()}</h3> },
-        { regex: /## (.*?)(?=\n|\[-----]|$)/g, render: (match: RegExpMatchArray) => <h2 key={key++} className="text-2xl font-bold mt-6 mb-3">{match[1].trim()}</h2> },
-        { regex: /# (.*?)(?=\n|\[-----]|$)/g, render: (match: RegExpMatchArray) => <h1 key={key++} className="text-3xl font-bold mt-8 mb-4">{match[1].trim()}</h1> },
-        { regex: /(?:\n|^)((?:\*|\-)\s.*(?:\n|$))+/g, render: (match: RegExpMatchArray) => {
-            const items = match[0].trim().split('\n').map((item, index) => (
-                <li key={index} className="ml-5" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(item.replace(/(\*|\-)\s/, '')) }} />
-            ));
-            return <ul key={key++} className="list-disc pl-5 my-2">{items}</ul>;
-        }},
-         { regex: /(?:\n|^)((?:\d+\.)\s.*(?:\n|$))+/g, render: (match: RegExpMatchArray) => {
-            const items = match[0].trim().split('\n').map((item, index) => (
-                <li key={index} className="ml-5" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(item.replace(/\d+\.\s/, '')) }} />
-            ));
-            return <ol key={key++} className="list-decimal pl-5 my-2">{items}</ol>;
-        }},
-    ];
-
-    while (remainingText.length > 0) {
-        let bestMatch: { match: RegExpMatchArray, parserIndex: number } | null = null;
-
-        // Find the earliest match among all parsers
-        for (let i = 0; i < parsers.length; i++) {
-            const parser = parsers[i];
-            const match = parser.regex.exec(remainingText);
-            if (match && (!bestMatch || match.index < bestMatch.match.index)) {
-                bestMatch = { match, parserIndex: i };
-            }
-            // Reset regex state for next iteration
-            parser.regex.lastIndex = 0;
-        }
-
-
-        if (bestMatch) {
-            const { match, parserIndex } = bestMatch;
-            // Get text before the match
-            const plainText = remainingText.substring(0, match.index);
-            if (plainText) {
-                elements.push(<div key={key++} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(plainText) }} />);
-            }
-
-            // Add the matched, rendered element
-            elements.push(parsers[parserIndex].render(match));
-
-            // Move past the matched text
-            remainingText = remainingText.substring(match.index + match[0].length);
-        } else {
-            // No more special blocks found, render the rest as plain text
-            elements.push(<div key={key++} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(remainingText) }} />);
-            break;
-        }
-    }
-
-    return elements;
-};
-
 const renderInlineMarkdown = (text: string) => {
     // Escape HTML characters first to prevent them from being rendered
     let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     
     // Then apply markdown formatting
     return escapedText
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`([^`]+)`/g, '<code class="bg-muted px-1.5 py-1 rounded text-sm font-mono">$1</code>')
-        .replace(/\n/g, '<br />');
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')           // Italic
+        .replace(/`([^`]+)`/g, '<code class="bg-muted px-1.5 py-1 rounded text-sm font-mono">$1</code>'); // Inline code
 };
-
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
     if (!content) return null;
-    const parsedElements = parseMarkdown(content);
-    return <div className="prose prose-sm dark:prose-invert max-w-none break-words">{parsedElements}</div>;
+
+    const parts = content.split(/(\[-----][\s\S]*?\[-----])/g);
+
+    const elements = parts.map((part, index) => {
+        if (part.startsWith('[-----]') && part.endsWith('[-----]')) {
+            const code = part.substring(7, part.length - 7).trim();
+            return <CodeBlock key={index} code={code} />;
+        }
+        
+        // Handle headings and lists for non-code parts
+        const lines = part.split('\n');
+        const textElements = lines.map((line, lineIndex) => {
+            if (line.startsWith('### ')) {
+                return <h3 key={`${index}-${lineIndex}`} className="text-xl font-semibold mt-4 mb-2" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(4)) }} />;
+            }
+            if (line.startsWith('## ')) {
+                return <h2 key={`${index}-${lineIndex}`} className="text-2xl font-bold mt-6 mb-3" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(3)) }} />;
+            }
+            if (line.startsWith('# ')) {
+                return <h1 key={`${index}-${lineIndex}`} className="text-3xl font-bold mt-8 mb-4" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(2)) }} />;
+            }
+             if (line.match(/^(\*|\-)\s/)) {
+                return <li key={`${index}-${lineIndex}`} className="ml-5 list-disc" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.replace(/^(\*|\-)\s/, '')) }} />;
+            }
+             if (line.match(/^\d+\.\s/)) {
+                return <li key={`${index}-${lineIndex}`} className="ml-5 list-decimal" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.replace(/^\d+\.\s/, '')) }} />;
+            }
+            // For paragraphs, wrap in a div and handle inline markdown
+            return <div key={`${index}-${lineIndex}`} dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line) || ' ' }} />;
+        });
+        
+        return <div key={index}>{textElements}</div>;
+
+    });
+
+    return <div className="prose prose-sm dark:prose-invert max-w-none break-words">{elements}</div>;
 };

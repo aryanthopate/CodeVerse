@@ -26,7 +26,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
     };
 
     return (
-        <div className="relative my-4 rounded-lg bg-gray-950 font-mono text-sm text-white border border-gray-800">
+        <div className="relative my-4 rounded-lg bg-gray-950 text-sm text-white border border-gray-800">
             <div className="flex justify-between items-center px-4 py-2 bg-gray-800/50 rounded-t-lg border-b border-gray-800">
                 <span className="text-xs text-gray-400">code</span>
                 <button
@@ -47,7 +47,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
                 </button>
             </div>
             <pre className="p-4 overflow-x-auto bg-black/50 rounded-b-lg">
-                <code>{code}</code>
+                <code className="font-mono">{code}</code>
             </pre>
         </div>
     );
