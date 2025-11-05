@@ -924,14 +924,11 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
     // Delete existing messages and insert new ones to ensure consistency
     await supabase.from('chat_messages').delete().eq('chat_id', chatId);
 
-    const messagesToInsert = messages.map(msg => {
-        const textContent = (msg.content as any[])?.find(p => p.text)?.text || '';
-        return {
-            chat_id: chatId,
-            role: msg.role!,
-            content: textContent // Save as plain string
-        };
-    });
+    const messagesToInsert = messages.map(msg => ({
+        chat_id: chatId,
+        role: msg.role!,
+        content: msg.content || '' // Directly use the string content
+    }));
 
     const { error: insertError } = await supabase.from('chat_messages').insert(messagesToInsert);
      if(insertError) {
