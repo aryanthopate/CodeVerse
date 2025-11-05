@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft } from 'lucide-react';
+import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     const [isStreaming, setIsStreaming] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const [isClient, setIsClient] = useState(false);
+    
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [renamingTitle, setRenamingTitle] = useState('');
+    const titleInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -39,7 +44,17 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     
     useEffect(() => {
         setActiveChat(initialActiveChat);
+        if (initialActiveChat) {
+            setRenamingTitle(initialActiveChat.title);
+        }
     }, [initialActiveChat]);
+
+    useEffect(() => {
+        if (isRenaming && titleInputRef.current) {
+            titleInputRef.current.focus();
+            titleInputRef.current.select();
+        }
+    }, [isRenaming]);
 
     useEffect(() => {
         // Filter out any temporary chats from the initial server-provided list
@@ -65,6 +80,40 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     const handleNewChat = () => {
         router.push('/chat');
         setActiveChat(null);
+    };
+
+     const handleSaveRename = async () => {
+        if (!activeChat || renamingTitle.trim() === '' || renamingTitle.trim() === activeChat.title) {
+            setIsRenaming(false);
+            return;
+        }
+
+        const originalTitle = activeChat.title;
+        
+        // Optimistic UI update
+        const updatedChat = { ...activeChat, title: renamingTitle.trim() };
+        setActiveChat(updatedChat);
+        setChats(prevChats => prevChats.map(c => c.id === activeChat.id ? updatedChat : c));
+
+        setIsRenaming(false);
+
+        const { error } = await updateChat(activeChat.id, { title: renamingTitle.trim() });
+
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Rename Failed',
+                description: error.message,
+            });
+            // Revert on error
+            setActiveChat(prev => prev ? { ...prev, title: originalTitle } : null);
+            setChats(prevChats => prevChats.map(c => c.id === activeChat.id ? { ...c, title: originalTitle } : c));
+        } else {
+            toast({
+                title: 'Chat Renamed',
+                description: `The chat has been renamed to "${renamingTitle.trim()}".`,
+            });
+        }
     };
     
     const handleSubmit = async (e: React.FormEvent) => {
@@ -211,6 +260,9 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         try {
             if (action === 'delete') {
                 optimisticChats = chats.filter(c => c.id !== chatId);
+                if (params.chatId === chatId) {
+                    router.push('/chat');
+                }
             } else {
                 optimisticChats = chats.map(c => {
                     if (c.id === chatId) {
@@ -228,7 +280,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             setChats(optimisticChats);
 
             if (params.chatId === chatId) {
-                if(action === 'delete' || action === 'archive') {
+                if(action === 'archive') {
                     router.push('/chat');
                     setActiveChat(null);
                 } else if (action === 'unarchive' && activeChat) {
@@ -350,11 +402,32 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
             <main className="flex-1 flex flex-col">
                 <header className="p-4 border-b border-border/50 flex items-center justify-between gap-2 md:gap-4 shrink-0">
-                    <div className='flex items-center gap-2'>
+                    <div className='flex items-center gap-2 group/title'>
                         <Button className="md:hidden" variant="ghost" size="icon" asChild>
                             <Link href="/dashboard"><ArrowLeft /></Link>
                         </Button>
-                        <h1 className="text-xl font-semibold truncate">{activeChat?.title || 'Chatlify AI'}</h1>
+                        {isRenaming ? (
+                            <Input
+                                ref={titleInputRef}
+                                value={renamingTitle}
+                                onChange={(e) => setRenamingTitle(e.target.value)}
+                                onBlur={handleSaveRename}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveRename(); if (e.key === 'Escape') setIsRenaming(false); }}
+                                className="text-xl font-semibold h-9"
+                            />
+                        ) : (
+                            <h1 className="text-xl font-semibold truncate">{activeChat?.title || 'Chatlify AI'}</h1>
+                        )}
+                        {activeChat && !isRenaming && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover/title:opacity-100" onClick={() => setIsRenaming(true)}>
+                                <Edit className="w-4 h-4" />
+                            </Button>
+                        )}
+                        {isRenaming && (
+                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveRename}>
+                                <Check className="w-4 h-4" />
+                            </Button>
+                        )}
                     </div>
                      {profile && (
                         <DropdownMenu>
@@ -511,3 +584,5 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
+
+    
