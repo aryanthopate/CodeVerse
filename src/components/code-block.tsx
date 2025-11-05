@@ -26,21 +26,27 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
     };
 
     return (
-        <div className="relative my-4 rounded-lg bg-gray-900 font-mono text-sm text-white">
-            <div className="absolute top-2 right-2">
+        <div className="relative my-4 rounded-lg bg-gray-950 font-mono text-sm text-white border border-gray-800">
+            <div className="flex justify-between items-center px-4 py-2 bg-gray-800/50 rounded-t-lg border-b border-gray-800">
+                <span className="text-xs text-gray-400">code</span>
                 <button
                     onClick={onCopy}
-                    className="p-1.5 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
+                    className="flex items-center gap-1.5 p-1.5 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition-colors text-xs"
                 >
                     {hasCopied ? (
-                        <Check className="h-4 w-4" />
+                        <>
+                            <Check className="h-3.5 w-3.5" />
+                            Copied
+                        </>
                     ) : (
-                        <Copy className="h-4 w-4" />
+                        <>
+                             <Copy className="h-3.5 w-3.5" />
+                            Copy code
+                        </>
                     )}
-                    <span className="sr-only">Copy code</span>
                 </button>
             </div>
-            <pre className="p-4 pt-10 overflow-x-auto">
+            <pre className="p-4 overflow-x-auto">
                 <code>{code}</code>
             </pre>
         </div>
