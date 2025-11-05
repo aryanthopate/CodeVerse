@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, Unarchive, ArrowLeft } from 'lucide-react';
+import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +71,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         e.preventDefault();
         if (!input.trim() || isStreaming) return;
         
-        const userInput: ChatMessage = { role: 'user', content: [{ text: input }] } as ChatMessage;
+        const userInput: ChatMessage = { role: 'user', content: input } as any;
         const currentInput = input;
         setInput('');
 
@@ -126,21 +126,23 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }
             
             const messagesForApi = tempActiveChat.messages.map(m => ({
-                role: m.role,
-                content: (m.content as any[])?.find(p => p.text)?.text || '',
+                role: m.role as 'user' | 'model',
+                content: m.content as string,
             }));
 
-            const readableStream = await streamChat({ messages: messagesForApi as any });
-            const reader = readableStream.getReader();
-            const decoder = new TextDecoder();
+            const { stream, response } = await streamChat({ messages: messagesForApi });
+            
             let streamedResponse = '';
             
             setActiveChat(prev => {
                 if (!prev) return null;
-                const newMessages = [...prev.messages, { role: 'model', content: [{ text: '' }] } as ChatMessage];
+                const newMessages = [...prev.messages, { role: 'model', content: '' } as ChatMessage];
                 return {...prev, messages: newMessages};
             });
             scrollToBottom();
+            
+            const reader = stream.getReader();
+            const decoder = new TextDecoder();
 
             while (true) {
                 const { value, done } = await reader.read();
@@ -154,16 +156,18 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     const latestMessages = [...prev.messages];
                     const lastMessage = latestMessages[latestMessages.length - 1];
                     if (lastMessage && lastMessage.role === 'model') {
-                        latestMessages[latestMessages.length - 1] = { ...lastMessage, content: [{ text: streamedResponse }] };
+                        latestMessages[latestMessages.length - 1] = { ...lastMessage, content: streamedResponse };
                     }
                     return { ...prev, messages: latestMessages };
                 });
             }
             
+            await response;
+
             if (currentChatId) {
                 const finalMessages = [
                     ...tempActiveChat.messages,
-                    { role: 'model', content: [{text: streamedResponse}] } as ChatMessage
+                    { role: 'model', content: streamedResponse } as ChatMessage
                 ];
                 await saveChat(currentChatId, finalMessages);
             }
@@ -368,7 +372,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     <div className="p-6 space-y-6">
                         {activeChat?.messages.map((message, index) => {
                              const isUser = message.role === 'user';
-                             const textContent = (message.content as any[])?.find(p => p.text)?.text || '';
+                             const textContent = message.content;
                              
                              return (
                                 <div key={index} className={cn("flex items-start gap-4", isUser ? 'justify-end' : 'justify-start')}>
@@ -459,7 +463,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
             {isArchived ? (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction(chat.id, 'unarchive')}>
-                        <Unarchive className="w-4 h-4" />
+                        <Archive className="w-4 h-4" />
                     </Button>
                 </div>
             ) : (
@@ -507,3 +511,6 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 
     
 
+
+
+    
