@@ -10,21 +10,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-const MessagePartSchema = z.object({
-  text: z.string().optional(),
-  media: z
-    .object({
-      contentType: z.string(),
-      url: z.string(),
-    })
-    .optional(),
-});
-
 const ChatInputSchema = z.object({
   messages: z.array(
     z.object({
       role: z.enum(['user', 'model']),
-      content: z.array(MessagePartSchema),
+      content: z.string(), // Corrected: content is a simple string
     })
   ),
 });
@@ -33,7 +23,7 @@ export type ChatInput = z.infer<typeof ChatInputSchema>;
 export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>> {
     const { stream, response } = await ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
-      prompt: input.messages, // Pass the messages directly without mapping
+      prompt: input.messages, 
     });
 
     const readableStream = new ReadableStream({
