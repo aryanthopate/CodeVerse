@@ -26,12 +26,12 @@
     --radius: 0.75rem;
 
     /* Syntax Highlighting Colors */
-    --code-keyword: 280 80% 70%; /* e.g., const, function */
-    --code-function: 160 80% 60%; /* e.g., functionName() */
-    --code-string: 40 80% 70%;   /* e.g., "hello" */
-    --code-number: 190 80% 70%;  /* e.g., 123 */
-    --code-comment: 220 15% 50%; /* e.g., // comment */
-    --code-punctuation: 210 20% 70%; /* e.g., {} () */
+    --code-keyword: 300 85% 75%; /* A bright, vibrant magenta for keywords */
+    --code-function: 160 80% 65%; /* A pleasant, readable teal for function names */
+    --code-string: 50 90% 70%;   /* A warm, noticeable gold for strings */
+    --code-number: 210 85% 75%;  /* A cool, light blue for numbers */
+    --code-comment: 220 15% 60%; /* A lighter gray for comments, improving contrast */
+    --code-punctuation: 210 20% 80%; /* A brighter, neutral white for punctuation */
 
     /* New Game UI Theme Variables */
     --game-bg: 30 54% 25%; /* Dark wood color */
