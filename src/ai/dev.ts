@@ -11,6 +11,9 @@ import '@/ai/flows/extract-video-insights.ts';
 import '@/ai/flows/generate-distractors.ts';
 import '@/ai/flows/chat.ts';
 import '@/ai/flows/explain-code-snippet.ts';
+<<<<<<< HEAD
 import '@/ai/flows/analyze-chat-conversation.ts';
 
     
+=======
+>>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594

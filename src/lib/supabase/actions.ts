@@ -7,7 +7,10 @@ import { revalidatePath } from 'next/cache';
 import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter, Chat, ChatMessage } from '@/lib/types';
 import placeholderGames from '@/lib/placeholder-games.json';
 import { redirect } from 'next/navigation';
+<<<<<<< HEAD
 import { analyzeChatConversation } from '@/ai/flows/analyze-chat-conversation';
+=======
+>>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
 
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
     id?: string; // id is present when updating
@@ -950,6 +953,7 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
         console.error("Failed to save new messages", insertError);
         return { success: false, error: "Failed to save messages." };
     }
+<<<<<<< HEAD
 
     // Trigger analysis if the conversation has at least 2 messages (1 user, 1 model)
     if (messages.length >= 2) {
@@ -966,6 +970,8 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
             // Don't block the main operation for this
         }
     }
+=======
+>>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
     
     revalidatePath(`/chat/${chatId}`);
     return { success: true };
@@ -986,4 +992,8 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     revalidatePath('/chat', 'layout');
     return { success: true, error: null };
 }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594

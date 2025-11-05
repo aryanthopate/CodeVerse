@@ -44,6 +44,7 @@ export type Database = {
           },
         ]
       }
+<<<<<<< HEAD
       chat_analysis: {
         Row: {
           chat_id: string
@@ -76,6 +77,8 @@ export type Database = {
           },
         ]
       }
+=======
+>>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
       chat_messages: {
         Row: {
           chat_id: string
@@ -1012,5 +1015,8 @@ export type Composites<
   : PublicCompositeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][CompositeName]
     : never
+<<<<<<< HEAD
 
     
+=======
+>>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
