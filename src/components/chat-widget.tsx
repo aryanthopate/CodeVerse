@@ -1,25 +1,14 @@
 
-<<<<<<< HEAD
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Bot, X, Send, Paperclip, ArrowUpRight, Loader2, LogIn, RefreshCw, Copy } from 'lucide-react';
-=======
-'use client';
-import { Button } from '@/components/ui/button';
-import { Bot, X, Send, Paperclip, ArrowUpRight, Loader2, LogIn } from 'lucide-react';
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Input } from './ui/input';
-<<<<<<< HEAD
 import { useState, useEffect, useRef, useCallback } from 'react';
-=======
-import { useState, useEffect, useRef } from 'react';
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ScrollArea } from './ui/scroll-area';
@@ -94,7 +83,6 @@ export function ChatWidget() {
     }
   }
 
-<<<<<<< HEAD
   const processStream = async (stream: ReadableStream<Uint8Array>, existingMessages: Partial<ChatMessage>[]) => {
       let streamedResponse = '';
       
@@ -122,8 +110,6 @@ export function ChatWidget() {
       return streamedResponse;
   };
 
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
@@ -154,36 +140,10 @@ export function ChatWidget() {
             content: m.content as string
         }));
         
-<<<<<<< HEAD
         const readableStream = await streamChat({ messages: messagesForApi, chatId: currentChatId });
         if (!readableStream) throw new Error("AI service did not return a stream.");
 
         const streamedResponse = await processStream(readableStream, newMessages);
-=======
-        const readableStream = await streamChat({ messages: messagesForApi });
-        if (!readableStream) throw new Error("AI service did not return a stream.");
-
-        setMessages(prev => [...prev, { role: 'model', content: '' }]);
-        
-        const reader = readableStream.getReader();
-        const decoder = new TextDecoder();
-        let streamedResponse = '';
-
-        while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-
-            streamedResponse += decoder.decode(value, { stream: true });
-            setMessages(prev => {
-                const updatedMessages = [...prev];
-                const lastMessage = updatedMessages[updatedMessages.length - 1];
-                if (lastMessage && lastMessage.role === 'model') {
-                    lastMessage.content = streamedResponse;
-                }
-                return updatedMessages;
-            });
-        }
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
         
         // If user is logged in and chat is established, save the conversation
         if (profile && currentChatId) {
@@ -204,7 +164,6 @@ export function ChatWidget() {
     }
   };
 
-<<<<<<< HEAD
     const handleRegenerate = useCallback(async () => {
         if (isStreaming || messages.length === 0) return;
         
@@ -256,8 +215,6 @@ export function ChatWidget() {
         });
     };
 
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
 
   return (
     <>
@@ -285,11 +242,7 @@ export function ChatWidget() {
           </div>
           
           <ScrollArea className="flex-grow" ref={scrollAreaRef}>
-<<<<<<< HEAD
             <div className="p-4 space-y-6">
-=======
-            <div className="p-4 space-y-4">
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
               {messages.length === 0 && (
                  <div className="text-center text-sm text-muted-foreground pt-12">
                   Start a new conversation to see your messages here.
@@ -297,7 +250,6 @@ export function ChatWidget() {
               )}
                {messages.map((message, index) => {
                     const isUser = message.role === 'user';
-<<<<<<< HEAD
                     const isLastMessage = index === messages.length - 1;
                     
                     return (
@@ -331,41 +283,17 @@ export function ChatWidget() {
                                     <RefreshCw className="h-4 w-4" />
                                 </Button>
                             )}
-=======
-                    
-                    return (
-                    <div key={index} className={cn("flex items-start gap-3", isUser ? 'justify-end' : 'justify-start')}>
-                        {!isUser && (
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage src={settings?.chat_bot_avatar_url || ''} />
-                            <AvatarFallback><Bot className="h-4 w-4"/></AvatarFallback>
-                        </Avatar>
-                        )}
-                        <div className={cn(
-                        "max-w-xs p-3 rounded-2xl", 
-                        isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none"
-                        )}>
-                            <MarkdownRenderer content={message.content || ''} />
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
                         </div>
                     </div>
                     )
                 })}
-<<<<<<< HEAD
                  {isStreaming && (
-=======
-                 {isStreaming && messages[messages.length - 1]?.role !== 'model' && (
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
                     <div className="flex items-start gap-3 justify-start">
                         <Avatar className="h-8 w-8">
                             <AvatarImage src={settings?.chat_bot_avatar_url || ''} />
                             <AvatarFallback><Bot className="h-4 w-4"/></AvatarFallback>
                         </Avatar>
-<<<<<<< HEAD
                          <div className="max-w-xs p-3 rounded-2xl bg-muted rounded-bl-none flex items-center gap-2">
-=======
-                         <div className="max-w-xs p-3 rounded-2xl bg-muted rounded-bl-none">
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
                             <Loader2 className="w-5 h-5 animate-spin"/>
                         </div>
                     </div>
