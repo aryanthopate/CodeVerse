@@ -1,5 +1,4 @@
 
-
 import type { Database } from './supabase/database.types';
 
 export interface UserProfile {

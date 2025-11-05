@@ -1,5 +1,4 @@
 
-
 import { getUserChats, getWebsiteSettings, getUserProfile } from '@/lib/supabase/queries';
 import { ChatClient } from './chat-client';
 
