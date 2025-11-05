@@ -36,25 +36,33 @@ const parseMarkdown = (text: string) => {
     while (remainingText.length > 0) {
         let bestMatch: { match: RegExpMatchArray, parserIndex: number } | null = null;
 
+        // Find the earliest match among all parsers
         for (let i = 0; i < parsers.length; i++) {
             const parser = parsers[i];
             const match = parser.regex.exec(remainingText);
             if (match && (!bestMatch || match.index < bestMatch.match.index)) {
                 bestMatch = { match, parserIndex: i };
             }
+            // Reset regex state for next iteration
+            parser.regex.lastIndex = 0;
         }
 
 
         if (bestMatch) {
             const { match, parserIndex } = bestMatch;
+            // Get text before the match
             const plainText = remainingText.substring(0, match.index);
             if (plainText) {
                 elements.push(<div key={key++} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(plainText) }} />);
             }
 
+            // Add the matched, rendered element
             elements.push(parsers[parserIndex].render(match));
+
+            // Move past the matched text
             remainingText = remainingText.substring(match.index + match[0].length);
         } else {
+            // No more special blocks found, render the rest as plain text
             elements.push(<div key={key++} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(remainingText) }} />);
             break;
         }
@@ -64,7 +72,11 @@ const parseMarkdown = (text: string) => {
 };
 
 const renderInlineMarkdown = (text: string) => {
-    return text
+    // Escape HTML characters first to prevent them from being rendered
+    let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // Then apply markdown formatting
+    return escapedText
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/`([^`]+)`/g, '<code class="bg-muted px-1.5 py-1 rounded text-sm font-mono">$1</code>')
