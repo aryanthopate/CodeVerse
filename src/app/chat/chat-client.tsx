@@ -163,11 +163,19 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }
             
             if (currentChatId) {
-                const finalMessages = [
-                    ...tempActiveChat.messages,
-                    { role: 'model', content: streamedResponse } as ChatMessage
-                ];
-                await saveChat(currentChatId, finalMessages);
+                const finalMessages = tempActiveChat.messages.map(m => ({
+                    role: m.role as 'user' | 'model',
+                    content: m.content as string,
+                    chat_id: currentChatId!
+                }));
+
+                finalMessages.push({
+                    role: 'model',
+                    content: streamedResponse,
+                    chat_id: currentChatId!
+                });
+                
+                await saveChat(currentChatId, finalMessages as ChatMessage[]);
             }
 
         } catch(error: any) {

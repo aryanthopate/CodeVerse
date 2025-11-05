@@ -1,7 +1,7 @@
 
 'use client';
 import { Button } from '@/components/ui/button';
-import { Bot, X, Send, Paperclip, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Bot, X, Send, Paperclip, ArrowUpRight, Loader2, LogIn } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -21,6 +21,7 @@ import { WebsiteSettings, ChatMessage, UserProfile } from '@/lib/types';
 import { MarkdownRenderer } from './markdown-renderer';
 import { createClient } from '@/lib/supabase/client';
 import { createNewChat, saveChat } from '@/lib/supabase/actions';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 
 
 export function ChatWidget() {
@@ -90,7 +91,8 @@ export function ChatWidget() {
     const currentInput = input;
     
     // Optimistic update
-    setMessages(prev => [...prev, userInput]);
+    const newMessages = [...messages, userInput];
+    setMessages(newMessages);
     setInput('');
     setIsStreaming(true);
 
@@ -106,7 +108,7 @@ export function ChatWidget() {
             }
         }
         
-        const messagesForApi = [...messages, userInput].map(m => ({
+        const messagesForApi = newMessages.map(m => ({
             role: m.role as 'user' | 'model',
             content: m.content as string
         }));
@@ -126,18 +128,18 @@ export function ChatWidget() {
 
             streamedResponse += decoder.decode(value, { stream: true });
             setMessages(prev => {
-                const newMessages = [...prev];
-                const lastMessage = newMessages[newMessages.length - 1];
+                const updatedMessages = [...prev];
+                const lastMessage = updatedMessages[updatedMessages.length - 1];
                 if (lastMessage && lastMessage.role === 'model') {
                     lastMessage.content = streamedResponse;
                 }
-                return newMessages;
+                return updatedMessages;
             });
         }
         
         // If user is logged in and chat is established, save the conversation
         if (profile && currentChatId) {
-            const finalMessages: ChatMessage[] = [...messages, userInput, { role: 'model', content: streamedResponse }] as ChatMessage[];
+            const finalMessages: ChatMessage[] = [...newMessages, { role: 'model', content: streamedResponse }] as ChatMessage[];
             await saveChat(currentChatId, finalMessages);
         }
 

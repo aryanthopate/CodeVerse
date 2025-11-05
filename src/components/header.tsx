@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, X, Shield, ShoppingCart, Heart, Gamepad2 } from 'lucide-react';
+import { Menu, X, Shield, ShoppingCart, Heart, Gamepad2, LogIn } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { UserProfile } from '@/lib/types';
@@ -15,6 +15,47 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from './ui/dropdown-menu';
 import { LogOut, User, Settings } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                {children}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <div className="flex justify-center mb-2">
+                        <LogIn className="w-12 h-12 text-primary"/>
+                    </div>
+                    <AlertDialogTitle className="text-center text-2xl">Authentication Required</AlertDialogTitle>
+                    <AlertDialogDescription className="text-center">
+                        Please log in or create an account to access the chat.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                        <Link href="/login">Login</Link>
+                    </AlertDialogAction>
+                    <AlertDialogAction asChild>
+                        <Link href="/signup">Sign Up</Link>
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,7 +101,7 @@ export function Header() {
   const navLinks = [
     { name: 'Courses', href: '/courses' },
     { name: 'Playground', href: '/playground' },
-    { name: 'Chatlify', href: '/chat' },
+    { name: 'Chatlify', href: '/chat', requiresAuth: true },
   ];
 
   const user = profile; // for clarity
@@ -81,11 +122,13 @@ export function Header() {
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <Link key={link.name} href={link.href} className={navLinkClasses}>
-              {link.name}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const linkElement = <Link key={link.name} href={link.href} className={navLinkClasses}>{link.name}</Link>;
+            if (link.requiresAuth && !user) {
+              return <AuthRequiredDialog key={link.name}><span className={cn(navLinkClasses, "cursor-pointer")}>{link.name}</span></AuthRequiredDialog>
+            }
+            return linkElement;
+          })}
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
@@ -168,16 +211,22 @@ export function Header() {
                 </div>
 
                 <nav className="flex flex-col gap-6">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      className={cn("text-lg font-medium", isPlayground ? "text-[hsl(var(--game-text))]" : "text-foreground", "hover:text-primary transition-colors")}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      {link.name}
-                    </Link>
-                  ))}
+                  {navLinks.map((link) => {
+                    const linkElement = (
+                        <Link
+                          key={link.name}
+                          href={link.href}
+                          className={cn("text-lg font-medium", isPlayground ? "text-[hsl(var(--game-text))]" : "text-foreground", "hover:text-primary transition-colors")}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          {link.name}
+                        </Link>
+                    );
+                     if (link.requiresAuth && !user) {
+                        return <AuthRequiredDialog key={link.name}><span className={cn("text-lg font-medium cursor-pointer", isPlayground ? "text-[hsl(var(--game-text))]" : "text-foreground", "hover:text-primary transition-colors")}>{link.name}</span></AuthRequiredDialog>
+                    }
+                    return linkElement;
+                  })}
                   <div className={cn("border-t pt-6 mt-4 flex flex-col gap-4", isPlayground ? "border-[hsl(var(--game-border))]" : "border-border")}>
                      {loading ? null : user ? (
                         <>
