@@ -818,13 +818,36 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string, rewardXp: number) {
+export async function completeGameLevel(levelId: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
         return { success: false, error: "User not authenticated" };
     }
+    
+    // We need to get the game_id from the level
+    const { data: levelData, error: levelError } = await supabase
+        .from('game_levels')
+        .select('chapter_id, reward_xp')
+        .eq('id', levelId)
+        .single();
+
+    if (levelError || !levelData) {
+        return { success: false, error: "Could not find level details." };
+    }
+
+    const { data: chapterData, error: chapterError } = await supabase
+        .from('game_chapters')
+        .select('game_id')
+        .eq('id', levelData.chapter_id)
+        .single();
+    
+    if (chapterError || !chapterData) {
+        return { success: false, error: "Could not find game for the level." };
+    }
+    const gameId = chapterData.game_id;
+
 
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
@@ -838,13 +861,6 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
     if (error) {
         console.error("Error saving game progress:", error);
         return { success: false, error: "Could not save progress." };
-    }
-
-    // Award XP
-    const { error: rpcError } = await supabase.rpc('increment_xp', { user_id_param: user.id, xp_to_add: rewardXp });
-     if (rpcError) {
-        console.error('Error awarding XP:', rpcError);
-        // This is a non-critical error, the level is still complete
     }
 
     revalidatePath(`/playground/${gameId}`);
