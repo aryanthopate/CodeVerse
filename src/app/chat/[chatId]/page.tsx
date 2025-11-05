@@ -16,15 +16,9 @@ export default async function SpecificChatPage({ params }: { params: { chatId: s
     notFound();
   }
   
-  // Transform DB messages to client-side format
-  const transformedMessages: ChatMessage[] = (messages || []).map(msg => ({
-    ...msg,
-    content: [{ text: msg.content as string }]
-  }));
-
   const activeChat: Chat & { messages: ChatMessage[] } = {
     ...chat,
-    messages: transformedMessages,
+    messages: (messages as unknown as ChatMessage[]) || [],
   };
 
   return <ChatClient chats={chats || []} activeChat={activeChat} settings={settings} profile={profile} />;

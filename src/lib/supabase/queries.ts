@@ -438,7 +438,7 @@ export async function getUserChats(): Promise<Chat[] | null> {
     return data;
 }
 
-export async function getChat(chatId: string): Promise<{ chat: Chat | null, messages: Omit<ChatMessage, 'content'> & { content: string }[] | null }> {
+export async function getChat(chatId: string): Promise<{ chat: Chat | null, messages: ChatMessage[] | null }> {
     const supabase = createClient();
      const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { chat: null, messages: null };
@@ -455,7 +455,7 @@ export async function getChat(chatId: string): Promise<{ chat: Chat | null, mess
         return { chat, messages: null };
     }
 
-    return { chat, messages: messages as any };
+    return { chat, messages: messages as ChatMessage[] };
 }
 
 export async function getUserNoteForTopic(topicId: string): Promise<UserNote | null> {

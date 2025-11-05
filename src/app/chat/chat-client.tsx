@@ -17,7 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
-
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
 }
@@ -130,7 +129,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 content: m.content as string,
             }));
 
-            const { stream, response } = await streamChat({ messages: messagesForApi });
+            const readableStream = await streamChat({ messages: messagesForApi });
             
             let streamedResponse = '';
             
@@ -141,7 +140,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             });
             scrollToBottom();
             
-            const reader = stream.getReader();
+            const reader = readableStream.getReader();
             const decoder = new TextDecoder();
 
             while (true) {
@@ -162,8 +161,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 });
             }
             
-            await response;
-
             if (currentChatId) {
                 const finalMessages = [
                     ...tempActiveChat.messages,
@@ -506,11 +503,3 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
-
-    
-
-    
-
-
-
-    

@@ -59,7 +59,7 @@ export type GameLevel = Database['public']['Tables']['game_levels']['Row'] & {
 };
 export type Chat = Database['public']['Tables']['chats']['Row'];
 export type ChatMessage = Omit<Database['public']['Tables']['chat_messages']['Row'], 'content'> & {
-    content: { text: string; media?: { contentType: string; url: string; } }[];
+    content: string;
 };
 export type UserTopicProgress = Database['public']['Tables']['user_topic_progress']['Row'];
 export type UserQuizAttempt = Database['public']['Tables']['user_quiz_attempts']['Row'];

@@ -76,12 +76,12 @@ export function ChatWidget() {
             content: m.content as string
         }));
         
-        const stream = await streamChat({ messages: messagesForApi });
-        if (!stream) throw new Error("AI service did not return a stream.");
+        const readableStream = await streamChat({ messages: messagesForApi });
+        if (!readableStream) throw new Error("AI service did not return a stream.");
 
         setMessages(prev => [...prev, { role: 'model', content: '' }]);
         
-        const reader = stream.getReader();
+        const reader = readableStream.getReader();
         const decoder = new TextDecoder();
         let streamedResponse = '';
 
