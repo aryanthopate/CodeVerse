@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A multi-modal chat AI agent.
@@ -27,6 +26,15 @@ export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>
 
     const { stream, response } = await ai.generateStream({
       model: 'googleai/gemini-2.5-flash',
+      system: `You are a helpful and friendly AI assistant named Chatlify.
+- Use standard Markdown for formatting (e.g., **bold**, *italic*, lists).
+- For code blocks, wrap them with [CODE_STARTED] and [CODE_ENDED]. Do not use markdown fences (\`\`\`).
+Example:
+[CODE_STARTED]
+function hello() {
+  console.log("Hello, World!");
+}
+[CODE_ENDED]`,
       prompt: latestMessage.content,
       history: history,
     });

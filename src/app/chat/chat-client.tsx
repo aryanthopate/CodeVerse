@@ -16,6 +16,7 @@ import { createNewChat, saveChat, updateChat, deleteChat as deleteChatAction } f
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { MarkdownRenderer } from '@/components/markdown-renderer';
 
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
@@ -369,7 +370,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     <div className="p-6 space-y-6">
                         {activeChat?.messages.map((message, index) => {
                              const isUser = message.role === 'user';
-                             const textContent = message.content;
                              
                              return (
                                 <div key={index} className={cn("flex items-start gap-4", isUser ? 'justify-end' : 'justify-start')}>
@@ -380,10 +380,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                         </Avatar>
                                     )}
                                     <div className={cn(
-                                        "max-w-2xl p-4 rounded-2xl prose prose-sm dark:prose-invert prose-p:my-0", 
+                                        "max-w-2xl p-4 rounded-2xl", 
                                         isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none"
                                     )}>
-                                        <p className="whitespace-pre-wrap">{textContent}</p>
+                                        <MarkdownRenderer content={message.content} />
                                     </div>
                                     {isUser && profile && (
                                         <Avatar>
@@ -491,7 +491,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 
     if (isArchived) {
         return (
-            <div className="w-full text-left block cursor-pointer">
+            <div className="w-full text-left block cursor-pointer" onClick={() => onAction(chat.id, 'unarchive')}>
                 {content}
             </div>
         );

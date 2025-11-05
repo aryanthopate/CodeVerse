@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { getWebsiteSettings } from '@/lib/supabase/queries';
 import { WebsiteSettings, ChatMessage } from '@/lib/types';
+import { MarkdownRenderer } from './markdown-renderer';
 
 
 export function ChatWidget() {
@@ -147,7 +148,6 @@ export function ChatWidget() {
               )}
                {messages.map((message, index) => {
                     const isUser = message.role === 'user';
-                    const textContent = message.content as string;
                     
                     return (
                     <div key={index} className={cn("flex items-start gap-3", isUser ? 'justify-end' : 'justify-start')}>
@@ -158,10 +158,10 @@ export function ChatWidget() {
                         </Avatar>
                         )}
                         <div className={cn(
-                        "max-w-xs p-3 rounded-2xl prose-sm dark:prose-invert prose-p:my-0", 
+                        "max-w-xs p-3 rounded-2xl", 
                         isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none"
                         )}>
-                            <p className="whitespace-pre-wrap">{textContent}</p>
+                            <MarkdownRenderer content={message.content || ''} />
                         </div>
                     </div>
                     )
