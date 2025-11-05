@@ -15,10 +15,10 @@ const parseMarkdown = (text: string) => {
     let key = 0;
 
     const parsers = [
-        { regex: /\[CODE_STARTED\]([\s\S]*?)\[CODE_ENDED\]/g, render: (match: RegExpMatchArray) => <CodeBlock key={key++} code={match[1].trim()} /> },
-        { regex: /### (.*?)(?=\n|\[CODE_STARTED\]|$)/g, render: (match: RegExpMatchArray) => <h3 key={key++} className="text-xl font-semibold mt-4 mb-2">{match[1].trim()}</h3> },
-        { regex: /## (.*?)(?=\n|\[CODE_STARTED\]|$)/g, render: (match: RegExpMatchArray) => <h2 key={key++} className="text-2xl font-bold mt-6 mb-3">{match[1].trim()}</h2> },
-        { regex: /# (.*?)(?=\n|\[CODE_STARTED\]|$)/g, render: (match: RegExpMatchArray) => <h1 key={key++} className="text-3xl font-bold mt-8 mb-4">{match[1].trim()}</h1> },
+        { regex: /\[-----]([\s\S]*?)\[-----]/g, render: (match: RegExpMatchArray) => <CodeBlock key={key++} code={match[1].trim()} /> },
+        { regex: /### (.*?)(?=\n|\[-----]|$)/g, render: (match: RegExpMatchArray) => <h3 key={key++} className="text-xl font-semibold mt-4 mb-2">{match[1].trim()}</h3> },
+        { regex: /## (.*?)(?=\n|\[-----]|$)/g, render: (match: RegExpMatchArray) => <h2 key={key++} className="text-2xl font-bold mt-6 mb-3">{match[1].trim()}</h2> },
+        { regex: /# (.*?)(?=\n|\[-----]|$)/g, render: (match: RegExpMatchArray) => <h1 key={key++} className="text-3xl font-bold mt-8 mb-4">{match[1].trim()}</h1> },
         { regex: /(?:\n|^)((?:\*|\-)\s.*(?:\n|$))+/g, render: (match: RegExpMatchArray) => {
             const items = match[0].trim().split('\n').map((item, index) => (
                 <li key={index} className="ml-5" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(item.replace(/(\*|\-)\s/, '')) }} />
@@ -36,12 +36,14 @@ const parseMarkdown = (text: string) => {
     while (remainingText.length > 0) {
         let bestMatch: { match: RegExpMatchArray, parserIndex: number } | null = null;
 
-        parsers.forEach((parser, parserIndex) => {
+        for (let i = 0; i < parsers.length; i++) {
+            const parser = parsers[i];
             const match = parser.regex.exec(remainingText);
             if (match && (!bestMatch || match.index < bestMatch.match.index)) {
-                bestMatch = { match, parserIndex };
+                bestMatch = { match, parserIndex: i };
             }
-        });
+        }
+
 
         if (bestMatch) {
             const { match, parserIndex } = bestMatch;
