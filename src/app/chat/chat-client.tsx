@@ -456,41 +456,41 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
                 <MessageSquare className="w-4 h-4 shrink-0" />
                 <span className="truncate flex-1">{chat.title}</span>
             </div>
-             <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                         {isArchived ? (
-                             <DropdownMenuItem onClick={() => onAction(chat.id, 'unarchive')}>
-                                 <Unarchive className="mr-2 h-4 w-4" /> Unarchive
+            {isArchived ? (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction(chat.id, 'unarchive')}>
+                        <Unarchive className="w-4 h-4" />
+                    </Button>
+                </div>
+            ) : (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => onAction(chat.id, chat.is_pinned ? 'unpin' : 'pin')}>
+                                <Pin className="mr-2 h-4 w-4" /> {chat.is_pinned ? 'Unpin' : 'Pin'}
                             </DropdownMenuItem>
-                         ) : (
-                            <>
-                                <DropdownMenuItem onClick={() => onAction(chat.id, chat.is_pinned ? 'unpin' : 'pin')}>
-                                    <Pin className="mr-2 h-4 w-4" /> {chat.is_pinned ? 'Unpin' : 'Pin'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onAction(chat.id, 'archive')}>
-                                     <Archive className="mr-2 h-4 w-4" /> Archive
-                                </DropdownMenuItem>
-                            </>
-                         )}
-                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => onAction(chat.id, 'delete')}>
-                             <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+                            <DropdownMenuItem onClick={() => onAction(chat.id, 'archive')}>
+                                 <Archive className="mr-2 h-4 w-4" /> Archive
+                            </DropdownMenuItem>
+                             <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => onAction(chat.id, 'delete')}>
+                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            )}
         </div>
     );
 
     if (isArchived) {
         return (
-            <div onClick={() => onAction(chat.id, 'unarchive')} className="w-full text-left block cursor-pointer">
+            <div className="w-full text-left block cursor-pointer">
                 {content}
             </div>
         );
@@ -506,3 +506,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
     
 
     
+
