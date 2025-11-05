@@ -46,7 +46,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
                     )}
                 </button>
             </div>
-            <pre className="p-4 overflow-x-auto bg-black/50">
+            <pre className="p-4 overflow-x-auto bg-black/50 rounded-b-lg">
                 <code>{code}</code>
             </pre>
         </div>
