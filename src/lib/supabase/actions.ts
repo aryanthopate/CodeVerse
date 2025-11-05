@@ -927,7 +927,7 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
     const messagesToInsert = messages.map(msg => ({
         chat_id: chatId,
         role: msg.role!,
-        content: msg.content || '' // Directly use the string content
+        content: msg.content || ''
     }));
 
     const { error: insertError } = await supabase.from('chat_messages').insert(messagesToInsert);

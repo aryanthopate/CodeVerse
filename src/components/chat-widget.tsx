@@ -17,8 +17,10 @@ import { chat as streamChat } from '@/ai/flows/chat';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { getWebsiteSettings } from '@/lib/supabase/queries';
-import { WebsiteSettings, ChatMessage } from '@/lib/types';
+import { WebsiteSettings, ChatMessage, UserProfile } from '@/lib/types';
 import { MarkdownRenderer } from './markdown-renderer';
+import { createClient } from '@/lib/supabase/client';
+import { createNewChat, saveChat } from '@/lib/supabase/actions';
 
 
 export function ChatWidget() {
@@ -28,17 +30,27 @@ export function ChatWidget() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Partial<ChatMessage>[]>([]);
   const [settings, setSettings] = useState<WebsiteSettings | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
 
 
     useEffect(() => {
-        const fetchSettings = async () => {
+        const fetchInitialData = async () => {
             const data = await getWebsiteSettings();
             if (data) setSettings(data);
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                setProfile(profileData);
+            }
         }
-        fetchSettings();
-    }, []);
+        fetchInitialData();
+    }, [supabase]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -61,17 +73,39 @@ export function ChatWidget() {
     return null;
   }
   
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    // Reset chat when closing if user is not logged in
+    if (!isOpen && !profile) {
+        setMessages([]);
+        setActiveChatId(null);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
 
     const userInput: Partial<ChatMessage> = { role: 'user', content: input };
-    setMessages(prev => [...prev, userInput]);
     const currentInput = input;
+    
+    // Optimistic update
+    setMessages(prev => [...prev, userInput]);
     setInput('');
     setIsStreaming(true);
 
+    let currentChatId = activeChatId;
+    let isNewChat = !currentChatId && !!profile; // Only create a new chat if user is logged in
+    
     try {
+        if (isNewChat) {
+            const newChat = await createNewChat(currentInput);
+            if(newChat) {
+                currentChatId = newChat.id;
+                setActiveChatId(newChat.id);
+            }
+        }
+        
         const messagesForApi = [...messages, userInput].map(m => ({
             role: m.role as 'user' | 'model',
             content: m.content as string
@@ -100,6 +134,13 @@ export function ChatWidget() {
                 return newMessages;
             });
         }
+        
+        // If user is logged in and chat is established, save the conversation
+        if (profile && currentChatId) {
+            const finalMessages: ChatMessage[] = [...messages, userInput, { role: 'model', content: streamedResponse }] as ChatMessage[];
+            await saveChat(currentChatId, finalMessages);
+        }
+
     } catch(error: any) {
         toast({
             variant: 'destructive',
@@ -107,7 +148,7 @@ export function ChatWidget() {
             description: error.message || "Could not get a response from the AI."
         });
         // Rollback optimistic update
-        setMessages(prev => prev.filter(msg => msg.role !== 'user' || msg.content !== currentInput));
+        setMessages(prev => prev.filter(msg => msg !== userInput));
     } finally {
         setIsStreaming(false);
     }
@@ -116,7 +157,7 @@ export function ChatWidget() {
 
   return (
     <>
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           size="icon"
