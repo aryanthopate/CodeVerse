@@ -1,8 +1,4 @@
 
-<<<<<<< HEAD
-
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
@@ -443,12 +439,9 @@ export async function getUserChats(): Promise<Chat[] | null> {
 }
 
 export async function getChat(chatId: string): Promise<{ chat: Chat | null, messages: ChatMessage[] | null }> {
-<<<<<<< HEAD
     if (!chatId || chatId.startsWith('temp-')) {
         return { chat: null, messages: [] };
     }
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
     const supabase = createClient();
      const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { chat: null, messages: null };
@@ -609,9 +602,3 @@ export async function getChatForAdmin(chatId: string) {
 
     return { chat: data };
 }
-
-<<<<<<< HEAD
-    
-=======
-    
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
