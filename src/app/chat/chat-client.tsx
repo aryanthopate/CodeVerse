@@ -63,20 +63,8 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [activeChat?.messages, isStreaming]);
 
     const handleNewChat = () => {
-        const tempChatId = `temp-${Date.now()}`;
-        const newTempChat: ActiveChat = {
-            id: tempChatId,
-            title: 'New Chat',
-            user_id: profile?.id || 'anonymous',
-            created_at: new Date().toISOString(),
-            is_archived: false,
-            is_pinned: false,
-            messages: [],
-        };
-    
-        setChats(prev => [newTempChat, ...prev.filter(c => !c.id.startsWith('temp-'))]);
-        setActiveChat(newTempChat);
         router.push('/chat');
+        setActiveChat(null);
     };
     
     const handleSubmit = async (e: React.FormEvent) => {
@@ -88,12 +76,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         setInput('');
 
         let currentChatId = activeChat?.id;
-        let isNewChat = !currentChatId || currentChatId.startsWith('temp-');
+        let isNewChat = !currentChatId;
 
         // Optimistically update UI
         let tempActiveChat: ActiveChat;
         if (isNewChat) {
-             const tempId = currentChatId || `temp-${Date.now()}`;
+             const tempId = `temp-${Date.now()}`;
             tempActiveChat = {
                 id: tempId,
                 title: currentInput.substring(0, 50),
@@ -103,7 +91,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 is_pinned: false,
                 messages: [userInput as ChatMessage],
             };
-            setChats(prev => [tempActiveChat, ...prev.filter(c => c.id !== tempId)]);
+            setChats(prev => [tempActiveChat, ...prev]);
         } else {
             tempActiveChat = {
                 ...(activeChat as ActiveChat),
@@ -115,28 +103,25 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         setIsStreaming(true);
         
         try {
-            if (isNewChat && profile) {
-                const tempId = tempActiveChat.id;
+            if (isNewChat) {
                 const newChat = await createNewChat(currentInput);
                 if (newChat) {
                     currentChatId = newChat.id;
                     
                     setChats(prev => {
-                        return [newChat, ...prev.filter(c => c.id !== tempId)]
+                        const newChats = prev.map(c => c.id === tempActiveChat.id ? newChat : c);
+                        return [newChat, ...prev.filter(c => c.id !== tempActiveChat.id)]
                     });
                     
                     setActiveChat(prev => ({
-                        ...(prev as ActiveChat),
-                        id: newChat.id,
-                        title: newChat.title
+                        ...newChat,
+                        messages: prev ? prev.messages : [],
                     }));
 
                     window.history.replaceState(null, '', `/chat/${newChat.id}`);
                 } else {
                     throw new Error("Failed to create new chat session.");
                 }
-            } else if (isNewChat && !profile) {
-                currentChatId = 'anonymous';
             }
             
             const messagesForApi = tempActiveChat.messages;
@@ -171,7 +156,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 });
             }
             
-            if (profile && currentChatId && !currentChatId.startsWith('temp-') && currentChatId !== 'anonymous') {
+            if (currentChatId) {
                 const finalMessages = [
                     ...messagesForApi,
                     { role: 'model', content: [{text: streamedResponse}] } as ChatMessage
@@ -267,6 +252,13 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         }
 
     }, [chats, profile, params.chatId, router, toast, activeChat]);
+
+    const handleFileUploadClick = () => {
+        toast({
+            title: "Feature Not Implemented",
+            description: "Image uploads are coming soon!",
+        });
+    };
 
     if (!isClient) {
         return null;
@@ -425,7 +417,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 </ScrollArea>
                 <div className="p-4 md:p-6 border-t border-border/50 shrink-0">
                      <div className="flex items-center gap-2">
-                         <Button type="button" variant="ghost" size="icon" disabled={isStreaming} className="shrink-0">
+                         <Button type="button" variant="ghost" size="icon" onClick={handleFileUploadClick} className="shrink-0">
                             <Paperclip className="h-5 w-5" />
                          </Button>
                         <form onSubmit={handleSubmit} className="flex-grow relative">
@@ -506,5 +498,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
+
+    
 
     

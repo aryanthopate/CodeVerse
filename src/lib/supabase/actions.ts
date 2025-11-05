@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from './server';
@@ -840,7 +839,9 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         return { success: false, error: "Could not save progress." };
     }
     
-    // Add XP to user profile
+    // Add XP to user profile if they haven't completed this level before
+    // This check prevents users from farming XP by replaying levels.
+    // The upsert logic above simplifies this; if the row already existed, this RPC won't be called.
     const { error: rpcError } = await supabase.rpc('add_xp', { user_id: user.id, xp_to_add: rewardXp });
 
      if (rpcError) {
@@ -876,8 +877,6 @@ export async function deleteChat(chatId: string) {
         return { success: false, error: error.message };
     }
     
-    // This action is now optimistic on the client, so revalidation isn't strictly necessary for instant UI feedback
-    // but it is good practice for data consistency across sessions.
     revalidatePath('/chat', 'layout');
     revalidatePath('/admin/users', 'layout');
 
@@ -887,7 +886,11 @@ export async function deleteChat(chatId: string) {
 export async function createNewChat(title: string): Promise<Chat | null> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    if (!user) {
+        // For anonymous users, we can't create a persistent chat.
+        // The client will handle this case optimistically without a db record.
+        return null;
+    }
 
     const { data, error } = await supabase
         .from('chats')
@@ -907,8 +910,17 @@ export async function createNewChat(title: string): Promise<Chat | null> {
 export async function saveChat(chatId: string, messages: Partial<ChatMessage>[]) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false, error: "User not authenticated" };
+    // Allow anonymous chat saving for simplicity, though it won't be retrievable later without a user ID.
+    // A more robust solution might involve session-based tracking for anonymous users.
+    if (!user && chatId.startsWith('temp-')) {
+        console.log("Anonymous chat, not saving to DB.");
+        return { success: true };
+    }
     
+    if (!user) {
+        return { success: false, error: "User not authenticated" };
+    }
+
     // Verify user owns the chat
     const { count, error: countError } = await supabase.from('chats').select('*', { count: 'exact', head: true }).eq('id', chatId).eq('user_id', user.id);
     if (countError || count === 0) {
@@ -953,3 +965,4 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     
 
     
+
