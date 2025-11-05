@@ -9,6 +9,22 @@ interface CodeBlockProps {
     code: string;
 }
 
+const SyntaxHighlighter = ({ code }: { code: string }) => {
+    const highlighted = code
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\b(const|let|var|function|return|if|else|for|while|import|from|export|async|await|new|class|extends|super)\b/g, '<span class="text-code-keyword">$&</span>')
+        .replace(/(\'|\")(.*?)(\'|\")/g, '<span class="text-code-string">$&</span>')
+        .replace(/\b(\d+)\b/g, '<span class="text-code-number">$&</span>')
+        .replace(/(\/\/.*)/g, '<span class="text-code-comment">$&</span>')
+        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="text-code-comment">$&</span>')
+        .replace(/([a-zA-Z_]\w*)(?=\()/g, '<span class="text-code-function">$&</span>')
+        .replace(/([\{\}\(\)\[\]\.,;])/g, '<span class="text-code-punctuation">$&</span>');
+
+    return <code className="font-mono" dangerouslySetInnerHTML={{ __html: highlighted }} />;
+};
+
+
 export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
     const [hasCopied, setHasCopied] = useState(false);
     const { toast } = useToast();
@@ -47,7 +63,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
                 </button>
             </div>
             <pre className="p-4 overflow-x-auto bg-black/50 rounded-b-lg">
-                <code className="font-mono">{code}</code>
+                <SyntaxHighlighter code={code} />
             </pre>
         </div>
     );

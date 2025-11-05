@@ -25,6 +25,14 @@
     --ring: 217.2 91.2% 59.8%;
     --radius: 0.75rem;
 
+    /* Syntax Highlighting Colors */
+    --code-keyword: 280 80% 70%; /* e.g., const, function */
+    --code-function: 160 80% 60%; /* e.g., functionName() */
+    --code-string: 40 80% 70%;   /* e.g., "hello" */
+    --code-number: 190 80% 70%;  /* e.g., 123 */
+    --code-comment: 220 15% 50%; /* e.g., // comment */
+    --code-punctuation: 210 20% 70%; /* e.g., {} () */
+
     /* New Game UI Theme Variables */
     --game-bg: 30 54% 25%; /* Dark wood color */
     --game-surface: 30 52% 35%; /* Lighter wood panel */

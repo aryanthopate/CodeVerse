@@ -55,6 +55,12 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        'code-keyword': 'hsl(var(--code-keyword))',
+        'code-function': 'hsl(var(--code-function))',
+        'code-string': 'hsl(var(--code-string))',
+        'code-number': 'hsl(var(--code-number))',
+        'code-comment': 'hsl(var(--code-comment))',
+        'code-punctuation': 'hsl(var(--code-punctuation))',
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',
