@@ -46,7 +46,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         if (initialActiveChat) {
             setRenamingTitle(initialActiveChat.title);
         } else {
-            // This is a new chat, so reset the state
             setIsRenaming(false);
             setRenamingTitle('');
         }
@@ -61,9 +60,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [isRenaming]);
 
     useEffect(() => {
-        // Filter out any temporary chats from the initial server-provided list
-        const nonTempChats = initialChats?.filter(c => !c.id.startsWith('temp-')) || [];
-        setChats(nonTempChats);
+        setChats(initialChats || []);
     }, [initialChats]);
 
 
@@ -103,7 +100,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         setIsRenaming(false);
         
         if (activeChat.id.startsWith('temp-')) {
-            // Don't persist temporary chats
             return;
         }
 
@@ -166,54 +162,46 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         const currentInput = input;
         setInput('');
 
-        let currentChatId = activeChat?.id;
-        let isNewChat = !currentChatId;
+        let isNewChat = !activeChat;
 
-        // Optimistically update UI
-        let tempActiveChat: ActiveChat;
         if (isNewChat) {
-             const tempId = `temp-${Date.now()}`;
-            tempActiveChat = {
-                id: tempId,
-                title: currentInput.substring(0, 50),
-                user_id: profile?.id || 'anonymous',
-                created_at: new Date().toISOString(),
-                is_archived: false,
-                is_pinned: false,
-                messages: [userInput],
-            };
-            setChats(prev => [tempActiveChat, ...prev]);
-        } else {
-            tempActiveChat = {
-                ...(activeChat as ActiveChat),
-                messages: [...(activeChat?.messages || []), userInput],
-            };
+             if (profile) {
+                const newChat = await createNewChat(currentInput);
+                if (newChat) {
+                    router.push(`/chat/${newChat.id}`);
+                    router.refresh(); // This will re-fetch server components for the new URL.
+                } else {
+                     toast({
+                        variant: 'destructive',
+                        title: "An error occurred",
+                        description: "Failed to create a new chat session.",
+                    });
+                }
+            } else {
+                // Handle anonymous user chat locally without saving
+                 setActiveChat({
+                    id: `temp-${Date.now()}`,
+                    title: currentInput.substring(0, 50),
+                    user_id: 'anonymous',
+                    created_at: new Date().toISOString(),
+                    is_archived: false,
+                    is_pinned: false,
+                    messages: [userInput],
+                });
+            }
+             return;
         }
+
+        // Handle existing chat
+        const tempActiveChat = {
+            ...(activeChat as ActiveChat),
+            messages: [...(activeChat?.messages || []), userInput],
+        };
 
         setActiveChat(tempActiveChat);
         setIsStreaming(true);
         
         try {
-            if (isNewChat && profile) {
-                const newChat = await createNewChat(currentInput);
-                if (newChat) {
-                    currentChatId = newChat.id;
-                    
-                    setChats(prev => [newChat, ...prev.filter(c => c.id !== tempActiveChat.id)]);
-                    
-                    setActiveChat(prev => {
-                        if (!prev) return newChat as ActiveChat;
-                        // Replace temp ID with real ID
-                        const finalChat = { ...newChat, messages: prev.messages };
-                        return finalChat as ActiveChat;
-                    });
-                     // Update URL without navigation
-                    window.history.replaceState(null, '', `/chat/${newChat.id}`);
-                } else {
-                    throw new Error("Failed to create new chat session.");
-                }
-            }
-            
             const messagesForApi = tempActiveChat.messages.map(m => ({
                 role: m.role as 'user' | 'model',
                 content: m.content as string,
@@ -221,14 +209,14 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
             const stream = await streamChat({ 
                 messages: messagesForApi,
-                chatId: currentChatId
+                chatId: activeChat.id
             });
             
-            const streamedResponse = await processStream(stream, tempActiveChat.messages);
+            const streamedResponse = await processStream(stream, tempActiveChat.messages as ChatMessage[]);
             
-            if (currentChatId && profile) { // Only save if user is logged in
+            if (activeChat.id && profile) {
                 const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
-                await saveChat(currentChatId, finalMessages as ChatMessage[]);
+                await saveChat(activeChat.id, finalMessages as ChatMessage[]);
             }
 
         } catch(error: any) {
@@ -240,7 +228,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             });
              setActiveChat(prev => {
                 if (!prev) return null;
-                // remove user message
                 return { ...prev, messages: prev.messages.filter(m => m !== userInput) };
             });
         } finally {
@@ -254,12 +241,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         let history = [...activeChat.messages];
         const lastMessage = history[history.length - 1];
 
-        // If the last message is from the user, do nothing.
-        // If it's from the model, pop it to regenerate.
         if (lastMessage?.role === 'model') {
             history.pop();
         } else {
-            return; // Can't regenerate a user's message
+            return;
         }
 
         const messagesForApi = history.map(m => ({
@@ -272,7 +257,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
         try {
             const stream = await streamChat({ messages: messagesForApi, chatId: activeChat.id });
-            const streamedResponse = await processStream(stream, history);
+            const streamedResponse = await processStream(stream, history as ChatMessage[]);
             
             if (activeChat.id && profile) {
                  const finalMessages = [...history, { role: 'model', content: streamedResponse } as ChatMessage];
@@ -286,7 +271,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 title: "An error occurred",
                 description: error.message || "Could not get a new response from the AI.",
             });
-            // Restore the last AI message on error
             if(lastMessage) setActiveChat(prev => prev ? { ...prev, messages: [...history, lastMessage] } : null);
         } finally {
             setIsStreaming(false);
@@ -385,13 +369,13 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         });
     };
 
-    const pinnedChats = chats.filter(c => c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    const recentChats = chats.filter(c => !c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    const archivedChats = chats.filter(c => c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
     if (!isClient) {
         return null;
     }
+
+    const pinnedChats = chats.filter(c => c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const recentChats = chats.filter(c => !c.is_pinned && !c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const archivedChats = chats.filter(c => c.is_archived).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return (
         <div className="flex h-screen bg-background">
@@ -507,7 +491,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 </header>
                 <ScrollArea className="flex-1" ref={scrollAreaRef}>
                     <div className="p-6 space-y-8">
-                        {activeChat?.messages.map((message, index) => {
+                        {(activeChat?.messages || []).map((message, index) => {
                              const isUser = message.role === 'user';
                              const isLastMessage = index === (activeChat?.messages?.length ?? 0) - 1;
                              
@@ -661,5 +645,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
+
+    
 
     
