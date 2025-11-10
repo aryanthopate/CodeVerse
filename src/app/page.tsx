@@ -166,11 +166,11 @@ export default async function Home() {
 
         {/* New Play & Learn Section */}
         <section className="py-20">
-            <div className="relative container mx-auto h-[50vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center">
+            <div className="relative container mx-auto h-[60vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8">
                  <div className="absolute inset-0 w-full h-full bg-grid-white/[0.1] [mask-image:linear-gradient(to_bottom,white_10%,transparent_100%)] -z-10"></div>
                 <div className="relative z-10">
                     <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
-                        Enter the Playground
+                        Enter the<br />Playground
                     </h2>
                     <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
                         Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
