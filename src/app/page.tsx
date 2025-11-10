@@ -27,7 +27,9 @@ import {
 import { AnimatedGridBackground } from '@/components/animated-grid-background';
 import { cn } from '@/lib/utils';
 import { FuturisticButton } from '@/components/futuristic-button';
+import { NewsletterTerminal } from '@/components/newsletter-terminal';
 import { HelpSection } from '@/components/help-section';
+
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     return (
@@ -202,10 +204,25 @@ export default async function Home() {
           </div>
         </section>
         
+        {/* Newsletter Section */}
+        <section className="py-20 container mx-auto">
+            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[300px]">
+                <div className="help-container -z-10"></div>
+                <div className="relative z-10 text-center">
+                    <h2 className="text-3xl font-bold text-white mb-4">Stay Up-to-Date</h2>
+                    <p className="text-neutral-300 max-w-2xl mb-8">
+                        Join our newsletter to get the latest updates on new courses, game releases, and special offers delivered straight to your inbox.
+                    </p>
+                    <NewsletterTerminal />
+                </div>
+            </div>
+        </section>
+
         {/* Help Section */}
         <section className="py-20 container mx-auto">
           <HelpSection />
         </section>
+
 
         {/* Testimonials Carousel */}
         <section className="py-20 bg-card/20">
