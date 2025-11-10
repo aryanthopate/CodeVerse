@@ -65,13 +65,21 @@ export const generateDistractorsFlow = ai.defineFlow(
         };
     }
     
-    const { output } = await distractorsPrompt(input);
-    
-    if (!output || !output.distractors || output.distractors.length === 0) {
-        throw new Error('The AI failed to generate distractor snippets.');
-    }
+    try {
+        const { output } = await distractorsPrompt(input);
+        
+        if (!output || !output.distractors || output.distractors.length === 0) {
+            throw new Error('The AI failed to generate distractor snippets.');
+        }
 
-    return output;
+        return output;
+    } catch (error) {
+        console.error("AI distractor generation failed, using fallback.", error);
+        // Fallback to a generic list of distractors if the AI fails
+        return {
+             distractors: ['var', 'func', 'err', '=>', 'x', 'y', 'z', '123', 'null', 'invalid'],
+        }
+    }
   }
 );
 
