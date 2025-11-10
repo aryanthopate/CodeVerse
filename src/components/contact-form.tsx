@@ -6,6 +6,8 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -115,6 +117,9 @@ export function ContactForm({ children }: { children: React.ReactNode }) {
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl bg-[#1e1e1e] border-gray-700 p-0 overflow-hidden shadow-2xl shadow-primary/20">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Contact Us</DialogTitle>
+        </DialogHeader>
         <div className="font-mono text-white">
             <div className="bg-black/50 px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
