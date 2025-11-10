@@ -12,3 +12,4 @@ export * from './review-rating-section';
 export * from './game-map-client';
 export * from './explain-code-dialog';
 export * from './add-note-dialog';
+export * from './animated-grid-background';
