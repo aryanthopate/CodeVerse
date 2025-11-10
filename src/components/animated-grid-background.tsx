@@ -25,7 +25,7 @@ export const AnimatedGridBackground = () => {
                 newGrid[y][x] = !newGrid[y][x];
                 return newGrid;
             });
-        }, 100);
+        }, 200);
 
         return () => clearInterval(interval);
     }, []);
@@ -38,6 +38,7 @@ export const AnimatedGridBackground = () => {
                         key={i}
                         className={cn(
                             "w-full h-full border-r border-b border-neutral-900 transition-colors duration-500",
+                            "hover:bg-[#2A2B57]", // Add hover effect
                             isLit ? "bg-[#2A2B57]" : "bg-transparent"
                         )}
                     />

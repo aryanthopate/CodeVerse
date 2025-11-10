@@ -169,7 +169,7 @@ export default async function Home() {
 
         {/* New Play & Learn Section */}
         <section className="py-20">
-            <div className="relative container mx-auto h-[60vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8">
+            <div className="relative container mx-auto min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8">
                  <AnimatedGridBackground />
                 <div className="relative z-10 flex flex-col items-center">
                     <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
