@@ -169,17 +169,19 @@ export default async function Home() {
 
         {/* New Play & Learn Section */}
         <section className="py-20">
-            <div className="relative container mx-auto min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8">
-                 <AnimatedGridBackground />
-                <div className="relative z-10 flex flex-col items-center">
-                    <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
-                        Enter the Playground
-                    </h2>
-                    <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
-                        Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
-                    </p>
-                    <div className="mt-8">
-                       <FuturisticButton />
+            <div className="container mx-auto">
+                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8">
+                    <AnimatedGridBackground />
+                    <div className="relative z-10 flex flex-col items-center">
+                        <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
+                            Enter the Playground
+                        </h2>
+                        <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
+                            Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
+                        </p>
+                        <div className="mt-8">
+                           <FuturisticButton />
+                        </div>
                     </div>
                 </div>
             </div>
