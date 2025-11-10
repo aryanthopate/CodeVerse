@@ -8,6 +8,8 @@ const GRID_WIDTH = 25;
 const GRID_HEIGHT = 20;
 
 export const AnimatedGridBackground = () => {
+    // All automatic animation logic has been removed.
+    // The effect is now purely CSS-driven via hover states.
     return (
         <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
             <div className="grid grid-cols-25 w-full h-full">
