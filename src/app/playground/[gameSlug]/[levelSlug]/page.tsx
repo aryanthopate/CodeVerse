@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { getGameAndLevelDetails, getGameSettings } from '@/lib/supabase/queries';
 import { GameWithChaptersAndLevels, GameLevel, GameSettings, GameChapter } from '@/lib/types';
 import Link from 'next/link';
-import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, RefreshCw, Code, BookOpen, GripVertical } from 'lucide-react';
+import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, RefreshCw, Code, BookOpen, GripVertical, Heart, Zap } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
 import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
 import { generateDistractors } from '@/ai/flows/generate-distractors';
@@ -24,16 +24,17 @@ import { cn } from '@/lib/utils';
 import Confetti from 'react-confetti';
 import { completeGameLevel } from '@/lib/supabase/actions';
 
-// New Drag-and-Drop Game Component
 function CodeScrambleGame({
     level,
     gameLanguage,
-    onLevelComplete,
+    onStageComplete,
+    onIncorrect,
     onCodeChange
 }: {
     level: GameLevel;
     gameLanguage: string;
-    onLevelComplete: () => void;
+    onStageComplete: () => void;
+    onIncorrect: () => void;
     onCodeChange: (newCode: string) => void;
 }) {
     const [pieces, setPieces] = useState<string[]>([]);
@@ -55,7 +56,6 @@ function CodeScrambleGame({
             });
 
             const allPieces = [...correctSnippets, ...distractors];
-            // Shuffle the pieces
             for (let i = allPieces.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
@@ -72,14 +72,18 @@ function CodeScrambleGame({
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         const pieceText = e.dataTransfer.getData('text/plain');
-        if (pieceText && !solution.includes(pieceText)) {
+        const source = e.dataTransfer.getData('source');
+
+        if (source === 'pieces') {
             setSolution(prev => [...prev, pieceText]);
-            // Don't remove from pieces to allow reuse if needed, just handle logic
+            // Optional: remove from pieces if they shouldn't be reused
+            // setPieces(prev => prev.filter(p => p !== pieceText));
         }
     };
 
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, text: string) => {
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, text: string, source: 'pieces' | 'solution') => {
         e.dataTransfer.setData('text/plain', text);
+        e.dataTransfer.setData('source', source);
     };
 
     const resetSolution = () => {
@@ -93,7 +97,9 @@ function CodeScrambleGame({
         setIsCorrect(isSolutionCorrect);
         if (isSolutionCorrect) {
             onCodeChange(solution.join(' '));
-            onLevelComplete();
+            onStageComplete();
+        } else {
+            onIncorrect();
         }
     };
 
@@ -112,13 +118,13 @@ function CodeScrambleGame({
                             onDragOver={(e) => e.preventDefault()}
                             className={cn(
                                 "min-h-[100px] bg-black/30 rounded-lg p-4 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-center transition-colors",
-                                isCorrect === true && "border-green-500",
-                                isCorrect === false && "border-red-500"
+                                isCorrect === true && "border-green-500 bg-green-500/10",
+                                isCorrect === false && "border-red-500 bg-red-500/10"
                             )}
                         >
                             {solution.length === 0 && <p className="text-gray-400">Drag code pieces here</p>}
                             {solution.map((text, i) => (
-                                <div key={i} className="bg-primary/80 text-primary-foreground px-3 py-1 rounded-md font-mono">
+                                <div key={i} className="bg-primary/80 text-primary-foreground px-3 py-1 rounded-md font-mono cursor-grab" draggable onDragStart={(e) => handleDragStart(e, text, 'solution')}>
                                     {text}
                                 </div>
                             ))}
@@ -129,7 +135,7 @@ function CodeScrambleGame({
                                 <div
                                     key={i}
                                     draggable
-                                    onDragStart={(e) => handleDragStart(e, text)}
+                                    onDragStart={(e) => handleDragStart(e, text, 'pieces')}
                                     className="bg-gray-700 hover:bg-gray-600 cursor-grab px-3 py-1 rounded-md font-mono flex items-center gap-2"
                                 >
                                     <GripVertical className="w-4 h-4 text-gray-400"/>
@@ -151,7 +157,6 @@ function CodeScrambleGame({
         </div>
     );
 }
-
 
 function CodeEditor({ code }: { code: string }) {
     return (
@@ -208,9 +213,15 @@ export default function GameLevelPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [showIntro, setShowIntro] = useState(true);
-    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver' | 'manual'>('playing');
+    const [gameState, setGameState] = useState<'playing' | 'levelComplete'>('playing');
     const [showSolution, setShowSolution] = useState(false);
     
+    // New game state
+    const [lives, setLives] = useState(3);
+    const [streak, setStreak] = useState(0);
+    const [stage, setStage] = useState(1);
+    const totalStages = 1; // For now, we'll have one stage per level
+
     const [feedback, setFeedback] = useState('');
     const [hint, setHint] = useState('');
     const [isChecking, setIsChecking] = useState(false);
@@ -234,57 +245,23 @@ export default function GameLevelPage() {
         setTimeout(() => setShowConfetti(false), 8000);
     }, [level, game, gameState]);
 
-    const handleRunCode = useCallback(async (codeToRun: string) => {
-        if (!level || !codeToRun) return;
-        setIsChecking(true);
-        setFeedback('');
-        setHint('');
-        setRunOutput('Analyzing code...');
-        setRunOutputIsError(false);
-        
-        const codeWithoutStarter = level.starter_code && codeToRun.startsWith(level.starter_code)
-            ? codeToRun.substring(level.starter_code.length)
-            : codeToRun;
-
-        try {
-            const { feedback: aiFeedback } = await reviewCodeAndProvideFeedback({
-                code: codeWithoutStarter.trim(),
-                solution: level.expected_output || '',
-                programmingLanguage: game?.language || 'code',
-            });
-            const result = { feedback: aiFeedback };
-
-            const positiveFeedback = /correct|well done|great job|excellent|perfect|looks good/i.test(result.feedback);
-
-            if (positiveFeedback) {
-                setIsCorrect(true);
-                setRunOutput('Success! Output matches expected result.');
-                setFeedback(result.feedback || level.correct_feedback || 'Great job! Your code is correct.');
-                await handleLevelComplete();
-            } else {
-                setIsCorrect(false);
-                setRunOutputIsError(true);
-                setRunOutput('Execution finished. See AI feedback.');
-                setFeedback(result.feedback || level.incorrect_feedback || "That's not quite right. Try again!");
-            }
-        } catch (e: any) {
-            setRunOutputIsError(true);
-            setRunOutput('Error during analysis.');
-            setFeedback(`Error getting feedback: ${e.message}`);
-        } finally {
-            setIsChecking(false);
+    const handleStageComplete = () => {
+        setStreak(s => s + 1);
+        if (stage < totalStages) {
+            setStage(s => s + 1);
+            // In a multi-stage level, you would load the next stage's content here.
+        } else {
+            handleLevelComplete();
         }
-    }, [level, game, handleLevelComplete]);
-
-    const handleRestart = useCallback(() => {
-        setGameState('playing');
-        setFeedback('');
-        setHint('');
-        setIsCorrect(false);
-        setRunOutput('');
-        setShowSolution(false);
-        setFinalCode(level?.starter_code || '');
-    }, [level]);
+    };
+    
+    const handleIncorrectAnswer = () => {
+        setLives(l => Math.max(0, l - 1));
+        setStreak(0);
+        if (lives - 1 <= 0) {
+            setGameState('levelComplete'); // Or a new 'gameOver' state
+        }
+    };
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -313,6 +290,7 @@ export default function GameLevelPage() {
         if (!level) return;
         setIsGettingHint(true);
         setHint('');
+        setStreak(0); // Using a hint resets the streak
         try {
             const result = await provideHintForCodePractice({
                 problemStatement: level.objective,
@@ -328,21 +306,22 @@ export default function GameLevelPage() {
 
     const GameStatusOverlay = () => {
         if (gameState === 'levelComplete') {
+            const isSuccess = lives > 0;
             return (
                  <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
-                    {showConfetti && <Confetti recycle={false} numberOfPieces={500} gravity={0.2} />}
+                    {isSuccess && showConfetti && <Confetti recycle={false} numberOfPieces={500} gravity={0.2} />}
                     <div className="flex gap-4 items-center">
-                         <Bot className="w-32 h-32 text-primary animate-bounce" />
+                         <Bot className={cn("w-32 h-32 animate-bounce", isSuccess ? "text-primary" : "text-red-500")} />
                          <div className="p-6 bg-card/80 rounded-xl relative">
                             <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-card/80 rotate-45"></div>
-                            <h3 className="text-2xl font-bold">Mission Complete!</h3>
-                            <p className="text-muted-foreground mt-2">Outstanding work, recruit! You earned {level?.reward_xp} XP.</p>
+                            <h3 className="text-2xl font-bold">{isSuccess ? 'Mission Complete!' : 'Mission Failed'}</h3>
+                            <p className="text-muted-foreground mt-2">{isSuccess ? `Outstanding work, recruit! You earned ${level?.reward_xp} XP.` : "You've run out of lives. Better luck next time!"}</p>
                             <div className="flex gap-4 mt-6">
-                                {nextLevel ? (
+                                {nextLevel && isSuccess ? (
                                     <Link href={`/playground/${game!.slug}/${nextLevel.slug}`} className="btn-game flex-1">Next Mission <ArrowRight className="ml-2"/></Link>
-                                ) : (
+                                ) : isSuccess ? (
                                     <Link href={`/playground/${game!.slug}`} className="btn-game flex-1">Finish Game <Award className="ml-2"/></Link>
-                                )}
+                                ) : null}
                                 <Link href={`/playground/${game!.slug}`} className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80 flex-1">Quit Game</Link>
                             </div>
                         </div>
@@ -398,12 +377,28 @@ export default function GameLevelPage() {
             <Header />
             <main className="flex-grow pt-16 flex flex-col">
                 <div className="p-4 border-b-2 border-[hsl(var(--game-border))] flex items-center justify-between">
-                    <Link href={`/playground/${game.slug}`} className="btn-game !py-2 !px-4">
-                        <ArrowLeft className="mr-2" /> Back to Map
-                    </Link>
-                    <h1 className="text-xl font-bold text-center truncate">{game.title}: {level.title}</h1>
-                    <div className="w-[200px] flex justify-end">
-                        <Badge variant="secondary" className="text-yellow-400 border-yellow-400/50 bg-[hsl(var(--game-surface))]">{level.reward_xp} XP</Badge>
+                    <div className="flex items-center gap-4">
+                        <Link href={`/playground/${game.slug}`} className="btn-game !py-2 !px-4">
+                            <X className="mr-2" /> Quit
+                        </Link>
+                         <button onClick={() => window.location.reload()} className="btn-game !py-2 !px-4 !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80">
+                            <RefreshCw className="mr-2"/> Restart
+                        </button>
+                    </div>
+                     <div className="text-center">
+                        <h1 className="text-xl font-bold">{level.title}</h1>
+                        <p className="text-sm text-[hsl(var(--game-text))]/60">Stage {stage} of {totalStages}</p>
+                    </div>
+                    <div className="w-[200px] flex justify-end items-center gap-4">
+                        <div className="flex items-center gap-2 font-bold text-yellow-400">
+                            <Zap className="text-yellow-400 fill-yellow-400"/>
+                            {streak}
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {[...Array(3)].map((_, i) => (
+                                <Heart key={i} className={cn("w-6 h-6 transition-all", i < lives ? "text-red-500 fill-red-500" : "text-white/30")} />
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -412,13 +407,14 @@ export default function GameLevelPage() {
                         <div className="flex flex-col h-full" ref={gameAreaRef}>
                             <div className="flex-grow relative">
                                 {gameState === 'manual' ? (
-                                    <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
+                                    <ManualCodePractice level={level} onRunCode={() => {}} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
                                 ) : (
                                     <>
                                         <CodeScrambleGame
                                             level={level}
                                             gameLanguage={game.language || 'code'}
-                                            onLevelComplete={handleLevelComplete}
+                                            onStageComplete={handleStageComplete}
+                                            onIncorrect={handleIncorrectAnswer}
                                             onCodeChange={handleCodeChange}
                                         />
                                         <GameStatusOverlay />
@@ -440,26 +436,11 @@ export default function GameLevelPage() {
                                 </ScrollArea>
                             </ResizablePanel>
                             <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={40} minSize={20}>
-                                <div className="flex flex-col h-full">
-                                    <div className="p-4 border-b border-border/50 flex justify-between items-center">
-                                        <h2 className="text-lg font-semibold">Code Editor</h2>
-                                        <button className="btn-game !py-2 !px-4" onClick={() => handleRunCode(finalCode)} disabled={isChecking || gameState === 'playing'}>
-                                            {isChecking ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2" />} Run Code
-                                        </button>
-                                    </div>
-                                    <div className="flex-grow p-2">
-                                        <CodeEditor code={finalCode} />
-                                    </div>
-                                </div>
-                            </ResizablePanel>
-                            <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={30} minSize={20}>
+                            <ResizablePanel defaultSize={70} minSize={20}>
                                 <div className="flex flex-col h-full">
                                      <Tabs defaultValue="feedback" className="flex-grow flex flex-col">
                                         <TabsList className="m-4 tabs-game">
                                             <TabsTrigger value="feedback" className="tab-trigger-game"><Bot className="mr-2" />AI Feedback</TabsTrigger>
-                                            <TabsTrigger value="output" className="tab-trigger-game"><Play className="mr-2" />Output</TabsTrigger>
                                         </TabsList>
                                         <TabsContent value="feedback" className="flex-grow bg-muted/20 m-4 mt-0 rounded-lg">
                                             <ScrollArea className="h-full p-4">
@@ -469,17 +450,13 @@ export default function GameLevelPage() {
                                                         <h3 className="font-semibold mb-2">Solution:</h3>
                                                         <pre className="bg-black/50 p-2 rounded-md font-mono text-xs">{level.expected_output}</pre>
                                                         {level.incorrect_feedback && <p className="mt-2 italic">{level.incorrect_feedback}</p>}
-                                                        <button onClick={handleRestart} className="btn-game mt-4"><RefreshCw className="mr-2" />Try Again</button>
                                                     </div>
                                                 )}
                                                 {!isCorrect && feedback && <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300 whitespace-pre-wrap font-mono">{feedback}</div>}
                                                 {isCorrect && feedback && <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-300 whitespace-pre-wrap font-mono">{feedback}</div>}
                                                 {hint && <div className="mt-2 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm">{hint}</div>}
-                                                {!isChecking && !feedback && !showSolution && !isCorrect && !hint && <p className="text-muted-foreground text-sm text-center pt-8">Run your code to get AI-powered feedback.</p>}
+                                                {!isChecking && !feedback && !showSolution && !isCorrect && !hint && <p className="text-muted-foreground text-sm text-center pt-8">Complete the puzzle or run code to get feedback.</p>}
                                             </ScrollArea>
-                                        </TabsContent>
-                                        <TabsContent value="output" className="flex-grow bg-muted/20 m-4 mt-0 rounded-lg">
-                                            <OutputConsole output={runOutput} isError={runOutputIsError} />
                                         </TabsContent>
                                     </Tabs>
                                 </div>
@@ -491,4 +468,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
