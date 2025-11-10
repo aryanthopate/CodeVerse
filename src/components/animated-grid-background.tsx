@@ -15,8 +15,8 @@ export const AnimatedGridBackground = () => {
                     <div
                         key={i}
                         className={cn(
-                            "w-full h-full border-r border-b border-neutral-900 bg-black/0 transition-colors",
-                            "hover:bg-[#2A2B57] hover:duration-100"
+                            "w-full h-full border-r border-b border-neutral-900 bg-black/0 transition-colors duration-100",
+                            "hover:bg-[#2A2B57]"
                         )}
                     />
                 ))}
@@ -24,3 +24,4 @@ export const AnimatedGridBackground = () => {
         </div>
     );
 };
+
