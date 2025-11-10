@@ -140,6 +140,26 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* New Play & Learn Section */}
+        <section className="py-20">
+            <div className="container mx-auto">
+                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-100">
+                    <AnimatedGridBackground />
+                    <div className="relative z-10 flex flex-col items-center">
+                        <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
+                            ENTER THE PLAYGROUND
+                        </h2>
+                        <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
+                            Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
+                        </p>
+                        <div className="mt-8">
+                           <FuturisticButton />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         {/* Course Preview Carousel */}
         <section className="py-20 bg-card/20">
           <div className="container mx-auto">
@@ -170,26 +190,6 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* New Play & Learn Section */}
-        <section className="py-20">
-            <div className="container mx-auto">
-                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-100">
-                    <AnimatedGridBackground />
-                    <div className="relative z-10 flex flex-col items-center">
-                        <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
-                            ENTER THE PLAYGROUND
-                        </h2>
-                        <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
-                            Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
-                        </p>
-                        <div className="mt-8">
-                           <FuturisticButton />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         {/* Newsletter & Help Section */}
         <section className="py-20 container mx-auto">
             <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[400px] dark-circuit-wrapper">
@@ -199,7 +199,9 @@ export default async function Home() {
                     <p className="text-neutral-300 max-w-2xl mb-8">
                         Join our newsletter to get the latest updates on new courses, game releases, and special offers delivered straight to your inbox.
                     </p>
-                    <NewsletterTerminal />
+                    <div className="flex justify-center">
+                        <NewsletterTerminal />
+                    </div>
                     <div className="mt-8">
                        <p className="text-sm text-neutral-400 mb-2">Or get in touch with us directly.</p>
                        <ContactForm>
