@@ -15,3 +15,4 @@ export * from './animated-grid-background';
 export * from './futuristic-button';
 export * from './newsletter-terminal';
 export * from './contact-form';
+export * from './matrix-background';

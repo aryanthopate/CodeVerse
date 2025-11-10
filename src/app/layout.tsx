@@ -6,6 +6,7 @@ import './futuristic-button.css';
 import './help-section.css';
 import './newsletter-terminal.css';
 import './newsletter-bg.css';
+import './matrix-bg.css';
 
 export const metadata: Metadata = {
   title: 'CodeVerse - Learn to Code, Playfully.',
