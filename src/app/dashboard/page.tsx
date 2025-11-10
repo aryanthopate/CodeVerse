@@ -17,6 +17,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { getUserEnrollments, getInProgressGames, getUserGameProgress } from '@/lib/supabase/queries';
 import { cn } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 function DashboardContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [enrolledCourses, setEnrolledCourses] = useState<CourseWithChaptersAndTopics[]>([]);
@@ -39,7 +41,7 @@ function DashboardContent() {
           getUserEnrollments(user.id),
           getInProgressGames(user.id)
         ]);
-
+        
         if (enrollmentsData) {
           setEnrolledCourses(enrollmentsData.enrolledCourses);
         }
@@ -231,5 +233,3 @@ export default function DashboardPage() {
     </AppLayout>
   )
 }
-
-    

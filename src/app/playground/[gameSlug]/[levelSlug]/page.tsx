@@ -6,8 +6,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { getGameAndLevelDetails, getGameSettings } from '@/lib/supabase/queries';
-import { GameWithChaptersAndLevels, GameLevel, GameSettings, GameChapter } from '@/lib/types';
+import { getGameAndLevelDetails } from '@/lib/supabase/queries';
+import { GameWithChaptersAndLevels, GameLevel, GameChapter } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, RefreshCw, Code, BookOpen, GripVertical, Heart, Zap } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
@@ -15,7 +15,6 @@ import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-pra
 import { generateDistractors } from '@/ai/flows/generate-distractors';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +22,44 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Confetti from 'react-confetti';
 import { completeGameLevel } from '@/lib/supabase/actions';
+import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+
+const pieceColors = [
+    'bg-sky-500/80 border-sky-400 text-sky-50',
+    'bg-emerald-500/80 border-emerald-400 text-emerald-50',
+    'bg-amber-500/80 border-amber-400 text-amber-50',
+    'bg-rose-500/80 border-rose-400 text-rose-50',
+    'bg-violet-500/80 border-violet-400 text-violet-50',
+    'bg-fuchsia-500/80 border-fuchsia-400 text-fuchsia-50',
+];
+
+interface Piece {
+  id: string;
+  text: string;
+  color: string;
+}
+
+function DraggablePiece({ piece }: { piece: Piece }) {    
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+        id: piece.id,
+        data: { text: piece.text, from: 'bucket' }
+    });
+    
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 100, // Ensure it's on top while dragging
+    } : undefined;
+
+    return (
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes}
+            className={cn("px-3 py-1.5 rounded-md font-mono cursor-grab flex items-center gap-2 border-2", piece.color)}>
+            <GripVertical className="w-4 h-4 opacity-70"/>
+            {piece.text}
+        </div>
+    );
+}
+
 
 function CodeScrambleGame({
     level,
@@ -37,8 +74,8 @@ function CodeScrambleGame({
     onIncorrect: () => void;
     onCodeChange: (newCode: string) => void;
 }) {
-    const [pieces, setPieces] = useState<string[]>([]);
-    const [solution, setSolution] = useState<string[]>([]);
+    const [availablePieces, setAvailablePieces] = useState<Piece[]>([]);
+    const [solutionPieces, setSolutionPieces] = useState<Piece[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
@@ -55,13 +92,18 @@ function CodeScrambleGame({
                 count: Math.max(3, Math.floor(correctSnippets.length / 2)),
             });
 
-            const allPieces = [...correctSnippets, ...distractors];
+            const correctPs: Piece[] = correctSnippets.map((text, i) => ({ id: `corr-${i}`, text, color: pieceColors[i % pieceColors.length] }));
+            const distractorPs: Piece[] = distractors.map((text, i) => ({ id: `dist-${i}`, text, color: pieceColors[(correctSnippets.length + i) % pieceColors.length] }));
+
+            const allPieces = [...correctPs, ...distractorPs];
+            // Shuffle
             for (let i = allPieces.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
             }
-            setPieces(allPieces);
-            setSolution([]);
+
+            setAvailablePieces(allPieces);
+            setSolutionPieces([]);
             setIsLoading(false);
             setIsCorrect(null);
             onCodeChange('');
@@ -69,92 +111,101 @@ function CodeScrambleGame({
         setupGame();
     }, [level, correctSnippets, gameLanguage, onCodeChange]);
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        const pieceText = e.dataTransfer.getData('text/plain');
-        const source = e.dataTransfer.getData('source');
+    const { setNodeRef: setBucketRef } = useDroppable({ id: 'bucket' });
+    const { setNodeRef: setSolutionRef } = useDroppable({ id: 'solution' });
 
-        if (source === 'pieces') {
-            setSolution(prev => [...prev, pieceText]);
-            // Optional: remove from pieces if they shouldn't be reused
-            // setPieces(prev => prev.filter(p => p !== pieceText));
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { over, active } = event;
+        const pieceId = active.id as string;
+        
+        if (over?.id === 'solution') {
+             const piece = availablePieces.find(p => p.id === pieceId) || solutionPieces.find(p => p.id === pieceId);
+            if (piece && !solutionPieces.some(p => p.id === pieceId)) {
+                setSolutionPieces(prev => [...prev, piece]);
+                setAvailablePieces(prev => prev.filter(p => p.id !== pieceId));
+            } else if (piece) { // Reordering
+                 const oldIndex = solutionPieces.findIndex(p => p.id === pieceId);
+                 // For simplicity, reordering is handled by dragging back to bucket first
+                 // A more complex solution would use over.data to find drop position
+            }
+        } else if (over?.id === 'bucket') {
+            const piece = solutionPieces.find(p => p.id === pieceId);
+            if (piece) {
+                setAvailablePieces(prev => [...prev, piece]);
+                setSolutionPieces(prev => prev.filter(p => p.id !== pieceId));
+            }
         }
     };
 
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, text: string, source: 'pieces' | 'solution') => {
-        e.dataTransfer.setData('text/plain', text);
-        e.dataTransfer.setData('source', source);
-    };
-
     const resetSolution = () => {
-        setSolution([]);
+        setAvailablePieces(prev => [...prev, ...solutionPieces]);
+        setSolutionPieces([]);
         setIsCorrect(null);
         onCodeChange('');
     };
 
     const checkSolution = () => {
-        const isSolutionCorrect = solution.join(' ') === correctSnippets.join(' ');
+        const solutionText = solutionPieces.map(p => p.text).join(' ');
+        const correctText = correctSnippets.join(' ');
+        const isSolutionCorrect = solutionText === correctText;
+        
         setIsCorrect(isSolutionCorrect);
         if (isSolutionCorrect) {
-            onCodeChange(solution.join(' '));
-            onStageComplete();
+            onCodeChange(solutionText);
+            setTimeout(onStageComplete, 500); // give feedback time to show
         } else {
             onIncorrect();
         }
     };
+    
+    useEffect(() => {
+        onCodeChange(solutionPieces.map(p => p.text).join(' '));
+    }, [solutionPieces, onCodeChange]);
+
 
     return (
-        <div className="flex flex-col h-full bg-gray-900/50 rounded-lg border border-border p-4 gap-4">
-            {isLoading ? (
-                <div className="flex-grow flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary"/>
-                    <p className="ml-2">Preparing the challenge...</p>
-                </div>
-            ) : (
-                <>
-                    <div className="flex-grow space-y-4">
-                        <div
-                            onDrop={handleDrop}
-                            onDragOver={(e) => e.preventDefault()}
-                            className={cn(
-                                "min-h-[100px] bg-black/30 rounded-lg p-4 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-center transition-colors",
-                                isCorrect === true && "border-green-500 bg-green-500/10",
-                                isCorrect === false && "border-red-500 bg-red-500/10"
-                            )}
-                        >
-                            {solution.length === 0 && <p className="text-gray-400">Drag code pieces here</p>}
-                            {solution.map((text, i) => (
-                                <div key={i} className="bg-primary/80 text-primary-foreground px-3 py-1 rounded-md font-mono cursor-grab" draggable onDragStart={(e) => handleDragStart(e, text, 'solution')}>
-                                    {text}
-                                </div>
-                            ))}
-                        </div>
-                        <p className="text-sm text-gray-400">Assemble the code pieces in the correct order to solve the puzzle.</p>
-                        <div className="bg-black/30 rounded-lg p-4 flex flex-wrap gap-3">
-                            {pieces.map((text, i) => (
-                                <div
-                                    key={i}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, text, 'pieces')}
-                                    className="bg-gray-700 hover:bg-gray-600 cursor-grab px-3 py-1 rounded-md font-mono flex items-center gap-2"
-                                >
-                                    <GripVertical className="w-4 h-4 text-gray-400"/>
-                                    {text}
-                                </div>
-                            ))}
-                        </div>
+        <DndContext onDragEnd={handleDragEnd}>
+            <div className="flex flex-col h-full bg-gray-900/50 rounded-lg border border-border p-4 gap-4">
+                {isLoading ? (
+                    <div className="flex-grow flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary"/>
+                        <p className="ml-2">Preparing the challenge...</p>
                     </div>
-                    <div className="flex-shrink-0 flex gap-4">
-                         <button className="btn-game flex-1" onClick={checkSolution} disabled={solution.length === 0}>
-                            <CheckCircle className="mr-2"/> Check Answer
-                        </button>
-                        <button className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80" onClick={resetSolution}>
-                            <RefreshCw className="mr-2"/> Reset
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
+                ) : (
+                    <>
+                        <div className="flex-grow space-y-4 flex flex-col">
+                             <div
+                                ref={setSolutionRef}
+                                className={cn(
+                                    "min-h-[120px] bg-black/30 rounded-lg p-3 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-center transition-colors",
+                                    isCorrect === true && "border-green-500 bg-green-500/10",
+                                    isCorrect === false && "border-red-500 bg-red-500/10 animate-shake"
+                                )}
+                            >
+                                {solutionPieces.length === 0 && <p className="text-gray-400 ml-2">Drag code pieces here to build your solution</p>}
+                                {solutionPieces.map((piece, i) => (
+                                     <DraggablePiece key={piece.id} piece={piece} />
+                                ))}
+                            </div>
+                            <p className="text-sm text-gray-400">Assemble the code pieces in the correct order. Drag pieces back to the bucket to remove them.</p>
+                            <div ref={setBucketRef} className="bg-black/30 rounded-lg p-3 flex-grow flex flex-wrap gap-3 content-start">
+                                {availablePieces.map((piece) => (
+                                    <DraggablePiece key={piece.id} piece={piece} />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex-shrink-0 flex gap-4">
+                             <button className="btn-game flex-1" onClick={checkSolution} disabled={solutionPieces.length === 0}>
+                                <CheckCircle className="mr-2"/> Check Answer
+                            </button>
+                            <button className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80" onClick={resetSolution}>
+                                <RefreshCw className="mr-2"/> Reset
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+        </DndContext>
     );
 }
 
@@ -166,14 +217,6 @@ function CodeEditor({ code }: { code: string }) {
             {code}<span className="animate-pulse">_</span>
         </div>
     );
-}
-
-function OutputConsole({ output, isError }: { output: string, isError: boolean }) {
-    return (
-        <div className={cn("w-full h-full p-4 bg-black font-mono rounded-lg border border-gray-700 overflow-y-auto", isError ? "text-red-400" : "text-green-400")}>
-            <pre>{`> ${output}`}</pre>
-        </div>
-    )
 }
 
 function ManualCodePractice({ level, onRunCode, onGetHint, onCodeChange, code, isChecking, isGettingHint }: { level: GameLevel, onRunCode: (code: string) => void, onGetHint: (code: string) => void, onCodeChange: (code: string) => void, code: string, isChecking: boolean, isGettingHint: boolean }) {
@@ -236,17 +279,21 @@ export default function GameLevelPage() {
         setFinalCode(newCode);
     }, []);
     
-    const handleLevelComplete = useCallback(async () => {
+    const handleLevelComplete = useCallback(async (usedHint: boolean) => {
         if (!level || !game || gameState === 'levelComplete') return;
         setGameState('levelComplete');
-        await completeGameLevel(level.id, game.id, level.reward_xp);
+        
+        // Pass whether a hint was used or lives were lost
+        const levelWasPerfect = lives === 3 && !usedHint;
+        await completeGameLevel(level.id, game.id, level.reward_xp, levelWasPerfect);
+
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 8000);
-    }, [level, game, gameState]);
+    }, [level, game, gameState, lives]);
 
     const handleStageComplete = () => {
         setStreak(s => s + 1);
-        handleLevelComplete();
+        handleLevelComplete(false); // level complete without hint
     };
 
      const handleRunCode = useCallback(async (codeToRun: string) => {
@@ -290,11 +337,14 @@ export default function GameLevelPage() {
 
     
     const handleIncorrectAnswer = () => {
-        setLives(l => Math.max(0, l - 1));
+        setLives(l => {
+            const newLives = Math.max(0, l - 1);
+            if (newLives <= 0) {
+                setGameState('levelComplete'); // Game over is a form of level completion
+            }
+            return newLives;
+        });
         setStreak(0);
-        if (lives - 1 <= 0) {
-            setGameState('levelComplete'); // Game over is a form of level completion
-        }
     };
 
     useEffect(() => {
@@ -345,8 +395,10 @@ export default function GameLevelPage() {
                  <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
                     {isSuccess && showConfetti && <Confetti recycle={false} numberOfPieces={500} gravity={0.2} />}
                     <div className="flex gap-4 items-center">
-                         <Bot className={cn("w-32 h-32 animate-bounce", isSuccess ? "text-primary" : "text-red-500")} />
-                         <div className="p-6 bg-card/80 rounded-xl relative">
+                         <div className={cn("text-7xl animate-burst", isSuccess ? "text-primary" : "text-red-500")}>
+                            {isSuccess ? '🎉' : '💥'}
+                         </div>
+                         <div className="p-6 bg-card/80 rounded-xl relative text-left">
                             <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-card/80 rotate-45"></div>
                             <h3 className="text-2xl font-bold">{isSuccess ? 'Mission Complete!' : 'Mission Failed'}</h3>
                             <p className="text-muted-foreground mt-2">{isSuccess ? `Outstanding work, recruit! You earned ${level?.reward_xp} XP.` : "You've run out of lives. Better luck next time!"}</p>
@@ -367,7 +419,6 @@ export default function GameLevelPage() {
         return null;
     };
 
-    const gameAreaRef = useRef<HTMLDivElement>(null);
 
     if (loading) {
         return <div className="flex items-center justify-center h-screen bg-background text-foreground">Loading Level...</div>;
@@ -437,7 +488,7 @@ export default function GameLevelPage() {
 
                 <ResizablePanelGroup direction="horizontal" className="flex-grow">
                     <ResizablePanel defaultSize={50} minSize={30}>
-                        <div className="flex flex-col h-full" ref={gameAreaRef}>
+                        <div className="flex flex-col h-full">
                             <div className="flex-grow relative">
                                 {gameState === 'manual' ? (
                                     <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
@@ -506,4 +557,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-

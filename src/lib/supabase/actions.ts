@@ -819,7 +819,7 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string, rewardXp: number) {
+export async function completeGameLevel(levelId: string, gameId: string, rewardXp: number, isPerfect: boolean) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -827,21 +827,6 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         return { success: false, error: "User not authenticated" };
     }
     
-    // Check if the level has already been completed to prevent duplicate XP
-    const { data: existingProgress, error: fetchError } = await supabase
-        .from('user_game_progress')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('completed_level_id', levelId)
-        .maybeSingle();
-
-    if (fetchError) {
-        console.error("Error checking existing game progress:", fetchError);
-        // Decide if you want to stop or continue. Let's continue but log the error.
-    }
-    
-    const isFirstCompletion = !existingProgress;
-
     const { error } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
         game_id: gameId,
@@ -856,13 +841,11 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         return { success: false, error: "Could not save progress." };
     }
     
-    if (isFirstCompletion) {
-        const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp });
+    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp, is_perfect: isPerfect });
 
-        if (rpcError) {
-            console.error("Error updating user XP:", rpcError);
-            // This is not a critical failure, so we don't return an error to the client
-        }
+    if (rpcError) {
+        console.error("Error updating user XP and streak:", rpcError);
+        // This is not a critical failure, so we don't return an error to the client
     }
 
     revalidatePath(`/playground/${gameId}`);
@@ -902,8 +885,6 @@ export async function createNewChat(title: string): Promise<Chat | null> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        // For anonymous users, we can't create a persistent chat.
-        // The client will handle this case optimistically without a db record.
         return null;
     }
 
@@ -930,13 +911,11 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
          return { success: false, error: "User not authenticated" };
     }
 
-    // Verify user owns the chat
     const { count, error: countError } = await supabase.from('chats').select('*', { count: 'exact', head: true }).eq('id', chatId).eq('user_id', user.id);
     if (countError || count === 0) {
         return { success: false, error: "User does not own chat or chat does not exist."};
     }
     
-    // Delete existing messages and insert new ones to ensure consistency
     await supabase.from('chat_messages').delete().eq('chat_id', chatId);
 
     const messagesToInsert = messages.map(msg => ({
@@ -951,7 +930,6 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
         return { success: false, error: "Failed to save messages." };
     }
 
-    // Trigger analysis if the conversation has at least 2 messages (1 user, 1 model)
     if (messages.length >= 2) {
         const transcript = messages.map(m => `${m.role}: ${m.content}`).join('\n');
         try {
@@ -963,7 +941,6 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
             }, { onConflict: 'chat_id' });
         } catch (e) {
             console.error("Failed to update chat analysis:", e);
-            // Don't block the main operation for this
         }
     }
     
@@ -986,6 +963,3 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     revalidatePath('/chat', 'layout');
     return { success: true, error: null };
 }
-    
-
-    
