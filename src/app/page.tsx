@@ -28,7 +28,7 @@ import { AnimatedGridBackground } from '@/components/animated-grid-background';
 import { cn } from '@/lib/utils';
 import { FuturisticButton } from '@/components/futuristic-button';
 import { NewsletterTerminal } from '@/components/newsletter-terminal';
-import { HelpSection } from '@/components/help-section';
+import { ContactForm } from '@/components/contact-form';
 
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
@@ -173,7 +173,7 @@ export default async function Home() {
         {/* New Play & Learn Section */}
         <section className="py-20">
             <div className="container mx-auto">
-                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8">
+                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-500">
                     <AnimatedGridBackground />
                     <div className="relative z-10 flex flex-col items-center">
                         <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
@@ -190,9 +190,9 @@ export default async function Home() {
             </div>
         </section>
 
-        {/* Newsletter Section */}
+        {/* Newsletter & Help Section */}
         <section className="py-20 container mx-auto">
-            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[300px]">
+            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[400px]">
                 <div className="newsletter-bg"></div>
                 <div className="relative z-10 text-center">
                     <h2 className="text-3xl font-bold text-white mb-4">Stay Up-to-Date</h2>
@@ -200,15 +200,17 @@ export default async function Home() {
                         Join our newsletter to get the latest updates on new courses, game releases, and special offers delivered straight to your inbox.
                     </p>
                     <NewsletterTerminal />
+                    <div className="mt-8">
+                       <p className="text-sm text-neutral-400 mb-2">Or get in touch with us directly.</p>
+                       <ContactForm>
+                            <Button variant="outline" className="bg-transparent text-white border-white/50 hover:bg-white/10 hover:text-white">
+                                Get Help
+                            </Button>
+                        </ContactForm>
+                    </div>
                 </div>
             </div>
         </section>
-
-        {/* Help Section */}
-        <section className="py-20 container mx-auto">
-          <HelpSection />
-        </section>
-
 
         {/* Testimonials Carousel */}
         <section className="py-20 bg-card/20">
