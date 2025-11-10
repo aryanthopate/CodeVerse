@@ -195,6 +195,7 @@ function ManualCodePractice({ level, onRunCode, onGetHint, onCodeChange, code, i
                     value={code}
                     onChange={(e) => onCodeChange(e.target.value)}
                     className="w-full h-full p-4 bg-gray-900 text-white font-mono rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    placeholder="Write your solution here..."
                 />
             </div>
         </div>
@@ -213,14 +214,12 @@ export default function GameLevelPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [showIntro, setShowIntro] = useState(true);
-    const [gameState, setGameState] = useState<'playing' | 'levelComplete'>('playing');
+    const [gameState, setGameState] = useState<'puzzle' | 'manual' | 'levelComplete'>('puzzle');
     const [showSolution, setShowSolution] = useState(false);
     
     // New game state
     const [lives, setLives] = useState(3);
     const [streak, setStreak] = useState(0);
-    const [stage, setStage] = useState(1);
-    const totalStages = 1; // For now, we'll have one stage per level
 
     const [feedback, setFeedback] = useState('');
     const [hint, setHint] = useState('');
@@ -247,19 +246,54 @@ export default function GameLevelPage() {
 
     const handleStageComplete = () => {
         setStreak(s => s + 1);
-        if (stage < totalStages) {
-            setStage(s => s + 1);
-            // In a multi-stage level, you would load the next stage's content here.
-        } else {
-            handleLevelComplete();
-        }
+        handleLevelComplete();
     };
+
+     const handleRunCode = useCallback(async (codeToRun: string) => {
+        if (!level || !codeToRun) return;
+        setIsChecking(true);
+        setFeedback('');
+        setHint('');
+        setRunOutput('Analyzing code...');
+        setRunOutputIsError(false);
+        
+        try {
+            const solutionCode = level.expected_output || '';
+            const userCodeCleaned = codeToRun.replace(/\s+/g, ' ').trim();
+            const solutionCleaned = solutionCode.replace(/\s+/g, ' ').trim();
+
+            if (userCodeCleaned === solutionCleaned) {
+                setIsCorrect(true);
+                setRunOutput('Success! Output matches expected result.');
+                setFeedback(level.correct_feedback || 'Great job! Your code is correct.');
+                await handleStageComplete();
+            } else {
+                 const result = await reviewCodeAndProvideFeedback({
+                    code: codeToRun,
+                    solution: solutionCode,
+                    programmingLanguage: game?.language || 'code',
+                });
+                setIsCorrect(false);
+                setRunOutputIsError(true);
+                setRunOutput('Execution finished. See AI feedback.');
+                setFeedback(result.feedback || level.incorrect_feedback || "That's not quite right. Try again!");
+                handleIncorrectAnswer();
+            }
+        } catch (e: any) {
+            setRunOutputIsError(true);
+            setRunOutput('Error during analysis.');
+            setFeedback(`Error getting feedback: ${e.message}`);
+        } finally {
+            setIsChecking(false);
+        }
+    }, [level, game, handleStageComplete]);
+
     
     const handleIncorrectAnswer = () => {
         setLives(l => Math.max(0, l - 1));
         setStreak(0);
         if (lives - 1 <= 0) {
-            setGameState('levelComplete'); // Or a new 'gameOver' state
+            setGameState('levelComplete'); // Game over is a form of level completion
         }
     };
 
@@ -387,7 +421,6 @@ export default function GameLevelPage() {
                     </div>
                      <div className="text-center">
                         <h1 className="text-xl font-bold">{level.title}</h1>
-                        <p className="text-sm text-[hsl(var(--game-text))]/60">Stage {stage} of {totalStages}</p>
                     </div>
                     <div className="w-[200px] flex justify-end items-center gap-4">
                         <div className="flex items-center gap-2 font-bold text-yellow-400">
@@ -407,7 +440,7 @@ export default function GameLevelPage() {
                         <div className="flex flex-col h-full" ref={gameAreaRef}>
                             <div className="flex-grow relative">
                                 {gameState === 'manual' ? (
-                                    <ManualCodePractice level={level} onRunCode={() => {}} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
+                                    <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
                                 ) : (
                                     <>
                                         <CodeScrambleGame
@@ -431,7 +464,12 @@ export default function GameLevelPage() {
                                     <h2 className="text-lg font-semibold mb-2">Objective</h2>
                                     <p className="text-sm text-[hsl(var(--game-text))]/80">{level.objective}</p>
                                     <div className="mt-4">
-                                        <button className="btn-game !py-2 !px-4" onClick={() => setGameState('manual')}><Code className="mr-2" /> Switch to Manual Mode</button>
+                                        {gameState === 'puzzle' && (
+                                            <button className="btn-game !py-2 !px-4" onClick={() => setGameState('manual')}><Code className="mr-2" /> Switch to Manual Mode</button>
+                                        )}
+                                        {gameState === 'manual' && (
+                                            <button className="btn-game !py-2 !px-4" onClick={() => setGameState('puzzle')}><Code className="mr-2" /> Switch to Puzzle Mode</button>
+                                        )}
                                     </div>
                                 </ScrollArea>
                             </ResizablePanel>
@@ -468,3 +506,4 @@ export default function GameLevelPage() {
         </div>
     );
 }
+

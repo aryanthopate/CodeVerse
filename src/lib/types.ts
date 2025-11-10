@@ -1,4 +1,5 @@
 
+
 import type { Database } from './supabase/database.types';
 
 export interface UserProfile {
@@ -72,11 +73,8 @@ export type UserGameProgress = Database['public']['Tables']['user_game_progress'
 export type GameSettings = Database['public']['Tables']['game_settings']['Row'];
 export type WebsiteSettings = Database['public']['Tables']['website_settings']['Row'];
 
-<<<<<<< HEAD
 export type ChatAnalysis = Database['public']['Tables']['chat_analysis']['Row'];
 
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
 
 // Custom combined types for nested data fetching
 export type QuestionWithOptions = Question & {
@@ -122,8 +120,5 @@ declare module 'next/navigation' {
         levelSlug?: string;
     }
 }
-<<<<<<< HEAD
 
     
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594

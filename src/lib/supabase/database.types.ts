@@ -44,7 +44,6 @@ export type Database = {
           },
         ]
       }
-<<<<<<< HEAD
       chat_analysis: {
         Row: {
           chat_id: string
@@ -77,8 +76,6 @@ export type Database = {
           },
         ]
       }
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
       chat_messages: {
         Row: {
           chat_id: string
@@ -908,7 +905,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_xp: {
+        Args: {
+          user_id_in: string
+          xp_to_add: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -1015,8 +1018,4 @@ export type Composites<
   : PublicCompositeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][CompositeName]
     : never
-<<<<<<< HEAD
-
     
-=======
->>>>>>> db0a7395fa057f7870b1d6661ca8a18cfaee8594
