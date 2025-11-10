@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { getGameAndLevelDetails, getGameSettings } from '@/lib/supabase/queries';
 import { GameWithChaptersAndLevels, GameLevel, GameSettings, GameChapter } from '@/lib/types';
 import Link from 'next/link';
-import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, Heart, ShieldX, RefreshCw, Code, BookOpen } from 'lucide-react';
+import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, RefreshCw, Code, BookOpen, GripVertical } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
 import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
 import { generateDistractors } from '@/ai/flows/generate-distractors';
@@ -24,316 +24,134 @@ import { cn } from '@/lib/utils';
 import Confetti from 'react-confetti';
 import { completeGameLevel } from '@/lib/supabase/actions';
 
-
-interface Bubble {
-  id: number;
-  text: string;
-  x: number;
-  y: number;
-  isTarget: boolean;
-  state: 'active' | 'hit-correct' | 'hit-wrong';
-}
-
-interface Bullet {
-  id: number;
-  x: number;
-  y: number;
-}
-
-const lanePositions = [15, 38, 61, 84];
-
-function CodeBubbleGame({
+// New Drag-and-Drop Game Component
+function CodeScrambleGame({
     level,
+    gameLanguage,
     onLevelComplete,
-    onGameOver,
-    onCodeChange,
-    gameSlug,
-    onStartGame,
-    gameStarted,
-    rocketImageUrl,
-    onRestart,
-    distractors,
-    isGeneratingDistractors,
+    onCodeChange
 }: {
-    level: GameLevel,
-    onLevelComplete: () => void,
-    onGameOver: () => void,
-    onCodeChange: (updater: (prevCode: string) => string) => void;
-    gameSlug: string;
-    onStartGame: () => void;
-    gameStarted: boolean;
-    rocketImageUrl: string | null;
-    onRestart: () => void;
-    distractors: string[],
-    isGeneratingDistractors: boolean;
+    level: GameLevel;
+    gameLanguage: string;
+    onLevelComplete: () => void;
+    onCodeChange: (newCode: string) => void;
 }) {
-    const rocketRef = useRef<HTMLDivElement>(null);
-    const gameAreaRef = useRef<HTMLDivElement>(null);
-
-    const bubblesRef = useRef<Bubble[]>([]);
-    const bulletsRef = useRef<Bullet[]>([]);
-    const targetIndexRef = useRef(0);
-    const livesRef = useRef(3);
-    const gameLoopRef = useRef<number>();
-    const lastBubbleTimeRef = useRef(Date.now());
-    const isGameOverRef = useRef(false);
-
-    const [renderTrigger, setRenderTrigger] = useState(0);
-
-    const forceRender = useCallback(() => setRenderTrigger(c => c + 1), []);
+    const [pieces, setPieces] = useState<string[]>([]);
+    const [solution, setSolution] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
     const correctSnippets = useMemo(() => {
         return level.expected_output?.match(/([a-zA-Z_]\w*|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\d+)/g) || [];
     }, [level.expected_output]);
 
-    const fireBullet = useCallback(() => {
-        if (isGameOverRef.current || !rocketRef.current || !gameAreaRef.current) return;
-        
-        const rocketRect = rocketRef.current.getBoundingClientRect();
-        const gameAreaRect = gameAreaRef.current.getBoundingClientRect();
-
-        const newBullet: Bullet = {
-            id: Date.now(),
-            x: rocketRect.left - gameAreaRect.left + rocketRect.width / 2,
-            y: rocketRect.top - gameAreaRect.top,
-        };
-        bulletsRef.current.push(newBullet);
-        forceRender();
-    }, [forceRender]);
-
-    const gameLoop = useCallback(() => {
-        if (!gameAreaRef.current || isGameOverRef.current || !gameStarted) {
-            gameLoopRef.current = requestAnimationFrame(gameLoop);
-            return;
-        }
-
-        const now = Date.now();
-        const gameAreaHeight = gameAreaRef.current.offsetHeight;
-        let needsRender = false;
-        
-        if (now - lastBubbleTimeRef.current > 2000 && bubblesRef.current.filter(b => b.isTarget && b.state === 'active').length < 1) { 
-             if (targetIndexRef.current < correctSnippets.length) {
-                const newBubbles: Bubble[] = [];
-                const targetText = correctSnippets[targetIndexRef.current];
-                const availableLanes = [0, 1, 2, 3];
-                
-                const targetLaneIndex = Math.floor(Math.random() * availableLanes.length);
-                const targetLane = availableLanes.splice(targetLaneIndex, 1)[0];
-                newBubbles.push({ id: now, text: targetText, x: targetLane, y: -50, isTarget: true, state: 'active' });
-    
-                const distractorLaneIndex = Math.floor(Math.random() * availableLanes.length);
-                const distractorLane = availableLanes.splice(distractorLaneIndex, 1)[0];
-                let distractorText = distractors[Math.floor(Math.random() * distractors.length)] || 'SyntaxError';
-                
-                newBubbles.push({ id: now + 1, text: distractorText, x: distractorLane, y: -50, isTarget: false, state: 'active' });
-                
-                bubblesRef.current.push(...newBubbles);
-                lastBubbleTimeRef.current = now;
-                needsRender = true;
-            }
-        }
-    
-        if (bulletsRef.current.length > 0) {
-            bulletsRef.current = bulletsRef.current.map(bullet => ({ ...bullet, y: bullet.y - 12 })).filter(bullet => bullet.y > -20);
-            needsRender = true;
-        }
-        
-        let hitBulletIds = new Set<number>();
-        let stateChanged = false;
-
-        const newBubbles: Bubble[] = [];
-        
-        for (const bubble of bubblesRef.current) {
-            let keepBubble = true;
-            
-            if (bubble.state === 'active') {
-                 const newY = bubble.y + 0.8;
-                if (newY > gameAreaHeight) {
-                    if (bubble.isTarget) {
-                        livesRef.current--;
-                        stateChanged = true;
-                    }
-                    keepBubble = false;
-                } else {
-                    bubble.y = newY;
-                    needsRender = true;
-                }
-
-                if (keepBubble) {
-                     for (const bullet of bulletsRef.current) {
-                        if (hitBulletIds.has(bullet.id)) continue;
-
-                        const bubbleX = (lanePositions[bubble.x] / 100) * gameAreaRef.current!.offsetWidth;
-                        const distance = Math.sqrt(Math.pow(bullet.x - bubbleX, 2) + Math.pow(bullet.y - bubble.y, 2));
-
-                        if (distance < 40) {
-                            hitBulletIds.add(bullet.id);
-                            bubble.state = bubble.isTarget ? 'hit-correct' : 'hit-wrong';
-                            stateChanged = true;
-
-                            if (bubble.isTarget) {
-                                onCodeChange(prevCode => {
-                                    const newCode = bubble.text;
-                                    if (!prevCode.trim() || prevCode.endsWith('\n') || prevCode.endsWith(' ')) return prevCode + newCode;
-                                    const lastChar = prevCode.slice(-1);
-                                    if (['(', '[', '{', '.', ';', ','].includes(lastChar) || [')', ';'].includes(newCode)) return prevCode + newCode;
-                                    return prevCode + ' ' + newCode;
-                                });
-                                targetIndexRef.current++;
-                            } else {
-                                livesRef.current--;
-                            }
-                            
-                            setTimeout(() => {
-                                bubblesRef.current = bubblesRef.current.filter(b => b.id !== bubble.id);
-                            }, 300);
-
-                            keepBubble = false;
-                            break; 
-                        }
-                    }
-                }
-            }
-             if (keepBubble) {
-                newBubbles.push(bubble);
-            }
-        }
-        bubblesRef.current = newBubbles;
-        
-        if (hitBulletIds.size > 0) {
-             bulletsRef.current = bulletsRef.current.filter(b => !hitBulletIds.has(b.id));
-             needsRender = true;
-        }
-
-        if (livesRef.current <= 0 && !isGameOverRef.current) {
-            isGameOverRef.current = true;
-            onGameOver();
-            needsRender = true;
-        }
-
-        if (targetIndexRef.current >= correctSnippets.length && correctSnippets.length > 0 && !isGameOverRef.current) {
-             const anyActiveTargets = bubblesRef.current.some(b => b.isTarget && b.state === 'active');
-             if(!anyActiveTargets) {
-                isGameOverRef.current = true;
-                setTimeout(onLevelComplete, 500);
-                needsRender = true;
-            }
-        }
-        
-        if (needsRender || stateChanged) {
-            forceRender();
-        }
-        gameLoopRef.current = requestAnimationFrame(gameLoop);
-    }, [onCodeChange, onGameOver, onLevelComplete, correctSnippets, forceRender, gameStarted, distractors]);
-    
     useEffect(() => {
-        const gameArea = gameAreaRef.current;
-        const rocket = rocketRef.current;
-        if (!gameArea || !rocket) return;
+        const setupGame = async () => {
+            setIsLoading(true);
+            const { distractors } = await generateDistractors({
+                language: gameLanguage,
+                correctSnippets: correctSnippets,
+                count: Math.max(3, Math.floor(correctSnippets.length / 2)),
+            });
 
-        const handleMouseMove = (e: MouseEvent) => {
-            if (isGameOverRef.current) return;
-            const rect = gameArea.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            rocket.style.transform = `translateX(${x - rocket.offsetWidth / 2}px)`;
-        };
-        const handleClick = (e: MouseEvent) => {
-            if ((e.target as HTMLElement).closest('button, a')) {
-                return;
+            const allPieces = [...correctSnippets, ...distractors];
+            // Shuffle the pieces
+            for (let i = allPieces.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
             }
-            fireBullet();
+            setPieces(allPieces);
+            setSolution([]);
+            setIsLoading(false);
+            setIsCorrect(null);
+            onCodeChange('');
         };
+        setupGame();
+    }, [level, correctSnippets, gameLanguage, onCodeChange]);
 
-        gameArea.addEventListener('mousemove', handleMouseMove);
-        gameArea.addEventListener('click', handleClick);
-
-        if (gameStarted) {
-            isGameOverRef.current = false;
-            bubblesRef.current = [];
-            bulletsRef.current = [];
-            targetIndexRef.current = 0;
-            livesRef.current = 3;
-            lastBubbleTimeRef.current = Date.now();
-            if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
-            gameLoopRef.current = requestAnimationFrame(gameLoop);
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const pieceText = e.dataTransfer.getData('text/plain');
+        if (pieceText && !solution.includes(pieceText)) {
+            setSolution(prev => [...prev, pieceText]);
+            // Don't remove from pieces to allow reuse if needed, just handle logic
         }
+    };
 
-        return () => {
-            if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
-            if (gameArea) {
-                gameArea.removeEventListener('mousemove', handleMouseMove);
-                gameArea.removeEventListener('click', handleClick);
-            }
-        };
-    }, [gameStarted, gameLoop, fireBullet]);
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, text: string) => {
+        e.dataTransfer.setData('text/plain', text);
+    };
 
-    const handleButtonClick = (e: React.MouseEvent<HTMLElement>, action: () => void) => {
-        e.stopPropagation();
-        action();
-    }
+    const resetSolution = () => {
+        setSolution([]);
+        setIsCorrect(null);
+        onCodeChange('');
+    };
+
+    const checkSolution = () => {
+        const isSolutionCorrect = solution.join(' ') === correctSnippets.join(' ');
+        setIsCorrect(isSolutionCorrect);
+        if (isSolutionCorrect) {
+            onCodeChange(solution.join(' '));
+            onLevelComplete();
+        }
+    };
 
     return (
-        <div ref={gameAreaRef} id="game-area" className="w-full h-full bg-gray-900/50 rounded-lg relative overflow-hidden border border-border cursor-crosshair">
-            {!gameStarted && (
-                 <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <button className="btn-game" onClick={(e) => handleButtonClick(e, onStartGame)} disabled={isGeneratingDistractors}>
-                        {isGeneratingDistractors ? <><Loader2 className="mr-2 animate-spin" /> Generating Mission...</> : <><Play className="mr-2" /> Start Mission</>}
-                    </button>
+        <div className="flex flex-col h-full bg-gray-900/50 rounded-lg border border-border p-4 gap-4">
+            {isLoading ? (
+                <div className="flex-grow flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary"/>
+                    <p className="ml-2">Preparing the challenge...</p>
                 </div>
-            )}
-            <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 -z-10 animate-pulse"></div>
-
-            <div className="absolute top-4 left-4 flex items-center gap-4 z-20">
-                <div className="flex items-center gap-2">
-                    <span className="font-bold text-white">Lives:</span>
-                    <div className="flex gap-1">
-                        {[...Array(3)].map((_, i) => (
-                            <Heart key={i} className={cn("w-5 h-5 transition-colors", i < livesRef.current ? "text-red-500 fill-red-500" : "text-muted-foreground/50")} />
-                        ))}
+            ) : (
+                <>
+                    <div className="flex-grow space-y-4">
+                        <div
+                            onDrop={handleDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                            className={cn(
+                                "min-h-[100px] bg-black/30 rounded-lg p-4 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-center transition-colors",
+                                isCorrect === true && "border-green-500",
+                                isCorrect === false && "border-red-500"
+                            )}
+                        >
+                            {solution.length === 0 && <p className="text-gray-400">Drag code pieces here</p>}
+                            {solution.map((text, i) => (
+                                <div key={i} className="bg-primary/80 text-primary-foreground px-3 py-1 rounded-md font-mono">
+                                    {text}
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-sm text-gray-400">Assemble the code pieces in the correct order to solve the puzzle.</p>
+                        <div className="bg-black/30 rounded-lg p-4 flex flex-wrap gap-3">
+                            {pieces.map((text, i) => (
+                                <div
+                                    key={i}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, text)}
+                                    className="bg-gray-700 hover:bg-gray-600 cursor-grab px-3 py-1 rounded-md font-mono flex items-center gap-2"
+                                >
+                                    <GripVertical className="w-4 h-4 text-gray-400"/>
+                                    {text}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-                <button className="btn-game !py-1 !px-3" onClick={(e) => handleButtonClick(e, onRestart)}><RefreshCw className="mr-2" /> Restart</button>
-                 <Link href={`/playground/${gameSlug}`} onClick={(e) => e.stopPropagation()} className="btn-game !py-1 !px-3 !bg-red-800/80 !border-red-600/80 !shadow-red-900/80"><X className="mr-2" /> Quit</Link>
-            </div>
-
-            {bubblesRef.current.map(bubble => (
-                <div
-                    key={bubble.id}
-                    className={cn(
-                        "absolute px-3 py-2 rounded-full text-white font-mono text-sm",
-                        "backdrop-blur-sm border-2 shadow-lg",
-                        "transition-all duration-100",
-                        bubble.state === 'active' && "bg-primary/50 border-primary/80 shadow-primary/20",
-                        bubble.state === 'hit-correct' && "bg-green-500/70 border-green-400 shadow-green-500/40 animate-burst",
-                        bubble.state === 'hit-wrong' && "bg-red-500/70 border-red-400 shadow-red-500/40 animate-shake",
-                    )}
-                    style={{
-                        top: `${bubble.y}px`,
-                        left: `${lanePositions[bubble.x]}%`,
-                        transform: `translateX(-50%)`,
-                    }}
-                >
-                    {bubble.text}
-                </div>
-            ))}
-            {bulletsRef.current.map(bullet => (
-                <div
-                    key={bullet.id}
-                    className="absolute w-1 h-4 bg-primary rounded-full shadow-lg shadow-primary/80"
-                    style={{
-                        left: `${bullet.x}px`,
-                        top: `${bullet.y}px`,
-                        transform: 'translateX(-50%)'
-                    }}
-                />
-            ))}
-            <div ref={rocketRef} className="absolute bottom-4 h-24 w-20 will-change-transform z-10">
-                <Image src={rocketImageUrl || "/images/rocket-game.png"} alt="Rocket" width={80} height={96} className="h-24 w-20 object-contain" />
-            </div>
+                    <div className="flex-shrink-0 flex gap-4">
+                         <button className="btn-game flex-1" onClick={checkSolution} disabled={solution.length === 0}>
+                            <CheckCircle className="mr-2"/> Check Answer
+                        </button>
+                        <button className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80" onClick={resetSolution}>
+                            <RefreshCw className="mr-2"/> Reset
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
-    )
+    );
 }
+
 
 function CodeEditor({ code }: { code: string }) {
     return (
@@ -390,10 +208,9 @@ export default function GameLevelPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [showIntro, setShowIntro] = useState(true);
-    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver' | 'manual' | 'reviewing'>('playing');
+    const [gameState, setGameState] = useState<'playing' | 'levelComplete' | 'gameOver' | 'manual'>('playing');
     const [showSolution, setShowSolution] = useState(false);
-    const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
-
+    
     const [feedback, setFeedback] = useState('');
     const [hint, setHint] = useState('');
     const [isChecking, setIsChecking] = useState(false);
@@ -404,12 +221,9 @@ export default function GameLevelPage() {
 
     const [showConfetti, setShowConfetti] = useState(false);
     const [finalCode, setFinalCode] = useState('');
-    const [gameStarted, setGameStarted] = useState(false);
-    const [distractors, setDistractors] = useState<string[]>([]);
-    const [isGeneratingDistractors, setIsGeneratingDistractors] = useState(true);
     
-    const handleCodeChange = useCallback((updater: (prevCode: string) => string) => {
-        setFinalCode(updater);
+    const handleCodeChange = useCallback((newCode: string) => {
+        setFinalCode(newCode);
     }, []);
     
     const handleLevelComplete = useCallback(async () => {
@@ -462,15 +276,6 @@ export default function GameLevelPage() {
         }
     }, [level, game, handleLevelComplete]);
 
-    const handleBubblePhaseComplete = useCallback(async () => {
-        setGameState('reviewing');
-        setTimeout(() => handleRunCode(finalCode), 1000);
-    }, [finalCode, handleRunCode]);
-
-    const handleGameOver = useCallback(() => {
-        setGameState('gameOver');
-    }, []);
-
     const handleRestart = useCallback(() => {
         setGameState('playing');
         setFeedback('');
@@ -479,7 +284,6 @@ export default function GameLevelPage() {
         setRunOutput('');
         setShowSolution(false);
         setFinalCode(level?.starter_code || '');
-        setGameStarted(false); 
     }, [level]);
 
     useEffect(() => {
@@ -491,12 +295,7 @@ export default function GameLevelPage() {
             }
             setUser(user);
 
-            const [gameDetails, settingsData] = await Promise.all([
-                getGameAndLevelDetails(params.gameSlug as string, params.levelSlug as string),
-                getGameSettings()
-            ]);
-
-            const { game, level, chapter, nextLevel } = gameDetails;
+            const { game, level, chapter, nextLevel } = await getGameAndLevelDetails(params.gameSlug as string, params.levelSlug as string);
 
             if (game && level && chapter) {
                 setGame(game as GameWithChaptersAndLevels);
@@ -504,19 +303,6 @@ export default function GameLevelPage() {
                 setChapter(chapter as GameChapter);
                 setNextLevel(nextLevel);
                 setFinalCode(level.starter_code || '');
-                
-                setIsGeneratingDistractors(true);
-                const { distractors } = await generateDistractors({
-                    language: game.language || 'code',
-                    correctSnippets: level.expected_output?.match(/([a-zA-Z_]\w*|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\d+)/g) || [],
-                    count: 10
-                });
-                setDistractors(distractors);
-                setIsGeneratingDistractors(false);
-
-            }
-            if(settingsData) {
-                setGameSettings(settingsData);
             }
             setLoading(false);
         };
@@ -544,7 +330,7 @@ export default function GameLevelPage() {
         if (gameState === 'levelComplete') {
             return (
                  <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
-                    {showConfetti && <Confetti recycle={false} numberOfPieces={400} width={gameAreaRef.current?.offsetWidth} height={gameAreaRef.current?.offsetHeight}/>}
+                    {showConfetti && <Confetti recycle={false} numberOfPieces={500} gravity={0.2} />}
                     <div className="flex gap-4 items-center">
                          <Bot className="w-32 h-32 text-primary animate-bounce" />
                          <div className="p-6 bg-card/80 rounded-xl relative">
@@ -565,20 +351,6 @@ export default function GameLevelPage() {
             )
         }
 
-        if (gameState === 'gameOver') {
-            return (
-                <div className="absolute inset-0 w-full h-full bg-gray-900/80 rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
-                    <ShieldX className="w-24 h-24 text-red-400 mb-4" />
-                    <h3 className="text-2xl font-bold">Game Over</h3>
-                    <p className="text-muted-foreground mt-2">You've run out of lives.</p>
-                    <div className="flex gap-4 mt-6">
-                        <button className="btn-game" onClick={handleRestart}><RefreshCw className="mr-2" />Try Again</button>
-                        <button className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80" onClick={() => setShowSolution(true)}><BookOpen className="mr-2" /> Show Solution</button>
-                        <button className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80" onClick={() => setGameState('manual')}><Code className="mr-2" /> Try Manual Mode</button>
-                    </div>
-                </div>
-            );
-        }
         return null;
     };
 
@@ -643,19 +415,11 @@ export default function GameLevelPage() {
                                     <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
                                 ) : (
                                     <>
-                                        <CodeBubbleGame
-                                            key={`${gameState}-${level.id}`}
+                                        <CodeScrambleGame
                                             level={level}
-                                            onLevelComplete={handleBubblePhaseComplete}
-                                            onGameOver={handleGameOver}
+                                            gameLanguage={game.language || 'code'}
+                                            onLevelComplete={handleLevelComplete}
                                             onCodeChange={handleCodeChange}
-                                            gameSlug={game.slug}
-                                            onStartGame={() => setGameStarted(true)}
-                                            gameStarted={gameStarted}
-                                            rocketImageUrl={gameSettings?.rocket_image_url || null}
-                                            onRestart={handleRestart}
-                                            distractors={distractors}
-                                            isGeneratingDistractors={isGeneratingDistractors}
                                         />
                                         <GameStatusOverlay />
                                     </>
@@ -670,6 +434,9 @@ export default function GameLevelPage() {
                                 <ScrollArea className="h-full p-4">
                                     <h2 className="text-lg font-semibold mb-2">Objective</h2>
                                     <p className="text-sm text-[hsl(var(--game-text))]/80">{level.objective}</p>
+                                    <div className="mt-4">
+                                        <button className="btn-game !py-2 !px-4" onClick={() => setGameState('manual')}><Code className="mr-2" /> Switch to Manual Mode</button>
+                                    </div>
                                 </ScrollArea>
                             </ResizablePanel>
                             <ResizableHandle withHandle />
