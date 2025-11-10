@@ -116,10 +116,9 @@ export default async function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow">
-        <MatrixBackground />
         
         {/* Hero Section */}
-        <section className="pt-32 pb-20 text-center container mx-auto">
+        <section className="pt-32 pb-20 text-center container mx-auto relative z-10">
           <Badge variant="outline" className="mb-4 border-primary/50 text-primary animate-float">
             From Video to Code — The AI Way
           </Badge>

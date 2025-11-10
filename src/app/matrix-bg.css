@@ -1,8 +1,7 @@
 
 .matrix-container {
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: #000;
@@ -31,7 +30,7 @@
 }
 
 .matrix-column::before {
-  content: "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  content: "<div> <p> <h1> <h2> <h3> <h4> <h5> <h6> <span> <a> <img> <video> <audio> <ul> <ol> <li> <table> <tr> <td> <th> <thead> <tbody> <tfoot> <form> <input> <button> <label> <textarea> <select> <option> <style> <script> <link> <meta> <title> <body> <html> <head> ";
   position: absolute;
   top: 0;
   left: 0;
@@ -262,23 +261,23 @@
 }
 
 .matrix-column:nth-child(odd)::before {
-  content: "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン123456789";
+  content: "font-size color background margin padding border display position top left right bottom width height flex grid block inline absolute relative fixed z-index overflow";
 }
 
 .matrix-column:nth-child(even)::before {
-  content: "ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポヴァィゥェォャュョッABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  content: "class= id= src= href= alt= style= type= value= placeholder= required disabled checked selected multiple readonly onclick onchange onsubmit onkeydown onkeyup onload";
 }
 
 .matrix-column:nth-child(3n)::before {
-  content: "アカサタナハマヤラワイキシチニヒミリウクスツヌフムユルエケセテネヘメレオコソトノホモヨロヲン0987654321";
+  content: "<html> <head> <body> <div> <p> <h1> <h2> <h3> <h4> <h5> <h6> <span> <a> <img> <video> <audio> <ul> <ol> <li> <table> <tr> <td> <th> <thead> <tbody> <tfoot> <form> <input> <button> <label> <textarea> <select> <option> <style> <script> <link> <meta> <title>";
 }
 
 .matrix-column:nth-child(4n)::before {
-  content: "ンヲロヨモホノトソコオレメヘネテセケエルユムフヌツスクウリミヒニチシキイワラヤマハナタサカア";
+  content: "background-color background-image background-size font-family font-weight text-align text-decoration border-radius box-shadow transition animation transform opacity filter backdrop-filter";
 }
 
 .matrix-column:nth-child(5n)::before {
-  content: "ガザダバパギジヂビピグズヅブプゲゼデベペゴゾドボポヴァィゥェォャュョッ!@#$%^&*()_+-=[]{}|;:,.<>?";
+  content: "{ } ( ) [ ] ; : , . # ! @ $ % ^ & * - _ + = | / ? ' \" ` ~";
 }
 
 @keyframes fall {

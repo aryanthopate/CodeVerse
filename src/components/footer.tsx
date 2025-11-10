@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Github, Twitter, Linkedin } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { MatrixBackground } from './matrix-background';
 
 export function Footer() {
   const pathname = usePathname();
@@ -20,12 +21,13 @@ export function Footer() {
 
   return (
     <footer className={cn(
-      "mt-auto",
+      "mt-auto relative overflow-hidden",
       isGameTheme
         ? "bg-[hsl(var(--game-surface))] border-t-2 border-[hsl(var(--game-border))]"
         : "bg-card/50 border-t border-border/50"
     )}>
-      <div className="container mx-auto px-4 md:px-6 py-8">
+      <MatrixBackground />
+      <div className="container mx-auto px-4 md:px-6 py-8 relative z-10">
         <div className="grid md:grid-cols-3 gap-8">
           <div className="space-y-4">
             <Logo isGameTheme={isGameTheme} />
@@ -56,7 +58,7 @@ export function Footer() {
             </div>
           </div>
         </div>
-        <div className={cn("mt-8 border-t pt-8 text-center text-sm", isGameTheme ? "border-[hsl(var(--game-border))] text-[hsl(var(--game-text))]/70" : "border-border/50 text-muted-foreground")}>
+        <div className={cn("mt-8 border-t pt-8 text-center text-sm", isGameTheme ? "border-[hsl(var(--game-border))]" : "border-border/50 text-muted-foreground")}>
           <p>&copy; {new Date().getFullYear()} CodeVerse. All rights reserved.</p>
         </div>
       </div>
