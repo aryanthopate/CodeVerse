@@ -909,6 +909,7 @@ export type Database = {
         Args: {
           user_id_in: string
           xp_to_add: number
+          is_perfect_in: boolean
         }
         Returns: undefined
       }
@@ -1018,4 +1019,6 @@ export type Composites<
   : PublicCompositeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][CompositeName]
     : never
+    
+
     

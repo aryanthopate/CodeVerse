@@ -841,7 +841,7 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         return { success: false, error: "Could not save progress." };
     }
     
-    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp, is_perfect: isPerfect });
+    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp, is_perfect_in: isPerfect });
 
     if (rpcError) {
         console.error("Error updating user XP and streak:", rpcError);
@@ -963,3 +963,6 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     revalidatePath('/chat', 'layout');
     return { success: true, error: null };
 }
+
+
+    

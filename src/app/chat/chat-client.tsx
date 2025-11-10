@@ -169,7 +169,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 const newChat = await createNewChat(currentInput);
                 if (newChat) {
                     // Force a full page reload to the new chat URL
-                    window.location.href = `/chat/${newChat.id}`;
+                    router.push(`/chat/${newChat.id}`);
                 } else {
                      toast({
                         variant: 'destructive',
