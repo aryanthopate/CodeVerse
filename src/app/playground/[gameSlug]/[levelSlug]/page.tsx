@@ -43,7 +43,7 @@ interface Piece {
 function DraggablePiece({ piece }: { piece: Piece }) {    
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: piece.id,
-        data: { text: piece.text, from: 'bucket' }
+        data: { text: piece.text }
     });
     
     const style = transform ? {
@@ -118,22 +118,15 @@ function CodeScrambleGame({
         const { over, active } = event;
         const pieceId = active.id as string;
         
-        if (over?.id === 'solution') {
-             const piece = availablePieces.find(p => p.id === pieceId) || solutionPieces.find(p => p.id === pieceId);
-            if (piece && !solutionPieces.some(p => p.id === pieceId)) {
-                setSolutionPieces(prev => [...prev, piece]);
-                setAvailablePieces(prev => prev.filter(p => p.id !== pieceId));
-            } else if (piece) { // Reordering
-                 const oldIndex = solutionPieces.findIndex(p => p.id === pieceId);
-                 // For simplicity, reordering is handled by dragging back to bucket first
-                 // A more complex solution would use over.data to find drop position
-            }
-        } else if (over?.id === 'bucket') {
-            const piece = solutionPieces.find(p => p.id === pieceId);
-            if (piece) {
-                setAvailablePieces(prev => [...prev, piece]);
-                setSolutionPieces(prev => prev.filter(p => p.id !== pieceId));
-            }
+        const pieceFromAvailable = availablePieces.find(p => p.id === pieceId);
+        const pieceFromSolution = solutionPieces.find(p => p.id === pieceId);
+
+        if (over?.id === 'solution' && pieceFromAvailable) {
+            setSolutionPieces(prev => [...prev, pieceFromAvailable]);
+            setAvailablePieces(prev => prev.filter(p => p.id !== pieceId));
+        } else if (over?.id === 'bucket' && pieceFromSolution) {
+            setAvailablePieces(prev => [...prev, pieceFromSolution]);
+            setSolutionPieces(prev => prev.filter(p => p.id !== pieceId));
         }
     };
 
@@ -177,7 +170,7 @@ function CodeScrambleGame({
                              <div
                                 ref={setSolutionRef}
                                 className={cn(
-                                    "min-h-[120px] bg-black/30 rounded-lg p-3 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-center transition-colors",
+                                    "min-h-[120px] bg-black/30 rounded-lg p-3 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-start content-start transition-colors",
                                     isCorrect === true && "border-green-500 bg-green-500/10",
                                     isCorrect === false && "border-red-500 bg-red-500/10 animate-shake"
                                 )}
@@ -557,4 +550,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
