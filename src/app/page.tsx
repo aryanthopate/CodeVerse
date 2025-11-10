@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { AnimatedGridBackground } from '@/components/animated-grid-background';
 import { cn } from '@/lib/utils';
+import { FuturisticButton } from '@/components/futuristic-button';
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     return (
@@ -170,16 +171,16 @@ export default async function Home() {
         <section className="py-20">
             <div className="relative container mx-auto h-[60vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8">
                  <AnimatedGridBackground />
-                <div className="relative z-10">
+                <div className="relative z-10 flex flex-col items-center">
                     <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
                         Enter the Playground
                     </h2>
                     <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
                         Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
                     </p>
-                    <Button size="lg" asChild className="mt-8 bg-[#5C63FF] text-white hover:bg-[#4a50e0] rounded-full px-10 py-6 text-lg font-semibold uppercase tracking-widest shadow-[0_0_20px_#5C63FF] transition-all duration-300 hover:shadow-[0_0_30px_#5C63FF] transform hover:-translate-y-1">
-                        <Link href="/playground">Start Playing</Link>
-                    </Button>
+                    <div className="mt-8">
+                       <FuturisticButton />
+                    </div>
                 </div>
             </div>
         </section>

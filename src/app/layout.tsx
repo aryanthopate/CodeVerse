@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
+import './futuristic-button.css';
 import { ChatWidget } from '@/components/chat-widget';
 import { ContactForm } from '@/components/contact-form';
 
