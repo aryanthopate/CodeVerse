@@ -177,7 +177,7 @@ export default async function Home() {
                     <AnimatedGridBackground />
                     <div className="relative z-10 flex flex-col items-center">
                         <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
-                            Enter the Playground
+                            ENTER THE PLAYGROUND
                         </h2>
                         <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
                             Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
@@ -190,24 +190,9 @@ export default async function Home() {
             </div>
         </section>
 
-        {/* Features Grid */}
-        <section className="py-20 container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Why CodeVerse?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="bg-card/50 border-border/50 p-6 text-center transform transition-all duration-300 hover:bg-card hover:shadow-xl hover:shadow-accent/10">
-                <div className="flex justify-center mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </Card>
-            ))}
-          </div>
-        </section>
-        
         {/* Newsletter Section */}
         <section className="py-20 container mx-auto">
-            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[300px]">
-                <div className="help-container -z-10"></div>
+            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[300px] newsletter-bg">
                 <div className="relative z-10 text-center">
                     <h2 className="text-3xl font-bold text-white mb-4">Stay Up-to-Date</h2>
                     <p className="text-neutral-300 max-w-2xl mb-8">

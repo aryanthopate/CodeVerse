@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import './futuristic-button.css';
 import './help-section.css';
+import './newsletter-terminal.css';
+import './newsletter-bg.css';
 
 export const metadata: Metadata = {
   title: 'CodeVerse - Learn to Code, Playfully.',
