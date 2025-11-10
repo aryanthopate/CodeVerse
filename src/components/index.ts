@@ -14,4 +14,5 @@ export * from './explain-code-dialog';
 export * from './add-note-dialog';
 export * from './animated-grid-background';
 export * from './futuristic-button';
-export * from './newsletter-terminal';
+export * from './help-section';
+export * from './contact-form';

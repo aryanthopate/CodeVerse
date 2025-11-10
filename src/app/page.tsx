@@ -27,7 +27,7 @@ import {
 import { AnimatedGridBackground } from '@/components/animated-grid-background';
 import { cn } from '@/lib/utils';
 import { FuturisticButton } from '@/components/futuristic-button';
-import { NewsletterTerminal } from '@/components/newsletter-terminal';
+import { HelpSection } from '@/components/help-section';
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
     return (
@@ -202,9 +202,9 @@ export default async function Home() {
           </div>
         </section>
         
-        {/* Newsletter Section */}
+        {/* Help Section */}
         <section className="py-20 container mx-auto">
-          <NewsletterTerminal />
+          <HelpSection />
         </section>
 
         {/* Testimonials Carousel */}
