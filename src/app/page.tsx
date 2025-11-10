@@ -165,20 +165,18 @@ export default async function Home() {
         </section>
 
         {/* New Play & Learn Section */}
-        <section className="py-20 container mx-auto">
-            <div className="relative rounded-2xl overflow-hidden p-8 md:p-12 text-center border border-border/50 bg-background">
-                 <div className="absolute inset-0 bg-grid-white/[0.03] -z-10"></div>
-                 <div className="absolute top-1/4 left-1/4 w-8 h-8 bg-primary rounded-md animate-float -z-10"></div>
-                 <div className="absolute bottom-1/4 right-1/4 w-12 h-12 bg-primary/50 rounded-full animate-float animation-delay-1000 -z-10"></div>
+        <section className="py-20">
+            <div className="relative container mx-auto h-[50vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center">
+                 <div className="absolute inset-0 w-full h-full bg-grid-white/[0.1] [mask-image:linear-gradient(to_bottom,white_10%,transparent_100%)] -z-10"></div>
                 <div className="relative z-10">
-                    <h2 className="text-6xl md:text-8xl font-bold text-white">
+                    <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
                         Enter the Playground
                     </h2>
-                    <p className="mt-6 max-w-xl mx-auto text-lg text-muted-foreground">
+                    <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
                         Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
                     </p>
-                    <Button size="lg" asChild className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90 px-10 py-6 text-lg font-semibold">
-                        <Link href="/playground">Start Playing <Gamepad2 className="ml-2" /></Link>
+                    <Button size="lg" asChild className="mt-8 bg-[#8A2BE2] text-white hover:bg-[#7B24CB] rounded-full px-10 py-6 text-lg font-semibold uppercase tracking-widest shadow-lg shadow-[#8A2BE2]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#8A2BE2]/50 transform hover:-translate-y-1">
+                        <Link href="/playground">Start Playing</Link>
                     </Button>
                 </div>
             </div>
