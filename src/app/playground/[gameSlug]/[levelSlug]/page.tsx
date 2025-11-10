@@ -438,7 +438,7 @@ export default function GameLevelPage() {
                     <Card className="w-full max-w-2xl bg-[hsl(var(--game-surface))] text-[hsl(var(--game-text))] border-2 border-[hsl(var(--game-border))] text-center animate-in fade-in-0 zoom-in-95 duration-500" style={{ boxShadow: '0 8px 16px hsla(0,0%,0%,0.4), inset 0 2px 4px hsl(var(--game-border)/0.6)'}}>
                         <CardHeader>
                             <CardTitle className="text-3xl font-bold" style={{ color: 'hsl(var(--game-accent))', textShadow: '0 0 8px hsl(var(--game-accent-glow)/0.7)' }}>Mission Briefing</CardTitle>
-                            <CardDescription className="text-[hsl(var(--game-text))]/80">{chapter.title}: {level.title}</CardDescription>
+                            <CardDescription className="text-[hsl(var(--game-text))]/80">{chapter.title}: Level {level.order} - {level.title}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex gap-4 items-start">
@@ -471,7 +471,7 @@ export default function GameLevelPage() {
                         </button>
                     </div>
                      <div className="text-center">
-                        <h1 className="text-xl font-bold">{level.title}</h1>
+                        <h1 className="text-xl font-bold">Level {level.order} - {level.title}</h1>
                     </div>
                     <div className="w-[200px] flex justify-end items-center gap-4">
                         <div className="flex items-center gap-2 font-bold text-yellow-400">
@@ -557,3 +557,4 @@ export default function GameLevelPage() {
         </div>
     );
 }
+
