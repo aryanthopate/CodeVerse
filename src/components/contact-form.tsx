@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Mail, Send, X, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 
 export function ContactForm() {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,6 +58,12 @@ export function ContactForm() {
 
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-2xl h-[24rem] p-0 bg-black border-gray-700 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Contact Us</DialogTitle>
+            <DialogDescription>
+              A terminal-style contact form to send a message to the CodeVerse team.
+            </DialogDescription>
+          </DialogHeader>
           <div className="flex flex-col h-full bg-black text-gray-300 font-mono">
             {/* Window Header */}
             <div className="flex items-center justify-between p-3 bg-gray-800 border-b border-gray-700">
