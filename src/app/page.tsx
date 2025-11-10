@@ -192,7 +192,8 @@ export default async function Home() {
 
         {/* Newsletter Section */}
         <section className="py-20 container mx-auto">
-            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[300px] newsletter-bg">
+            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[300px]">
+                <div className="newsletter-bg"></div>
                 <div className="relative z-10 text-center">
                     <h2 className="text-3xl font-bold text-white mb-4">Stay Up-to-Date</h2>
                     <p className="text-neutral-300 max-w-2xl mb-8">
