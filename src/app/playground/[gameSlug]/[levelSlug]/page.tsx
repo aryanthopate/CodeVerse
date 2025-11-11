@@ -355,27 +355,21 @@ export default function GameLevelPage() {
     
     const handleLevelComplete = useCallback(async () => {
         if (!level || !game || gameState === 'levelComplete') return;
-    
         setGameState('levelComplete');
-    
-        const isSuccess = lives > 0;
-        if (!isSuccess) return;
-    
-        const levelWasPerfect = lives === 3 && !usedHint;
         
+        if (lives <= 0) return;
+
         try {
-            const result = await completeGameLevel(level.id, game.id, levelWasPerfect);
+            const result = await completeGameLevel(level.id, game.id);
             if (!result.success) {
                 toast({
                     variant: 'destructive',
                     title: 'Save Failed',
                     description: result.error || 'There was a problem saving your progress. Please try again.',
                 });
-                // Revert game state to allow user to retry saving
                 setGameState(isCorrect ? 'manual' : 'puzzle');
             }
         } catch (error: any) {
-            console.error("Error in handleLevelComplete:", error);
              toast({
                 variant: 'destructive',
                 title: 'An Unexpected Error Occurred',
@@ -383,7 +377,7 @@ export default function GameLevelPage() {
             });
             setGameState(isCorrect ? 'manual' : 'puzzle');
         }
-    }, [level, game, gameState, lives, usedHint, toast, isCorrect]);
+    }, [level, game, gameState, lives, isCorrect, toast]);
 
 
     const handleStageComplete = () => {
@@ -503,7 +497,27 @@ export default function GameLevelPage() {
                         <p className="text-muted-foreground mt-2">{isSuccess ? `Outstanding work, recruit! You earned ${level?.reward_xp} XP.` : "You've run out of lives. Better luck next time!"}</p>
                         <div className="flex gap-4 mt-6">
                             {isSuccess ? (
-                                <button onClick={() => router.push(nextUrl)} className="btn-game flex-1">
+                                <button onClick={async () => {
+                                    if (!level || !game) return;
+                                    try {
+                                        const result = await completeGameLevel(level.id, game.id);
+                                        if (result.success) {
+                                            router.push(nextUrl);
+                                        } else {
+                                            toast({
+                                                variant: "destructive",
+                                                title: "Navigation Failed",
+                                                description: "Could not save progress to navigate. Please refresh.",
+                                            });
+                                        }
+                                    } catch (e) {
+                                        toast({
+                                            variant: "destructive",
+                                            title: "Error",
+                                            description: "An unexpected error occurred.",
+                                        });
+                                    }
+                                }} className="btn-game flex-1">
                                     {nextLevel ? "Next Mission" : "Finish Game"}
                                     {nextLevel ? <ArrowRight className="ml-2"/> : <Award className="ml-2"/>}
                                 </button>
@@ -589,7 +603,7 @@ export default function GameLevelPage() {
 
                 <ResizablePanelGroup direction="horizontal" className="flex-grow">
                     <ResizablePanel defaultSize={50} minSize={30}>
-                        <div className="flex flex-col h-full">
+                        <div className="flex flex-col h-full relative">
                             <div className="flex-grow relative">
                                 {gameState === 'manual' ? (
                                     <ManualCodePractice level={level} onRunCode={handleRunCode} onGetHint={handleGetHint} onCodeChange={setFinalCode} code={finalCode} isChecking={isChecking} isGettingHint={isGettingHint} />
@@ -658,3 +672,4 @@ export default function GameLevelPage() {
         </div>
     );
 }
+

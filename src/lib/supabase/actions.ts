@@ -819,7 +819,7 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string, isPerfect: boolean): Promise<{ success: boolean, error?: string }> {
+export async function completeGameLevel(levelId: string, gameId: string): Promise<{ success: boolean, error?: string }> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -829,14 +829,11 @@ export async function completeGameLevel(levelId: string, gameId: string, isPerfe
     }
 
     // Record the level completion
-    const { error: progressError } = await supabase.from('user_game_progress').upsert({
+    const { error: progressError } = await supabase.from('user_game_progress').insert({
         user_id: user.id,
         game_id: gameId,
         completed_level_id: levelId,
         completed_at: new Date().toISOString(),
-        is_perfect: isPerfect
-    }, {
-        onConflict: 'user_id,completed_level_id'
     });
 
     if (progressError) {
@@ -968,5 +965,6 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
 
 
     
+
 
 

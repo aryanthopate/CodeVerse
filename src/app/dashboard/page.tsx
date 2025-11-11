@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { UserProfile, CourseWithChaptersAndTopics, GameWithChaptersAndLevels, UserGameProgress } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getUserEnrollments, getInProgressGames, getUserGameProgress } from '@/lib/supabase/queries';
+import { getUserEnrollments, getInProgressGames } from '@/lib/supabase/queries';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -77,7 +77,7 @@ function DashboardContent() {
     const calculatedStats = useMemo(() => {
         if (!gameProgress) return { xp: 0, streak: 0 };
 
-        const totalXp = gameProgress.reduce((acc, progress) => acc + ((progress.game_levels as any)?.reward_xp || 0), 0);
+        const totalXp = gameProgress.reduce((acc, progress) => acc + ((progress as any).game_levels?.reward_xp || 0), 0);
 
         const uniqueDates = [...new Set(gameProgress.map(p => new Date(p.completed_at).toISOString().split('T')[0]))].sort();
         
@@ -245,7 +245,7 @@ function DashboardContent() {
 }
 
 function ContinuePlayingCard({ game }: { game: GameWithChaptersAndLevels }) {
-    const [nextLevel, setNextLevel] = useState<{slug: string} | null>(null);
+    const [nextLevel, setNextLevel] = useState<{slug: string, title: string} | null>(null);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
 
@@ -254,7 +254,7 @@ function ContinuePlayingCard({ game }: { game: GameWithChaptersAndLevels }) {
             const { data: { user } } = await supabase.auth.getUser();
             if(!user) { setLoading(false); return; }
 
-            const progress = await getUserGameProgress(game.id);
+            const { data: progress } = await supabase.from('user_game_progress').select('completed_level_id').eq('user_id', user.id).eq('game_id', game.id);
             const completedLevelIds = progress?.map(p => p.completed_level_id) || [];
             
             const allLevels = game.game_chapters.flatMap(c => c.game_levels);
@@ -276,7 +276,7 @@ function ContinuePlayingCard({ game }: { game: GameWithChaptersAndLevels }) {
             <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Up Next</p>
                 <h3 className="text-xl font-semibold mt-1">{game.title}</h3>
-                 <p className="text-sm text-muted-foreground mt-1">Level: {nextLevel.slug}</p>
+                 <p className="text-sm text-muted-foreground mt-1">Level: {nextLevel.title}</p>
             </div>
             <Button asChild>
                 <Link href={`/playground/${game.slug}/${nextLevel.slug}`}>
@@ -294,3 +294,4 @@ export default function DashboardPage() {
     </AppLayout>
   )
 }
+
