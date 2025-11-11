@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, ShoppingCart, Star, BookOpen, Clock } from 'lucide-react';
+import { Heart, ShoppingCart, Star, BookOpen, Clock, Users, Globe, Gamepad2, GitCompareArrows } from 'lucide-react';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -20,11 +20,6 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
         <>
             {isBestseller && <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>}
             {isBestRated && <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Best Rated</Badge>}
-            {(course.tags || []).map(tag => (
-                <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
-                    {tag.text}
-                </Badge>
-            ))}
         </>
     );
 
@@ -53,26 +48,45 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                             </div>
                             <h5 className="mb-2 flex items-center gap-2 font-sans text-xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased text-white">
                                 <Link href={`/courses/${course.slug}`} className="hover:text-primary transition-colors">{course.name}</Link>
-                                <div className="flex gap-1">{renderBadges()}</div>
+                                <div className="flex gap-1">
+                                    {renderBadges()}
+                                    {(course.tags || []).map(tag => (
+                                        <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
+                                            {tag.text}
+                                        </Badge>
+                                    ))}
+                                </div>
                             </h5>
                             <p className="block font-sans text-sm font-light leading-relaxed text-inherit antialiased flex-grow text-hp-text-muted">
                                 {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
                             </p>
                         </div>
                         <div className="p-6 pt-0 mt-auto border-t border-zinc-800">
-                             <div className="flex justify-between items-center text-xs text-zinc-400 mt-4">
+                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-zinc-400 mt-4">
                                 <div className="flex items-center gap-1.5">
                                     <BookOpen className="w-3.5 h-3.5"/>
-                                    <span>{course.chapters.length} Chapters</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <BookOpen className="w-3.5 h-3.5"/>
-                                    <span>{totalTopics} Topics</span>
+                                    <span>{course.chapters.length} Chapters / {totalTopics} Topics</span>
                                 </div>
                                 {course.total_duration_hours && (
                                     <div className="flex items-center gap-1.5">
                                         <Clock className="w-3.5 h-3.5"/>
                                         <span>{course.total_duration_hours} hours</span>
+                                    </div>
+                                )}
+                                 <div className="flex items-center gap-1.5">
+                                    <Users className="w-3.5 h-3.5"/>
+                                    <span>{enrollments} students</span>
+                                </div>
+                                 {course.language && (
+                                    <div className="flex items-center gap-1.5">
+                                        <Globe className="w-3.5 h-3.5"/>
+                                        <span>{course.language}</span>
+                                    </div>
+                                )}
+                                {course.games && (
+                                    <div className="flex items-center gap-1.5 col-span-2">
+                                        <Gamepad2 className="w-3.5 h-3.5"/>
+                                        <span>Game: {course.games.title}</span>
                                     </div>
                                 )}
                             </div>
@@ -81,12 +95,26 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                 </div>
 
                 {/* Back of Card */}
-                <div className="absolute inset-0 h-full w-full rounded-xl bg-zinc-900 px-12 text-center text-slate-200 [transform:rotateY(180deg)] [backface-visibility:hidden]">
-                    <div className="absolute top-4 left-4 flex gap-1">{renderBadges()}</div>
+                <div className="absolute inset-0 h-full w-full rounded-xl bg-zinc-900 px-6 py-4 text-center text-slate-200 [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                    <div className="absolute top-4 right-4 flex gap-1 z-10">
+                        <Button variant="outline" size="icon" className="border-hp-text-muted/50 hover:bg-hp-text-muted/20 w-8 h-8">
+                            <Heart className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="border-hp-text-muted/50 hover:bg-hp-text-muted/20 w-8 h-8">
+                            <GitCompareArrows className="w-4 h-4" />
+                        </Button>
+                    </div>
+                     <div className="absolute top-4 left-4 flex gap-1">
+                        {(course.tags || []).map(tag => (
+                            <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
+                                {tag.text}
+                            </Badge>
+                        ))}
+                    </div>
                     <div className="flex min-h-full flex-col items-center justify-center p-6">
                         <h3 className="text-xl font-bold mb-3">What you'll learn</h3>
-                        <ul className="text-sm text-hp-text-muted space-y-1 mb-4 list-disc list-inside">
-                             {(course.what_you_will_learn || []).slice(0, 3).map((item, index) => (
+                        <ul className="text-sm text-hp-text-muted space-y-1 mb-4 list-disc list-inside text-left">
+                             {(course.what_you_will_learn || []).map((item, index) => (
                                 <li key={index} className="truncate">{item}</li>
                             ))}
                         </ul>
@@ -97,14 +125,9 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                     View Course Details
                                 </Button>
                             </Link>
-                            <div className="flex w-full gap-2">
-                                <Button variant="outline" size="icon" className="border-hp-text-muted/50 hover:bg-hp-text-muted/20 w-1/4">
-                                    <Heart className="w-5 h-5" />
-                                </Button>
-                                <Button className="w-3/4">
-                                    <ShoppingCart className="mr-2 w-5 h-5"/> Add to Cart
-                                </Button>
-                            </div>
+                            <Button className="w-full">
+                                <ShoppingCart className="mr-2 w-5 h-5"/> Add to Cart
+                            </Button>
                          </div>
                     </div>
                 </div>
