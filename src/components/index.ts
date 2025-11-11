@@ -16,3 +16,4 @@ export * from './futuristic-button';
 export * from './newsletter-terminal';
 export * from './contact-form';
 export * from './matrix-background';
+export * from './course-card';
