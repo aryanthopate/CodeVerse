@@ -210,7 +210,7 @@ export default async function Home() {
 
         {/* Course Preview */}
         <section className="py-20 container mx-auto">
-          <div className="purple-grid-background border border-purple-500/20 rounded-2xl p-8 md:p-12">
+          <div className="dark-grid-background border border-blue-500/20 rounded-2xl p-8 md:p-12">
             <h2 className="text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
               {courses.slice(0,3).map((course) => (
@@ -323,3 +323,4 @@ export default async function Home() {
 
 
     
+
