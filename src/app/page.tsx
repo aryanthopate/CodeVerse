@@ -278,6 +278,7 @@ export default async function Home() {
         {/* Newsletter & Help Section */}
         <section className="py-20 relative w-full overflow-hidden">
           <MatrixBackground />
+          <div className="absolute inset-0 bg-black/70 z-0"></div>
           <div className="container mx-auto relative z-10">
             <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[400px]">
                 <div className="relative z-10 text-center flex flex-col items-center">
