@@ -42,8 +42,8 @@ async function TopXpLeaderboard() {
           <div className="flex items-center gap-3 flex-1">
             <span className="text-xl font-bold text-zinc-400 w-8 text-center">{index + 1}</span>
             <Avatar>
-              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
-              <AvatarFallback>{profile.full_name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
+              <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <span className="font-medium text-white truncate">{profile.full_name}</span>
           </div>
@@ -78,8 +78,8 @@ async function TopStreakLeaderboard() {
           <div className="flex items-center gap-3 flex-1">
             <span className="text-xl font-bold text-zinc-400 w-8 text-center">{index + 1}</span>
             <Avatar>
-              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
-              <AvatarFallback>{profile.full_name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
+              <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <span className="font-medium text-white truncate">{profile.full_name}</span>
           </div>
@@ -150,24 +150,24 @@ export default async function Home() {
       <main className="flex-grow">
         
         {/* Hero Section */}
-        <section className="relative pt-40 pb-28 text-center container mx-auto z-10">
-          <AnimatedGridBackground />
-          <div className="relative z-10">
-            <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
-              Learn to Code. Play to Master.
-            </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-lg text-hp-text-muted">
-             Interactive coding, AI mentors, and courses built for your future. CodeVerse is an interactive learning platform that makes mastering programming fun. Through AI-powered guidance, gamified challenges, and hands-on projects, you'll go from novice to pro in no time.
-            </p>
-            <div className="mt-8 flex justify-center gap-4">
-               <Button size="lg" asChild className="bg-hp-accent text-white hover:bg-hp-accent/90 shadow-lg shadow-hp-accent/30 ring-2 ring-hp-accent/50 ring-offset-2 ring-offset-hp-background-deep transition-all hover:scale-105 active:scale-95">
-                <Link href="/signup">Start Learning Free</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="bg-transparent hover:bg-white/10 text-white border-white/20 hover:border-white/40">
-                <Link href="/courses">Explore Courses</Link>
-              </Button>
+        <section className="relative pt-40 pb-28 text-center">
+            <AnimatedGridBackground />
+            <div className="container mx-auto relative z-10">
+                <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
+                Learn to Code. Play to Master.
+                </h1>
+                <p className="mt-6 max-w-2xl mx-auto text-lg text-hp-text-muted">
+                Interactive coding, AI mentors, and courses built for your future. CodeVerse is an interactive learning platform that makes mastering programming fun. Through AI-powered guidance, gamified challenges, and hands-on projects, you'll go from novice to pro in no time.
+                </p>
+                <div className="mt-8 flex justify-center gap-4">
+                <Button size="lg" asChild className="bg-hp-accent text-white hover:bg-hp-accent/90 shadow-lg shadow-hp-accent/30 ring-2 ring-hp-accent/50 ring-offset-2 ring-offset-hp-background-deep transition-all hover:scale-105 active:scale-95">
+                    <Link href="/signup">Start Learning Free</Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild className="bg-transparent hover:bg-white/10 text-white border-white/20 hover:border-white/40">
+                    <Link href="/courses">Explore Courses</Link>
+                </Button>
+                </div>
             </div>
-          </div>
         </section>
 
         {/* New Leaderboard Section */}
@@ -244,19 +244,17 @@ export default async function Home() {
 
         {/* New Play & Learn Section */}
         <section className="py-20">
-            <div className="container mx-auto">
-                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-100">
-                    <AnimatedGridBackground />
-                    <div className="relative z-10 flex flex-col items-center">
-                        <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
-                            ENTER THE PLAYGROUND
-                        </h2>
-                        <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
-                            Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
-                        </p>
-                        <div className="mt-8">
-                           <FuturisticButton />
-                        </div>
+            <div className="relative min-h-[80vh] flex flex-col items-center justify-center bg-black text-center p-8">
+                <AnimatedGridBackground />
+                <div className="container mx-auto relative z-10 flex flex-col items-center">
+                    <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
+                        ENTER THE PLAYGROUND
+                    </h2>
+                    <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
+                        Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
+                    </p>
+                    <div className="mt-8">
+                        <FuturisticButton />
                     </div>
                 </div>
             </div>
