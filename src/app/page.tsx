@@ -151,8 +151,11 @@ export default async function Home() {
       <main className="flex-grow">
         
         {/* Hero Section */}
-        <section className="relative overflow-hidden">
-            <div className="container mx-auto relative z-20 flex flex-col items-center justify-center pb-12 pt-24 md:pb-36 md:pt-40">
+        <section className="relative w-full">
+            <div className="absolute inset-0 z-0">
+                <AnimatedGridBackground />
+            </div>
+            <div className="container relative z-10 mx-auto flex h-full flex-col items-center justify-center py-40 text-center">
                 <div className="relative">
                     <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
                         Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
@@ -168,7 +171,6 @@ export default async function Home() {
                     <Button variant="ghost" className="transition-all hover:scale-[1.02] hover:bg-zinc-800 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-2 text-lg text-zinc-100">Learn more</Button>
                 </div>
             </div>
-            <AnimatedGridBackground />
         </section>
 
         {/* New Leaderboard Section */}
@@ -191,6 +193,7 @@ export default async function Home() {
 
         {/* Course Preview */}
         <section className="py-20 container mx-auto">
+          <div className="purple-grid-background border border-purple-500/20 rounded-2xl p-8 md:p-12">
             <h2 className="text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {courses.slice(0,3).map((course) => {
@@ -222,6 +225,7 @@ export default async function Home() {
                 )
               })}
             </div>
+          </div>
         </section>
 
         {/* Features Section */}
@@ -244,10 +248,12 @@ export default async function Home() {
         </section>
 
         {/* New Play & Learn Section */}
-        <section className="relative overflow-hidden">
-            <div className="container mx-auto">
-                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-100">
-                    <AnimatedGridBackground />
+        <section className="relative w-full overflow-hidden">
+             <div className="absolute inset-0 z-0">
+                <AnimatedGridBackground />
+            </div>
+            <div className="container mx-auto relative z-10">
+                <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center p-8">
                     <div className="relative z-10 flex flex-col items-center">
                         <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
                             ENTER THE PLAYGROUND
@@ -321,3 +327,4 @@ export default async function Home() {
     </div>
   );
 }
+

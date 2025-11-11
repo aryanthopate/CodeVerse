@@ -114,6 +114,14 @@
       linear-gradient(to right, rgba(30, 58, 138, 0.5) 1px, transparent 1px);
     background-size: 3rem 3rem;
   }
+
+  .purple-grid-background {
+    background-color: hsl(var(--hp-background));
+    background-image:
+      linear-gradient(rgba(124, 58, 237, 0.2) 1px, transparent 1px),
+      linear-gradient(to right, rgba(124, 58, 237, 0.2) 1px, transparent 1px);
+    background-size: 2rem 2rem;
+  }
   
   @keyframes pan-grid {
     0% { background-position: 0% 0%; }
@@ -206,4 +214,5 @@
   display: -webkit-box;
   overflow: hidden;
 }
+
 
