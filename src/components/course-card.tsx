@@ -12,6 +12,9 @@ import { cn } from '@/lib/utils';
 export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) {
     const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
     const reviewsCount = (course.course_reviews as any)?.[0]?.count || 0;
+    const enrollments = (course.user_enrollments?.[0]?.count) || 0;
+    const isBestseller = enrollments > 10;
+    const isBestRated = (course.rating || 0) >= 4.5;
 
     return (
         <div className="group w-full h-[450px] [perspective:1000px]">
@@ -29,6 +32,15 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                 />
                             </div>
                         </Link>
+                        <div className="absolute top-2 left-2 z-10 flex gap-2">
+                             {isBestseller && <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>}
+                            {isBestRated && <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Best Rated</Badge>}
+                            {(course.tags || []).map(tag => (
+                                <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
+                                    {tag.text}
+                                </Badge>
+                            ))}
+                        </div>
                         <div className="p-6 flex flex-col flex-grow">
                             <div className="flex items-center text-xs text-muted-foreground gap-2 mb-2">
                                 <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
