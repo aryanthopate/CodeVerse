@@ -153,8 +153,9 @@ export default async function Home() {
         
         {/* Hero Section */}
         <section className="relative w-full overflow-hidden">
-            <AnimatedGridBackground />
-            <div className="container relative z-10 mx-auto flex h-full flex-col items-center justify-center py-40 text-center">
+          <AnimatedGridBackground />
+          <div className="relative z-10 flex min-h-[90vh] flex-col items-center justify-center">
+            <div className="container mx-auto flex flex-col items-center justify-center text-center">
                 <div className="relative">
                     <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
                         Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
@@ -174,6 +175,7 @@ export default async function Home() {
                     </Button>
                 </div>
             </div>
+          </div>
         </section>
 
         {/* New Leaderboard Section */}
@@ -275,7 +277,8 @@ export default async function Home() {
         </section>
 
         {/* Newsletter & Help Section */}
-        <section className="py-20 container mx-auto">
+        <section className="py-20 relative w-full overflow-hidden">
+          <div className="container mx-auto relative z-10">
             <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[400px] dark-circuit-wrapper">
                 <div className="dark-circuit-background"></div>
                 <div className="relative z-10 text-center flex flex-col items-center">
@@ -296,6 +299,7 @@ export default async function Home() {
                     </div>
                 </div>
             </div>
+          </div>
         </section>
 
       </main>
@@ -304,3 +308,6 @@ export default async function Home() {
   );
 }
 
+
+
+    
