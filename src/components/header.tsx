@@ -137,7 +137,7 @@ export function Header() {
                  <Button variant="ghost" asChild className="hidden sm:inline-flex text-zinc-100 transition-all hover:scale-[1.02] hover:bg-zinc-800 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-1 text-base">
                     <Link href="/login">Sign In</Link>
                 </Button>
-                 <Button asChild className="rounded-md bg-gradient-to-br from-primary to-accent text-primary-foreground ring-2 ring-primary/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-primary/70 px-4 py-1.5 text-sm font-bold">
+                 <Button asChild variant="outline" className="text-zinc-100 border-zinc-700 hover:bg-zinc-800 hover:text-zinc-50 transition-all hover:scale-[1.02] active:scale-[0.98] rounded-md px-4 py-1.5 text-sm font-bold">
                     <Link href="/signup">Sign Up</Link>
                 </Button>
               </>
