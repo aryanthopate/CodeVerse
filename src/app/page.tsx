@@ -8,7 +8,7 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn, Gamepad2, Sparkles } from 'lucide-react';
+import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn, Gamepad2, Sparkles, BookOpen, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCoursesWithChaptersAndTopics, getGameSettings } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
@@ -111,50 +111,63 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-background dark-grid-background">
+    <div className="flex flex-col min-h-screen bg-[hsl(var(--hp-background))]">
       <Header />
       <main className="flex-grow">
         
         {/* Hero Section */}
-        <section className="pt-40 pb-28 text-center container mx-auto relative z-10">
-          <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
-            Learn to Code.
-            <br />
-            Play to Master.
-          </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-            Interactive coding, AI mentors, and courses built for your future.
-          </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" asChild className="bg-primary/90 text-primary-foreground hover:bg-primary">
-              <Link href="/signup">Start Learning Free</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="bg-transparent hover:bg-white/10 text-white border-white/20 hover:border-white/40">
-              <Link href="/courses">Explore Courses</Link>
-            </Button>
+        <section className="relative pt-40 pb-28 text-center container mx-auto z-10">
+          <AnimatedGridBackground />
+          <div className="relative z-10">
+            <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
+              Learn to Code. Play to Master.
+            </h1>
+            <p className="mt-6 max-w-2xl mx-auto text-lg text-neutral-400">
+              Interactive coding, AI mentors, and courses built for your future.
+            </p>
+            <div className="mt-8 flex justify-center gap-4">
+              <Button size="lg" asChild className="bg-[hsl(var(--hp-primary-accent))] text-white hover:bg-[hsl(var(--hp-primary-accent))]/90 shadow-[0_0_20px_hsl(var(--hp-primary-accent))]">
+                <Link href="/signup">Start Learning Free</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className="bg-transparent hover:bg-white/10 text-white border-white/20 hover:border-white/40">
+                <Link href="/courses">Explore Courses</Link>
+              </Button>
+            </div>
           </div>
         </section>
 
         {/* Course Preview */}
-        <section className="py-20">
-            <div className="container mx-auto">
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {courses.slice(0, 3).map((course) => {
-                    return (
-                        <Link key={course.id} href={`/courses/${course.slug}`}>
-                            <Card className="bg-card/50 border-border/50 h-full flex flex-col group overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10">
-                                <CardHeader className="p-0">
-                                    <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/400`} alt={course.name} width={600} height={400} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
-                                </CardHeader>
-                                <CardContent className="p-6 flex-grow">
-                                    <h3 className="text-xl font-bold mb-2">{course.name}</h3>
-                                    <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    )
-                })}
-                </div>
+        <section className="py-20 container mx-auto">
+            <h2 className="text-4xl font-bold text-center mb-12">Featured Courses</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {courses.slice(0,3).map((course) => {
+                const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
+                return (
+                  <Link key={course.id} href={`/courses/${course.slug}`} className="block group">
+                    <div className="bg-neutral-900/50 rounded-xl border border-neutral-800 h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10">
+                      <div className="relative aspect-video overflow-hidden">
+                        <Image 
+                          src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/400`}
+                          alt={course.name}
+                          width={600}
+                          height={400}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                      </div>
+                      <div className="p-6 flex-grow flex flex-col">
+                        <h3 className="text-xl font-bold mb-2 text-white">{course.name}</h3>
+                        <p className="text-sm text-neutral-400 flex-grow line-clamp-2">{course.description}</p>
+                        <div className="flex justify-between items-center text-xs text-neutral-500 mt-4 pt-4 border-t border-neutral-800">
+                          <div className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5"/><span>{course.chapters.length} Chapters</span></div>
+                          <div className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5"/><span>{totalTopics} Topics</span></div>
+                          {course.total_duration_hours && <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/><span>{course.total_duration_hours} hours</span></div>}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
         </section>
 
@@ -163,14 +176,14 @@ export default async function Home() {
             <div className="container mx-auto">
                 <div className="text-center max-w-2xl mx-auto">
                     <h2 className="text-4xl font-bold">A better way to learn code</h2>
-                    <p className="text-lg text-muted-foreground mt-4">CodeVerse isn't just another video tutorial platform. It's an interactive ecosystem designed to make you a better developer, faster.</p>
+                    <p className="text-lg text-neutral-400 mt-4">CodeVerse isn't just another video tutorial platform. It's an interactive ecosystem designed to make you a better developer, faster.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
                     {features.map((feature, i) => (
-                        <Card key={i} className="bg-card/50 border-border/50 p-6">
+                        <Card key={i} className="bg-neutral-900/50 border-neutral-800 p-6">
                            <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">{feature.icon}</div>
-                           <h3 className="text-lg font-bold">{feature.title}</h3>
-                           <p className="text-sm text-muted-foreground mt-2">{feature.description}</p>
+                           <h3 className="text-lg font-bold text-white">{feature.title}</h3>
+                           <p className="text-sm text-neutral-400 mt-2">{feature.description}</p>
                         </Card>
                     ))}
                 </div>
@@ -203,21 +216,21 @@ export default async function Home() {
             <h2 className="text-3xl font-bold text-center mb-12">Loved by Learners</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {testimonials.map((testimonial) => (
-                <Card key={testimonial.name} className="bg-card/50 border-border/50 p-6 flex flex-col justify-between">
+                <Card key={testimonial.name} className="bg-neutral-900/50 border-neutral-800 p-6 flex flex-col justify-between">
                   <div>
                     <div className="flex text-yellow-400 mb-4">
                       {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
                     </div>
-                    <p className="text-foreground mb-4">"{testimonial.comment}"</p>
+                    <p className="text-white mb-4">"{testimonial.comment}"</p>
                   </div>
-                  <div className="flex items-center gap-4 mt-auto pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-4 mt-auto pt-4 border-t border-neutral-800">
                     <Avatar>
                       <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
                       <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                      <p className="font-semibold text-white">{testimonial.name}</p>
+                      <p className="text-sm text-neutral-400">{testimonial.role}</p>
                     </div>
                   </div>
                 </Card>

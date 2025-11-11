@@ -58,8 +58,10 @@
     --sidebar-ring: 238 83% 66%;
 
     /* New Homepage Theme */
-    --hp-background: 224 71% 4%;
-    --hp-grid: 224 71% 9%;
+    --hp-background: 222 83% 5%; /* #0A0A0F */
+    --hp-grid: 225 71% 8%; /* #111118 */
+    --hp-primary-accent: 239 85% 66%; /* #6366F1 - Electric Indigo */
+    --hp-secondary-accent: 217 91% 60%; /* #3B82F6 - Bright Blue */
   }
 
   .light {
@@ -105,11 +107,6 @@
   
   .dark-grid-background {
     background-color: hsl(var(--hp-background));
-    background-image:
-      linear-gradient(hsl(var(--hp-grid)) 1px, transparent 1px),
-      linear-gradient(to right, hsl(var(--hp-grid)) 1px, transparent 1px);
-    background-size: 3rem 3rem;
-    animation: pan-grid 15s linear infinite;
   }
   
   @keyframes pan-grid {
