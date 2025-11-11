@@ -81,9 +81,7 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/">
-                <Logo isGameTheme={isPlayground} />
-            </Link>
+            <Logo isGameTheme={isPlayground} />
             <div className="hidden md:block">
               <ul className="flex gap-6">
                 {navLinks.map((link) => (
