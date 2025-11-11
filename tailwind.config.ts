@@ -65,6 +65,12 @@ export default {
         'code-number': 'hsl(var(--code-number))',
         'code-comment': 'hsl(var(--code-comment))',
         'code-punctuation': 'hsl(var(--code-punctuation))',
+        'hp-background': 'hsl(var(--hp-background))',
+        'hp-background-deep': 'hsl(var(--hp-background-deep))',
+        'hp-grid': 'hsl(var(--hp-grid))',
+        'hp-accent': 'hsl(var(--hp-accent))',
+        'hp-text': 'hsl(var(--hp-text))',
+        'hp-text-muted': 'hsl(var(--hp-text-muted))',
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',
@@ -121,7 +127,7 @@ export default {
         },
         'grid-pan': {
           '0%': { backgroundPosition: '0% 0%' },
-          '100%': { backgroundPosition: '2rem 2rem' },
+          '100%': { backgroundPosition: '3rem 3rem' },
         },
         'gradient-x': {
             '0%, 100%': { 'background-position': '0% 50%' },

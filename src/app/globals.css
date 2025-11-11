@@ -34,7 +34,7 @@
     --code-comment: 220 15% 60%; /* A lighter gray for comments, improving contrast */
     --code-punctuation: 210 20% 80%; /* A brighter, neutral white for punctuation */
 
-    /* New Game UI Theme Variables */
+    /* Game UI Theme Variables */
     --game-bg: 30 54% 25%; /* Dark wood color */
     --game-surface: 30 52% 35%; /* Lighter wood panel */
     --game-border: 35 65% 45%; /* Wood border color */
@@ -57,11 +57,13 @@
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 238 83% 66%;
 
-    /* New Homepage Theme */
-    --hp-background: 222 83% 5%; /* #0A0A0F */
-    --hp-grid: 225 71% 8%; /* #111118 */
-    --hp-primary-accent: 239 85% 66%; /* #6366F1 - Electric Indigo */
-    --hp-secondary-accent: 217 91% 60%; /* #3B82F6 - Bright Blue */
+    /* New Homepage Theme from Hover.dev */
+    --hp-background: 240 6% 10%; /* zinc-900 */
+    --hp-background-deep: 240 10% 4%; /* zinc-950 */
+    --hp-accent: 244 80% 60%; /* blue-500 */
+    --hp-accent-glow: 244 80% 70%;
+    --hp-text: 240 5% 84%; /* zinc-200 */
+    --hp-text-muted: 240 5% 63%; /* zinc-400 */
   }
 
   .light {
@@ -106,7 +108,11 @@
   }
   
   .dark-grid-background {
-    background-color: hsl(var(--hp-background));
+    background-color: hsl(var(--hp-background-deep));
+    background-image:
+      linear-gradient(hsl(240 4% 16% / 0.5) 1px, transparent 1px),
+      linear-gradient(to right, hsl(240 4% 16% / 0.5) 1px, transparent 1px);
+    background-size: 3rem 3rem;
   }
   
   @keyframes pan-grid {

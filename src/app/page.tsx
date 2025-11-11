@@ -68,22 +68,22 @@ export default async function Home() {
   
   const features = [
     {
-      icon: <Film className="w-6 h-6 text-primary" />,
+      icon: <Film className="w-6 h-6 text-hp-accent" />,
       title: 'Interactive Video Lessons',
       description: 'Learn step-by-step with our engaging and modern video player.',
     },
     {
-      icon: <Bot className="w-6 h-6 text-primary" />,
+      icon: <Bot className="w-6 h-6 text-hp-accent" />,
       title: 'AI-Powered Guidance',
       description: 'Get instant explanations, code reviews, and hints from your personal AI tutor.',
     },
     {
-      icon: <Code className="w-6 h-6 text-primary" />,
+      icon: <Code className="w-6 h-6 text-hp-accent" />,
       title: 'Hands-on Code Practice',
       description: 'Apply what you learn in our interactive code editor with AI feedback.',
     },
     {
-      icon: <Zap className="w-6 h-6 text-primary" />,
+      icon: <Zap className="w-6 h-6 text-hp-accent" />,
       title: 'Engaging Quizzes & Games',
       description: 'Test your knowledge with quizzes and solidify skills in our coding playground.',
     },
@@ -111,7 +111,7 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[hsl(var(--hp-background))]">
+    <div className="flex flex-col min-h-screen bg-hp-background-deep text-hp-text">
       <Header />
       <main className="flex-grow">
         
@@ -122,11 +122,11 @@ export default async function Home() {
             <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
               Learn to Code. Play to Master.
             </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-lg text-neutral-400">
+            <p className="mt-6 max-w-2xl mx-auto text-lg text-hp-text-muted">
               Interactive coding, AI mentors, and courses built for your future.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-              <Button size="lg" asChild className="bg-[hsl(var(--hp-primary-accent))] text-white hover:bg-[hsl(var(--hp-primary-accent))]/90 shadow-[0_0_20px_hsl(var(--hp-primary-accent))]">
+               <Button size="lg" asChild className="bg-hp-accent text-white hover:bg-hp-accent/90 shadow-lg shadow-hp-accent/30 ring-2 ring-hp-accent/50 ring-offset-2 ring-offset-hp-background-deep transition-all hover:scale-105 active:scale-95">
                 <Link href="/signup">Start Learning Free</Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="bg-transparent hover:bg-white/10 text-white border-white/20 hover:border-white/40">
@@ -138,13 +138,13 @@ export default async function Home() {
 
         {/* Course Preview */}
         <section className="py-20 container mx-auto">
-            <h2 className="text-4xl font-bold text-center mb-12">Featured Courses</h2>
+            <h2 className="text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {courses.slice(0,3).map((course) => {
                 const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
                 return (
                   <Link key={course.id} href={`/courses/${course.slug}`} className="block group">
-                    <div className="bg-neutral-900/50 rounded-xl border border-neutral-800 h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10">
+                    <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-hp-accent/50 hover:shadow-2xl hover:shadow-hp-accent/10">
                       <div className="relative aspect-video overflow-hidden">
                         <Image 
                           src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/400`}
@@ -157,8 +157,8 @@ export default async function Home() {
                       </div>
                       <div className="p-6 flex-grow flex flex-col">
                         <h3 className="text-xl font-bold mb-2 text-white">{course.name}</h3>
-                        <p className="text-sm text-neutral-400 flex-grow line-clamp-2">{course.description}</p>
-                        <div className="flex justify-between items-center text-xs text-neutral-500 mt-4 pt-4 border-t border-neutral-800">
+                        <p className="text-sm text-hp-text-muted flex-grow line-clamp-2">{course.description}</p>
+                        <div className="flex justify-between items-center text-xs text-zinc-500 mt-4 pt-4 border-t border-zinc-800">
                           <div className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5"/><span>{course.chapters.length} Chapters</span></div>
                           <div className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5"/><span>{totalTopics} Topics</span></div>
                           {course.total_duration_hours && <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/><span>{course.total_duration_hours} hours</span></div>}
@@ -175,15 +175,15 @@ export default async function Home() {
         <section className="py-20">
             <div className="container mx-auto">
                 <div className="text-center max-w-2xl mx-auto">
-                    <h2 className="text-4xl font-bold">A better way to learn code</h2>
-                    <p className="text-lg text-neutral-400 mt-4">CodeVerse isn't just another video tutorial platform. It's an interactive ecosystem designed to make you a better developer, faster.</p>
+                    <h2 className="text-4xl font-bold text-white">A better way to learn code</h2>
+                    <p className="text-lg text-hp-text-muted mt-4">CodeVerse isn't just another video tutorial platform. It's an interactive ecosystem designed to make you a better developer, faster.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
                     {features.map((feature, i) => (
-                        <Card key={i} className="bg-neutral-900/50 border-neutral-800 p-6">
-                           <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">{feature.icon}</div>
+                        <Card key={i} className="bg-zinc-900/50 border-zinc-800 p-6">
+                           <div className="p-3 bg-hp-accent/10 rounded-lg w-fit mb-4">{feature.icon}</div>
                            <h3 className="text-lg font-bold text-white">{feature.title}</h3>
-                           <p className="text-sm text-neutral-400 mt-2">{feature.description}</p>
+                           <p className="text-sm text-hp-text-muted mt-2">{feature.description}</p>
                         </Card>
                     ))}
                 </div>
@@ -213,24 +213,24 @@ export default async function Home() {
         {/* Testimonials */}
         <section className="py-20">
            <div className="container mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Loved by Learners</h2>
+            <h2 className="text-3xl font-bold text-center mb-12 text-white">Loved by Learners</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {testimonials.map((testimonial) => (
-                <Card key={testimonial.name} className="bg-neutral-900/50 border-neutral-800 p-6 flex flex-col justify-between">
+                <Card key={testimonial.name} className="bg-zinc-900/50 border-zinc-800 p-6 flex flex-col justify-between">
                   <div>
                     <div className="flex text-yellow-400 mb-4">
                       {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
                     </div>
                     <p className="text-white mb-4">"{testimonial.comment}"</p>
                   </div>
-                  <div className="flex items-center gap-4 mt-auto pt-4 border-t border-neutral-800">
+                  <div className="flex items-center gap-4 mt-auto pt-4 border-t border-zinc-800">
                     <Avatar>
                       <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
                       <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-semibold text-white">{testimonial.name}</p>
-                      <p className="text-sm text-neutral-400">{testimonial.role}</p>
+                      <p className="text-sm text-hp-text-muted">{testimonial.role}</p>
                     </div>
                   </div>
                 </Card>
