@@ -43,12 +43,11 @@ interface Piece {
 function DraggablePiece({ piece }: { piece: Piece }) {    
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: piece.id,
-        data: { text: piece.text }
     });
     
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 100, // Ensure it's on top while dragging
+        zIndex: 100,
     } : undefined;
 
     return (
@@ -96,7 +95,6 @@ function CodeScrambleGame({
             const distractorPs: Piece[] = distractors.map((text, i) => ({ id: `dist-${i}`, text, color: pieceColors[(correctSnippets.length + i) % pieceColors.length] }));
 
             const allPieces = [...correctPs, ...distractorPs];
-            // Shuffle
             for (let i = allPieces.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
@@ -110,25 +108,29 @@ function CodeScrambleGame({
         };
         setupGame();
     }, [level, correctSnippets, gameLanguage, onCodeChange]);
+    
+    const { setNodeRef: bucketRef } = useDroppable({ id: 'bucket' });
+    const { setNodeRef: solutionRef } = useDroppable({ id: 'solution' });
 
-    const { setNodeRef: setBucketRef } = useDroppable({ id: 'bucket' });
-    const { setNodeRef: setSolutionRef } = useDroppable({ id: 'solution' });
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { over, active } = event;
-        const pieceId = active.id as string;
-        
-        const pieceFromAvailable = availablePieces.find(p => p.id === pieceId);
-        const pieceFromSolution = solutionPieces.find(p => p.id === pieceId);
+    function handleDragEnd(event: DragEndEvent) {
+      const { over, active } = event;
+      const pieceId = active.id as string;
+      const targetContainerId = over?.id;
 
-        if (over?.id === 'solution' && pieceFromAvailable) {
-            setSolutionPieces(prev => [...prev, pieceFromAvailable]);
-            setAvailablePieces(prev => prev.filter(p => p.id !== pieceId));
-        } else if (over?.id === 'bucket' && pieceFromSolution) {
-            setAvailablePieces(prev => [...prev, pieceFromSolution]);
-            setSolutionPieces(prev => prev.filter(p => p.id !== pieceId));
-        }
-    };
+      if (!targetContainerId) return;
+
+      const pieceInAvailable = availablePieces.find((p) => p.id === pieceId);
+      const pieceInSolution = solutionPieces.find((p) => p.id === pieceId);
+
+      if (targetContainerId === 'solution' && pieceInAvailable) {
+        setAvailablePieces((prev) => prev.filter((p) => p.id !== pieceId));
+        setSolutionPieces((prev) => [...prev, pieceInAvailable]);
+      } else if (targetContainerId === 'bucket' && pieceInSolution) {
+        setSolutionPieces((prev) => prev.filter((p) => p.id !== pieceId));
+        setAvailablePieces((prev) => [...prev, pieceInSolution]);
+      }
+    }
 
     const resetSolution = () => {
         setAvailablePieces(prev => [...prev, ...solutionPieces]);
@@ -145,7 +147,7 @@ function CodeScrambleGame({
         setIsCorrect(isSolutionCorrect);
         if (isSolutionCorrect) {
             onCodeChange(solutionText);
-            setTimeout(onStageComplete, 500); // give feedback time to show
+            setTimeout(onStageComplete, 500);
         } else {
             onIncorrect();
         }
@@ -168,7 +170,7 @@ function CodeScrambleGame({
                     <>
                         <div className="flex-grow space-y-4 flex flex-col">
                              <div
-                                ref={setSolutionRef}
+                                ref={solutionRef}
                                 className={cn(
                                     "min-h-[120px] bg-black/30 rounded-lg p-3 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-start content-start transition-colors",
                                     isCorrect === true && "border-green-500 bg-green-500/10",
@@ -176,12 +178,12 @@ function CodeScrambleGame({
                                 )}
                             >
                                 {solutionPieces.length === 0 && <p className="text-gray-400 ml-2">Drag code pieces here to build your solution</p>}
-                                {solutionPieces.map((piece, i) => (
+                                {solutionPieces.map((piece) => (
                                      <DraggablePiece key={piece.id} piece={piece} />
                                 ))}
                             </div>
                             <p className="text-sm text-gray-400">Assemble the code pieces in the correct order. Drag pieces back to the bucket to remove them.</p>
-                            <div ref={setBucketRef} className="bg-black/30 rounded-lg p-3 flex-grow flex flex-wrap gap-3 content-start">
+                            <div ref={bucketRef} className="bg-black/30 rounded-lg p-3 flex-grow flex flex-wrap gap-3 content-start">
                                 {availablePieces.map((piece) => (
                                     <DraggablePiece key={piece.id} piece={piece} />
                                 ))}
@@ -253,7 +255,6 @@ export default function GameLevelPage() {
     const [gameState, setGameState] = useState<'puzzle' | 'manual' | 'levelComplete'>('puzzle');
     const [showSolution, setShowSolution] = useState(false);
     
-    // New game state
     const [lives, setLives] = useState(3);
     const [streak, setStreak] = useState(0);
 
@@ -276,7 +277,6 @@ export default function GameLevelPage() {
         if (!level || !game || gameState === 'levelComplete') return;
         setGameState('levelComplete');
         
-        // Pass whether a hint was used or lives were lost
         const levelWasPerfect = lives === 3 && !usedHint;
         await completeGameLevel(level.id, game.id, level.reward_xp, levelWasPerfect);
 
@@ -286,7 +286,7 @@ export default function GameLevelPage() {
 
     const handleStageComplete = () => {
         setStreak(s => s + 1);
-        handleLevelComplete(false); // level complete without hint
+        handleLevelComplete(false);
     };
 
      const handleRunCode = useCallback(async (codeToRun: string) => {
@@ -333,7 +333,7 @@ export default function GameLevelPage() {
         setLives(l => {
             const newLives = Math.max(0, l - 1);
             if (newLives <= 0) {
-                setGameState('levelComplete'); // Game over is a form of level completion
+                setGameState('levelComplete');
             }
             return newLives;
         });
@@ -367,7 +367,7 @@ export default function GameLevelPage() {
         if (!level) return;
         setIsGettingHint(true);
         setHint('');
-        setStreak(0); // Using a hint resets the streak
+        setStreak(0);
         try {
             const result = await provideHintForCodePractice({
                 problemStatement: level.objective,
