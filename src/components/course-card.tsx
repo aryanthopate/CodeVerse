@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, ShoppingCart, Star, BookOpen, Clock, Users, Globe, Gamepad2, GitCompareArrows } from 'lucide-react';
+import { Heart, ShoppingCart, Star, BookOpen, Clock, Users, Globe, Gamepad2, GitCompareArrows, FileText } from 'lucide-react';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +15,7 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
     const enrollments = (course.user_enrollments?.[0]?.count) || 0;
     const isBestseller = enrollments > 10;
     const isBestRated = (course.rating || 0) >= 4.5;
+    const downloadableMaterialsCount = course.notes_url ? 1 : 0;
 
     const renderBadges = () => (
         <>
@@ -46,11 +46,13 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                 <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
                                 <span className="font-semibold text-foreground">{course.rating?.toFixed(1) || 'N/A'}</span>
                                 <span>({reviewsCount} reviews)</span>
+                                <div className="ml-auto flex gap-1">
+                                    {renderBadges()}
+                                </div>
                             </div>
                             <h5 className="mb-2 flex items-center gap-2 font-sans text-xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased text-white">
                                 <Link href={`/courses/${course.slug}`} className="hover:text-primary transition-colors">{course.name}</Link>
                                 <div className="flex gap-1">
-                                    {renderBadges()}
                                     {(course.tags || []).map(tag => (
                                         <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
                                             {tag.text}
@@ -70,6 +72,12 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                     <div className="flex items-center gap-1.5">
                                         <Globe className="w-3.5 h-3.5"/>
                                         <span>{course.language}</span>
+                                    </div>
+                                )}
+                                {downloadableMaterialsCount > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                        <FileText className="w-3.5 h-3.5" />
+                                        <span>{downloadableMaterialsCount} Downloadable {downloadableMaterialsCount > 1 ? 'Materials' : 'Material'}</span>
                                     </div>
                                 )}
                                 {course.games && (
@@ -118,11 +126,7 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                         </Button>
                     </div>
                      <div className="absolute top-4 left-4 flex gap-1">
-                        {(course.tags || []).map(tag => (
-                            <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
-                                {tag.text}
-                            </Badge>
-                        ))}
+                        {renderBadges()}
                     </div>
                     <div className="flex min-h-full flex-col items-center justify-center p-6">
                         <h3 className="text-xl font-bold mb-3">What you'll learn</h3>
