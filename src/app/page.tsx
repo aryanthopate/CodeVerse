@@ -160,7 +160,7 @@ export default async function Home() {
         
         {/* Hero Section */}
         <section className="relative w-full overflow-hidden">
-          <AnimatedGridBackground />
+          <AnimatedGridBackground showParticles={true} />
           <div className="container mx-auto flex min-h-[90vh] flex-col items-center justify-center text-center relative z-10 py-24 md:py-32">
                 <div className="relative">
                     <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
@@ -209,11 +209,11 @@ export default async function Home() {
         </section>
 
         {/* Course Preview */}
-        <section className="py-20 container mx-auto relative">
-          <AnimatedGridBackground />
-          <div className="relative z-10 p-8 md:p-12">
-            <h2 className="text-4xl font-bold text-center mb-12 text-white" style={{ textShadow: '0 0 10px hsl(var(--hp-accent) / 0.7)' }}>Featured Courses</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
+        <section className="py-20 container mx-auto">
+          <h2 className="text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
+          <div className="dark-grid-background rounded-2xl p-8 md:p-12 relative">
+             <AnimatedGridBackground showParticles={false}/>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 relative z-10">
               {courses.slice(0,3).map((course) => (
                  <CourseCard key={course.id} course={course} />
               ))}
@@ -242,7 +242,7 @@ export default async function Home() {
 
         {/* New Play & Learn Section */}
         <section className="relative w-full overflow-hidden">
-             <AnimatedGridBackground />
+             <AnimatedGridBackground showParticles={true} />
             <div className="container mx-auto relative z-10">
                 <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center p-8">
                     <div className="relative z-10 flex flex-col items-center">
@@ -324,5 +324,6 @@ export default async function Home() {
 
 
     
+
 
 
