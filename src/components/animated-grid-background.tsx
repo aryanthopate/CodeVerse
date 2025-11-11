@@ -35,11 +35,10 @@ export function AnimatedGridBackground() {
     }, []);
 
     return (
-        <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden" style={{ maskImage: 'linear-gradient(to bottom, white 0%, white 50%, transparent 100%)' }}>
             <div className="absolute inset-0 z-0 dark-grid-background"></div>
             {lines}
             <div className="absolute inset-0 z-10 bg-gradient-to-b from-hp-background/0 via-hp-background to-hp-background"></div>
         </div>
     );
 }
-

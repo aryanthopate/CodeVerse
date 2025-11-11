@@ -170,7 +170,7 @@ export default async function Home() {
                 <h1 className="mb-3 text-center text-3xl font-bold leading-tight text-zinc-50 sm:text-4xl sm:leading-tight md:text-5xl md:leading-tight lg:text-8xl lg:leading-tight">A landing page template that works for you</h1>
                 <p className="mb-9 max-w-2xl text-center text-base text-zinc-400 sm:text-lg md:text-xl">Build beautiful landing pages for your startups, clients, and side projects, without having to think about design.</p>
                 <div className="flex flex-col items-center gap-4 sm:flex-row">
-                    <Button asChild className="rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
+                    <Button asChild className="justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-10 rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
                         {user ? (
                             <Link href="/dashboard">
                                 Go to Dashboard
@@ -209,9 +209,10 @@ export default async function Home() {
         </section>
 
         {/* Course Preview */}
-        <section className="py-20 container mx-auto">
-          <div className="dark-grid-background border border-blue-500/20 rounded-2xl p-8 md:p-12">
-            <h2 className="text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
+        <section className="py-20 container mx-auto relative">
+          <AnimatedGridBackground />
+          <div className="relative z-10 p-8 md:p-12">
+            <h2 className="text-4xl font-bold text-center mb-12 text-white" style={{ textShadow: '0 0 10px hsl(var(--hp-accent) / 0.7)' }}>Featured Courses</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
               {courses.slice(0,3).map((course) => (
                  <CourseCard key={course.id} course={course} />
@@ -323,4 +324,5 @@ export default async function Home() {
 
 
     
+
 
