@@ -819,7 +819,7 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string, xp: number, isPerfect: boolean): Promise<{ success: boolean, error?: string }> {
+export async function completeGameLevel(levelId: string, gameId: string, xp: number, isPerfect: boolean, nextUrl: string): Promise<{ success: boolean, error?: string }> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -848,9 +848,10 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
     if (lastPlayedDate === yesterday) {
         newStreak++; // Continue streak
     } else if (lastPlayedDate !== today) {
-        newStreak = 1; // Reset streak
+        newStreak = 1; // Reset streak if they haven't played today
     }
     
+    // Perform the profile update
     const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -879,7 +880,6 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
     if (progressError) {
         console.error("Error saving game progress:", progressError);
         // Note: At this point, the user's XP has been updated. We might need a transaction here in a real-world app.
-        // For this project, we'll accept this potential inconsistency.
         return { success: false, error: `Failed to save progress: ${progressError.message}` };
     }
 
@@ -1007,3 +1007,4 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
 
 
     
+
