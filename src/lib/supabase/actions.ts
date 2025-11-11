@@ -819,51 +819,13 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string, xp: number, isPerfect: boolean, nextUrl: string): Promise<{ success: boolean, error?: string }> {
+export async function completeGameLevel(levelId: string, gameId: string, isPerfect: boolean): Promise<{ success: boolean, error?: string }> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
         console.error("User not authenticated for completeGameLevel");
         return { success: false, error: 'User not authenticated' };
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('xp, streak, last_played_at')
-        .eq('id', user.id)
-        .single();
-    
-    if (profileError || !profile) {
-        console.error("Error fetching user profile:", profileError);
-        return { success: false, error: `Failed to fetch user profile: ${profileError?.message}` };
-    }
-
-    let newStreak = profile.streak || 0;
-    const lastPlayedDate = profile.last_played_at ? profile.last_played_at.split('T')[0] : null;
-
-    if (lastPlayedDate === yesterday) {
-        newStreak++; // Continue streak
-    } else if (lastPlayedDate !== today) {
-        newStreak = 1; // Reset streak if they haven't played today
-    }
-    
-    // Perform the profile update
-    const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-            xp: (profile.xp || 0) + xp,
-            streak: newStreak,
-            last_played_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-    if (updateError) {
-        console.error("Error updating user XP and streak:", updateError);
-        return { success: false, error: `Failed to update XP and streak: ${updateError.message}` };
     }
 
     // Record the level completion
@@ -879,7 +841,6 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
 
     if (progressError) {
         console.error("Error saving game progress:", progressError);
-        // Note: At this point, the user's XP has been updated. We might need a transaction here in a real-world app.
         return { success: false, error: `Failed to save progress: ${progressError.message}` };
     }
 
@@ -1007,4 +968,5 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
 
 
     
+
 

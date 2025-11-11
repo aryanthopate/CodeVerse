@@ -9,13 +9,14 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowRight, BarChart, BookOpen, Star, TrendingUp, Compass, Gamepad2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { UserProfile, CourseWithChaptersAndTopics, GameWithChaptersAndLevels } from '@/lib/types';
+import type { UserProfile, CourseWithChaptersAndTopics, GameWithChaptersAndLevels, UserGameProgress } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getUserEnrollments, getInProgressGames, getUserGameProgress } from '@/lib/supabase/queries';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ function DashboardContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [enrolledCourses, setEnrolledCourses] = useState<CourseWithChaptersAndTopics[]>([]);
   const [inProgressGames, setInProgressGames] = useState<GameWithChaptersAndLevels[]>([]);
+  const [gameProgress, setGameProgress] = useState<UserGameProgress[] | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const searchParams = useSearchParams();
@@ -37,9 +39,10 @@ function DashboardContent() {
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setProfile(profileData);
 
-        const [enrollmentsData, gamesData] = await Promise.all([
+        const [enrollmentsData, gamesData, allGameProgress] = await Promise.all([
           getUserEnrollments(user.id),
-          getInProgressGames(user.id)
+          getInProgressGames(user.id),
+          supabase.from('user_game_progress').select('*, game_levels(reward_xp)').eq('user_id', user.id)
         ]);
         
         if (enrollmentsData) {
@@ -48,6 +51,10 @@ function DashboardContent() {
         if (gamesData) {
             setInProgressGames(gamesData);
         }
+        if (allGameProgress.data) {
+            setGameProgress(allGameProgress.data as any[]);
+        }
+
       } else {
         router.push('/login'); // Redirect if no user
       }
@@ -67,19 +74,73 @@ function DashboardContent() {
     }
   }, [searchParams, toast, router]);
 
+    const calculatedStats = useMemo(() => {
+        if (!gameProgress) return { xp: 0, streak: 0 };
+
+        const totalXp = gameProgress.reduce((acc, progress) => acc + ((progress.game_levels as any)?.reward_xp || 0), 0);
+
+        const uniqueDates = [...new Set(gameProgress.map(p => new Date(p.completed_at).toISOString().split('T')[0]))].sort();
+        
+        let currentStreak = 0;
+        if (uniqueDates.length > 0) {
+            currentStreak = 1;
+            for (let i = uniqueDates.length - 1; i > 0; i--) {
+                const currentDate = new Date(uniqueDates[i]);
+                const previousDate = new Date(uniqueDates[i-1]);
+                
+                const diffTime = currentDate.getTime() - previousDate.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 1) {
+                    currentStreak++;
+                } else {
+                    break;
+                }
+            }
+             // Check if the most recent day is today or yesterday
+            const mostRecentDate = new Date(uniqueDates[uniqueDates.length - 1]);
+            const today = new Date();
+            const yesterday = new Date();
+            yesterday.setDate(today.getDate() - 1);
+
+            const isToday = mostRecentDate.toDateString() === today.toDateString();
+            const isYesterday = mostRecentDate.toDateString() === yesterday.toDateString();
+
+            if (!isToday && !isYesterday) {
+                currentStreak = 0;
+            }
+        }
+        
+        return { xp: totalXp, streak: currentStreak };
+    }, [gameProgress]);
+
   const lastCourse = enrolledCourses.length > 0 ? enrolledCourses[0] : null;
   const firstTopic = lastCourse?.chapters[0]?.topics[0];
   const lastGame = inProgressGames.length > 0 ? inProgressGames[0] : null;
 
   const stats = [
-    { title: 'XP Earned', value: `${profile?.xp || 0} XP`, icon: <Star className="text-yellow-400" /> },
+    { title: 'XP Earned', value: `${calculatedStats.xp} XP`, icon: <Star className="text-yellow-400" /> },
     { title: 'Courses in Progress', value: enrolledCourses.length, icon: <BookOpen className="text-blue-400" /> },
-    { title: 'Weekly Streak', value: `${profile?.streak || 0} days`, icon: <TrendingUp className="text-green-400" /> },
+    { title: 'Weekly Streak', value: `${calculatedStats.streak} days`, icon: <TrendingUp className="text-green-400" /> },
     { title: 'Leaderboard Rank', value: '#- / -', icon: <BarChart className="text-red-400" /> },
   ];
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Skeleton className="h-[250px] lg:col-span-2" />
+                <Skeleton className="h-[250px]" />
+            </div>
+            <div className="space-y-4">
+                <Skeleton className="h-8 w-1/4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Skeleton className="h-[150px]" />
+                    <Skeleton className="h-[150px]" />
+                </div>
+            </div>
+        </div>
+    )
   }
 
   return (
@@ -89,10 +150,12 @@ function DashboardContent() {
           {lastCourse || lastGame ? (
             <Card className="lg:col-span-2 bg-card border-border/50">
               <CardHeader>
-                <CardTitle>{lastCourse ? 'Continue Learning' : 'Continue Playing'}</CardTitle>
+                <CardTitle>{lastGame ? 'Continue Playing' : 'Continue Learning'}</CardTitle>
               </CardHeader>
               <CardContent>
-                {lastCourse && firstTopic ? (
+                {lastGame ? (
+                    <ContinuePlayingCard game={lastGame} />
+                ) : lastCourse && firstTopic ? (
                     <div className="flex flex-col sm:flex-row gap-6 items-center p-4 rounded-lg bg-muted/50">
                     <Image src={lastCourse.image_url || `https://picsum.photos/seed/${lastCourse.slug}/150/100`} alt={lastCourse.name} width={150} height={100} className="rounded-md object-cover" data-ai-hint="abstract technology" />
                     <div className="flex-1">
@@ -106,8 +169,6 @@ function DashboardContent() {
                         </Link>
                     </Button>
                     </div>
-                ) : lastGame ? (
-                    <ContinuePlayingCard game={lastGame} />
                 ) : null}
               </CardContent>
             </Card>
@@ -206,7 +267,7 @@ function ContinuePlayingCard({ game }: { game: GameWithChaptersAndLevels }) {
     }, [game, supabase]);
 
     if (loading || !nextLevel) {
-        return <div className="p-4 rounded-lg bg-muted/50">Loading game...</div>
+        return <div className="p-4 rounded-lg bg-muted/50"><Skeleton className="h-24 w-full" /></div>
     }
     
     return (

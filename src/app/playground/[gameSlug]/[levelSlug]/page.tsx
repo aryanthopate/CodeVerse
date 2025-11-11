@@ -355,25 +355,26 @@ export default function GameLevelPage() {
     
     const handleLevelComplete = useCallback(async () => {
         if (!level || !game || gameState === 'levelComplete') return;
-
+    
         setGameState('levelComplete');
-
+    
         const isSuccess = lives > 0;
         if (!isSuccess) return;
-
+    
         const levelWasPerfect = lives === 3 && !usedHint;
-        const result = await completeGameLevel(level!.id, game!.id, level!.reward_xp, levelWasPerfect);
-
+        
+        // Directly call the server action
+        const result = await completeGameLevel(level.id, game.id, levelWasPerfect);
+    
         if (!result.success) {
             toast({
                 variant: 'destructive',
                 title: 'Save Failed',
                 description: result.error || 'There was a problem saving your progress. Please try again.',
             });
-            // Revert game state to allow user to retry saving
+            // Revert game state to allow user to retry saving, maybe by clicking the "Next Mission" button again
             setGameState(isCorrect ? 'manual' : 'puzzle');
         }
-        
     }, [level, game, gameState, lives, usedHint, toast, isCorrect]);
 
 
@@ -477,18 +478,18 @@ export default function GameLevelPage() {
 
     const GameStatusOverlay = () => {
         if (gameState !== 'levelComplete') return null;
-
+    
         const isSuccess = lives > 0;
         const nextUrl = nextLevel ? `/playground/${game!.slug}/${nextLevel.slug}` : `/playground/${game!.slug}`;
-
+    
         return (
-             <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
+            <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
                 {isSuccess && <Confetti recycle={false} numberOfPieces={400} />}
                 <div className="flex gap-4 items-center">
-                     <div className={cn("text-7xl animate-burst", isSuccess ? "text-primary" : "text-red-500")}>
+                    <div className={cn("text-7xl animate-burst", isSuccess ? "text-primary" : "text-red-500")}>
                         {isSuccess ? '🎉' : '💥'}
-                     </div>
-                     <div className="p-6 bg-card/80 rounded-xl relative text-left">
+                    </div>
+                    <div className="p-6 bg-card/80 rounded-xl relative text-left">
                         <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-card/80 rotate-45"></div>
                         <h3 className="text-2xl font-bold">{isSuccess ? 'Mission Complete!' : 'Mission Failed'}</h3>
                         <p className="text-muted-foreground mt-2">{isSuccess ? `Outstanding work, recruit! You earned ${level?.reward_xp} XP.` : "You've run out of lives. Better luck next time!"}</p>
@@ -593,9 +594,9 @@ export default function GameLevelPage() {
                                             onIncorrect={handleIncorrectAnswer}
                                             onCodeChange={handleCodeChange}
                                         />
-                                        <GameStatusOverlay />
                                     </>
                                 )}
+                                <GameStatusOverlay />
                             </div>
                         </div>
                     </ResizablePanel>
