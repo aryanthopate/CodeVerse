@@ -144,6 +144,11 @@ export default {
           '90%': { opacity: '1' },
           '100%': { transform: 'translateY(100vh) scale(1.5)', opacity: '0' },
         },
+        'fall': {
+          to: {
+            transform: 'translateY(100vh)',
+          }
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -153,7 +158,8 @@ export default {
         'grid-pan': 'grid-pan 15s linear infinite',
         'gradient-x': 'gradient-x 3s ease-in-out infinite',
         'burst': 'burst 0.3s ease-out forwards',
-        'drop-and-fade': 'drop-and-fade var(--duration) var(--delay) infinite linear'
+        'drop-and-fade': 'drop-and-fade var(--duration) var(--delay) infinite linear',
+        'fall': 'fall var(--duration) var(--delay) linear infinite',
       },
     },
   },

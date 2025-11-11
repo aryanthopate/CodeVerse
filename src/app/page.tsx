@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import Link from 'next/link';
@@ -145,27 +146,29 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-hp-background-deep text-hp-text">
+    <div className="flex flex-col min-h-screen bg-hp-background text-hp-text">
       <Header />
       <main className="flex-grow">
         
         {/* Hero Section */}
-        <section className="relative pt-40 pb-28 text-center">
+        <section className="relative overflow-hidden pt-40 pb-28 text-center">
             <AnimatedGridBackground />
             <div className="container mx-auto relative z-10">
-                <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
-                Learn to Code. Play to Master.
+                <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
+                    Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                </span>
+                <h1 className="text-5xl md:text-7xl font-bold text-zinc-50 leading-tight">
+                A landing page template that works for you
                 </h1>
-                <p className="mt-6 max-w-2xl mx-auto text-lg text-hp-text-muted">
-                Interactive coding, AI mentors, and courses built for your future. CodeVerse is an interactive learning platform that makes mastering programming fun. Through AI-powered guidance, gamified challenges, and hands-on projects, you'll go from novice to pro in no time.
+                <p className="mt-6 max-w-2xl mx-auto text-lg text-zinc-400">
+                Build beautiful landing pages for your startups, clients, and side projects, without having to think about design.
                 </p>
                 <div className="mt-8 flex justify-center gap-4">
-                <Button size="lg" asChild className="bg-hp-accent text-white hover:bg-hp-accent/90 shadow-lg shadow-hp-accent/30 ring-2 ring-hp-accent/50 ring-offset-2 ring-offset-hp-background-deep transition-all hover:scale-105 active:scale-95">
-                    <Link href="/signup">Start Learning Free</Link>
+                  <Button className="rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
+                    Try it free
+                    <ArrowRight className="h-4 w-4" />
                 </Button>
-                <Button size="lg" variant="outline" asChild className="bg-transparent hover:bg-white/10 text-white border-white/20 hover:border-white/40">
-                    <Link href="/courses">Explore Courses</Link>
-                </Button>
+                <Button variant="ghost" className="transition-all hover:scale-[1.02] hover:bg-zinc-800 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-2 text-lg text-zinc-100">Learn more</Button>
                 </div>
             </div>
         </section>
@@ -246,7 +249,7 @@ export default async function Home() {
         <section className="py-20">
             <div className="relative min-h-[80vh] flex flex-col items-center justify-center bg-black text-center p-8">
                 <AnimatedGridBackground />
-                <div className="container mx-auto relative z-10 flex flex-col items-center">
+                <div className="relative z-10 flex flex-col items-center">
                     <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
                         ENTER THE PLAYGROUND
                     </h2>
