@@ -165,10 +165,17 @@ export default async function Home() {
                 <p className="mb-9 max-w-2xl text-center text-base text-zinc-400 sm:text-lg md:text-xl">Build beautiful landing pages for your startups, clients, and side projects, without having to think about design.</p>
                 <div className="flex flex-col items-center gap-4 sm:flex-row">
                     <Button asChild className="rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
-                        <Link href="/signup">
-                           Try it free
-                           <ArrowRight className="h-4 w-4" />
-                        </Link>
+                        {user ? (
+                            <Link href="/dashboard">
+                                Go to Dashboard
+                                <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        ) : (
+                            <Link href="/signup">
+                               Try it free
+                               <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        )}
                     </Button>
                     <Button asChild variant="ghost" className="transition-all hover:scale-[1.02] hover:bg-zinc-800 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-2 text-lg text-zinc-100">
                         <Link href="/courses">Learn more</Link>
