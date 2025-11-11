@@ -151,26 +151,24 @@ export default async function Home() {
       <main className="flex-grow">
         
         {/* Hero Section */}
-        <section className="relative overflow-hidden pt-40 pb-36 text-center">
-            <AnimatedGridBackground />
-            <div className="container mx-auto relative z-10">
-                <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
-                    Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
-                </span>
-                <h1 className="text-5xl md:text-7xl font-bold text-zinc-50 leading-tight">
-                A landing page template that works for you
-                </h1>
-                <p className="mt-6 max-w-2xl mx-auto text-lg text-zinc-400">
-                Build beautiful landing pages for your startups, clients, and side projects, without having to think about design.
-                </p>
-                <div className="mt-8 flex justify-center gap-4">
-                  <Button className="rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
-                    Try it free
-                    <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" className="transition-all hover:scale-[1.02] hover:bg-zinc-800 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-2 text-lg text-zinc-100">Learn more</Button>
+        <section className="relative overflow-hidden">
+            <div className="container mx-auto relative z-20 flex flex-col items-center justify-center pb-12 pt-24 md:pb-36 md:pt-40">
+                <div className="relative">
+                    <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
+                        Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                    </span>
+                </div>
+                <h1 className="mb-3 text-center text-3xl font-bold leading-tight text-zinc-50 sm:text-4xl sm:leading-tight md:text-5xl md:leading-tight lg:text-8xl lg:leading-tight">A landing page template that works for you</h1>
+                <p className="mb-9 max-w-2xl text-center text-base text-zinc-400 sm:text-lg md:text-xl">Build beautiful landing pages for your startups, clients, and side projects, without having to think about design.</p>
+                <div className="flex flex-col items-center gap-4 sm:flex-row">
+                    <Button className="rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
+                        Try it free
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" className="transition-all hover:scale-[1.02] hover:bg-zinc-800 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-2 text-lg text-zinc-100">Learn more</Button>
                 </div>
             </div>
+            <AnimatedGridBackground />
         </section>
 
         {/* New Leaderboard Section */}
@@ -246,18 +244,20 @@ export default async function Home() {
         </section>
 
         {/* New Play & Learn Section */}
-        <section className="py-20">
-            <div className="relative min-h-[80vh] flex flex-col items-center justify-center bg-black text-center p-8">
-                <AnimatedGridBackground />
-                <div className="relative z-10 flex flex-col items-center">
-                    <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
-                        ENTER THE PLAYGROUND
-                    </h2>
-                    <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
-                        Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
-                    </p>
-                    <div className="mt-8">
-                        <FuturisticButton />
+        <section className="relative overflow-hidden">
+            <div className="container mx-auto">
+                <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-100">
+                    <AnimatedGridBackground />
+                    <div className="relative z-10 flex flex-col items-center">
+                        <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
+                            ENTER THE PLAYGROUND
+                        </h2>
+                        <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
+                            Don't just watch, do! Solidify your skills by solving challenges in our interactive coding games. Earn XP, climb the leaderboard, and learn by playing.
+                        </p>
+                        <div className="mt-8">
+                            <FuturisticButton />
+                        </div>
                     </div>
                 </div>
             </div>
