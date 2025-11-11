@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -114,22 +113,22 @@ function CodeScrambleGame({
 
 
     function handleDragEnd(event: DragEndEvent) {
-      const { over, active } = event;
-      const pieceId = active.id as string;
-      const targetContainerId = over?.id;
+        const { over, active } = event;
+        const pieceId = active.id as string;
+        
+        // Find which array the piece is currently in
+        const pieceInSolution = solutionPieces.find(p => p.id === pieceId);
+        const pieceInAvailable = availablePieces.find(p => p.id === pieceId);
 
-      if (!targetContainerId) return;
-
-      const pieceInAvailable = availablePieces.find((p) => p.id === pieceId);
-      const pieceInSolution = solutionPieces.find((p) => p.id === pieceId);
-
-      if (targetContainerId === 'solution' && pieceInAvailable) {
-        setAvailablePieces((prev) => prev.filter((p) => p.id !== pieceId));
-        setSolutionPieces((prev) => [...prev, pieceInAvailable]);
-      } else if (targetContainerId === 'bucket' && pieceInSolution) {
-        setSolutionPieces((prev) => prev.filter((p) => p.id !== pieceId));
-        setAvailablePieces((prev) => [...prev, pieceInSolution]);
-      }
+        if (over?.id === 'solution' && pieceInAvailable) {
+            // Dragged from available to solution
+            setSolutionPieces(prev => [...prev, pieceInAvailable]);
+            setAvailablePieces(prev => prev.filter(p => p.id !== pieceId));
+        } else if (over?.id === 'bucket' && pieceInSolution) {
+            // Dragged from solution to available
+            setAvailablePieces(prev => [...prev, pieceInSolution]);
+            setSolutionPieces(prev => prev.filter(p => p.id !== pieceId));
+        }
     }
 
     const resetSolution = () => {
