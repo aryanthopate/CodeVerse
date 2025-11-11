@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -19,7 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import Confetti from 'react-confetti';
 import { completeGameLevel } from '@/lib/supabase/actions';
 import { DndContext, useDraggable, useDroppable, DragOverlay, closestCenter, MeasuringStrategy } from '@dnd-kit/core';
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core';
@@ -353,7 +353,6 @@ export default function GameLevelPage() {
     const [runOutputIsError, setRunOutputIsError] = useState(false);
     const [isGettingHint, setIsGettingHint] = useState(false);
 
-    const [showConfetti, setShowConfetti] = useState(false);
     const [finalCode, setFinalCode] = useState('');
     
     const handleCodeChange = useCallback((newCode: string) => {
@@ -367,8 +366,6 @@ export default function GameLevelPage() {
         const levelWasPerfect = lives === 3 && !usedHint;
         await completeGameLevel(level.id, game.id, level.reward_xp, levelWasPerfect);
 
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 8000);
     }, [level, game, gameState, lives]);
 
     const handleStageComplete = () => {
@@ -473,7 +470,7 @@ export default function GameLevelPage() {
             const isSuccess = lives > 0;
             return (
                  <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
-                    {isSuccess && showConfetti && <Confetti recycle={false} numberOfPieces={500} gravity={0.2} />}
+                    
                     <div className="flex gap-4 items-center">
                          <div className={cn("text-7xl animate-burst", isSuccess ? "text-primary" : "text-red-500")}>
                             {isSuccess ? '🎉' : '💥'}
