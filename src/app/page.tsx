@@ -146,12 +146,12 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-hp-background text-hp-text">
+    <div className="flex flex-col min-h-screen bg-hp-background-deep text-hp-text">
       <Header />
       <main className="flex-grow">
         
         {/* Hero Section */}
-        <section className="relative overflow-hidden pt-40 pb-28 text-center">
+        <section className="relative overflow-hidden pt-40 pb-36 text-center">
             <AnimatedGridBackground />
             <div className="container mx-auto relative z-10">
                 <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
