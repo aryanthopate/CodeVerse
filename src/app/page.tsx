@@ -155,7 +155,7 @@ export default async function Home() {
         {/* Hero Section */}
         <section className="relative w-full overflow-hidden">
           <AnimatedGridBackground />
-          <div className="container mx-auto flex min-h-[90vh] flex-col items-center justify-center text-center relative z-10 py-12 md:py-0">
+          <div className="container mx-auto flex min-h-[90vh] flex-col items-center justify-center text-center relative z-10 py-24 md:py-32">
                 <div className="relative">
                     <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
                         Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
