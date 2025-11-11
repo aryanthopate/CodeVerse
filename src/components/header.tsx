@@ -98,7 +98,7 @@ export function Header() {
           </nav>
           
           <div className="flex items-center justify-end gap-2">
-            {loading ? <div className="h-9 w-24 rounded-md bg-zinc-800 animate-pulse" /> : user ? (
+            {user ? (
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full h-auto">
@@ -132,6 +132,8 @@ export function Header() {
                       </DropdownMenuItem>
                   </DropdownMenuContent>
               </DropdownMenu>
+            ) : loading ? (
+              <div className="h-9 w-24 rounded-md bg-zinc-800 animate-pulse" />
             ) : (
               <>
                 <Button variant="ghost" asChild className="hidden sm:inline-flex text-zinc-300 transition-all hover:scale-[1.02] hover:bg-zinc-800/50 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-1 text-sm border border-transparent hover:border-zinc-700">
