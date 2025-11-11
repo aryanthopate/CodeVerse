@@ -450,6 +450,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          last_played_at: string | null
           learning_at: string
           role: string
           streak: number
@@ -460,6 +461,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id: string
+          last_played_at?: string | null
           learning_at: string
           role?: string
           streak?: number
@@ -470,6 +472,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          last_played_at?: string | null
           learning_at?: string
           role?: string
           streak?: number
@@ -909,7 +912,6 @@ export type Database = {
         Args: {
           user_id_in: string
           xp_to_add: number
-          is_perfect_in: boolean
         }
         Returns: undefined
       }
@@ -1021,4 +1023,5 @@ export type Composites<
     : never
     
 
+    
     
