@@ -16,6 +16,7 @@ export function MatrixBackground() {
       <Pattern />
       <Pattern />
       <Pattern />
+      <div className="matrix-overlay"></div>
     </div>
   );
 }
