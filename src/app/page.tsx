@@ -164,11 +164,11 @@ export default async function Home() {
           <div className="container mx-auto flex min-h-[90vh] flex-col items-center justify-center text-center relative z-10 py-24 md:py-32">
                 <div className="relative">
                     <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
-                        Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                        An AI-Powered Learning Experience ✨<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
                     </span>
                 </div>
-                <h1 className="mb-3 text-center text-3xl font-bold leading-tight text-zinc-50 sm:text-4xl sm:leading-tight md:text-5xl md:leading-tight lg:text-8xl lg:leading-tight">A landing page template that works for you</h1>
-                <p className="mb-9 max-w-2xl text-center text-base text-zinc-400 sm:text-lg md:text-xl">Build beautiful landing pages for your startups, clients, and side projects, without having to think about design.</p>
+                <h1 className="mb-3 text-center text-3xl font-bold leading-tight text-zinc-50 sm:text-4xl sm:leading-tight md:text-5xl md:leading-tight lg:text-8xl lg:leading-tight">CodeVerce-Learn to Code by Playing Games</h1>
+                <p className="mb-9 max-w-2xl text-center text-base text-zinc-400 sm:text-lg md:text-xl">CodeVerse transforms programming education into an interactive adventure. Master new skills with AI-guided lessons, engaging quizzes, and hands-on coding challenges.</p>
                 <div className="flex flex-col items-center gap-4 sm:flex-row">
                     <Button asChild className="justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-10 rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
                         {user ? (
