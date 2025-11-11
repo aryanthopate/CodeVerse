@@ -16,6 +16,18 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
     const isBestseller = enrollments > 10;
     const isBestRated = (course.rating || 0) >= 4.5;
 
+    const renderBadges = () => (
+        <>
+            {isBestseller && <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>}
+            {isBestRated && <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Best Rated</Badge>}
+            {(course.tags || []).map(tag => (
+                <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
+                    {tag.text}
+                </Badge>
+            ))}
+        </>
+    );
+
     return (
         <div className="group w-full h-[450px] [perspective:1000px]">
             <div className="relative h-full w-full rounded-xl shadow-xl transition-all duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
@@ -32,23 +44,16 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                 />
                             </div>
                         </Link>
-                        <div className="absolute top-2 left-2 z-10 flex gap-2">
-                             {isBestseller && <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Bestseller</Badge>}
-                            {isBestRated && <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Best Rated</Badge>}
-                            {(course.tags || []).map(tag => (
-                                <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
-                                    {tag.text}
-                                </Badge>
-                            ))}
-                        </div>
+                        
                         <div className="p-6 flex flex-col flex-grow">
                             <div className="flex items-center text-xs text-muted-foreground gap-2 mb-2">
                                 <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
                                 <span className="font-semibold text-foreground">{course.rating?.toFixed(1) || 'N/A'}</span>
                                 <span>({reviewsCount} reviews)</span>
                             </div>
-                            <h5 className="mb-2 block font-sans text-xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased text-white">
+                            <h5 className="mb-2 flex items-center gap-2 font-sans text-xl font-semibold leading-snug tracking-normal text-blue-gray-900 antialiased text-white">
                                 <Link href={`/courses/${course.slug}`} className="hover:text-primary transition-colors">{course.name}</Link>
+                                <div className="flex gap-1">{renderBadges()}</div>
                             </h5>
                             <p className="block font-sans text-sm font-light leading-relaxed text-inherit antialiased flex-grow text-hp-text-muted">
                                 {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
@@ -77,6 +82,7 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
 
                 {/* Back of Card */}
                 <div className="absolute inset-0 h-full w-full rounded-xl bg-zinc-900 px-12 text-center text-slate-200 [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                    <div className="absolute top-4 left-4 flex gap-1">{renderBadges()}</div>
                     <div className="flex min-h-full flex-col items-center justify-center p-6">
                         <h3 className="text-xl font-bold mb-3">What you'll learn</h3>
                         <ul className="text-sm text-hp-text-muted space-y-1 mb-4 list-disc list-inside">
@@ -84,13 +90,7 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                 <li key={index} className="truncate">{item}</li>
                             ))}
                         </ul>
-                         <div className="flex flex-wrap gap-2 justify-center mb-4">
-                            {(course.tags || []).slice(0,3).map(tag => (
-                                <Badge key={tag.text} className={cn("text-xs font-semibold", tag.color)}>
-                                    {tag.text}
-                                </Badge>
-                            ))}
-                        </div>
+                         
                          <div className="w-full mt-auto space-y-2">
                              <Link href={`/courses/${course.slug}`} className="w-full">
                                 <Button className="w-full bg-blue-500 hover:bg-blue-600">
