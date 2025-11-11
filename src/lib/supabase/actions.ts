@@ -827,26 +827,43 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         return { success: false, error: "User not authenticated" };
     }
     
-    const { error } = await supabase.from('user_game_progress').upsert({
-        user_id: user.id,
-        game_id: gameId,
-        completed_level_id: levelId,
-        completed_at: new Date().toISOString(),
-    }, {
-        onConflict: 'user_id,completed_level_id'
-    });
-
-    if (error) {
-        console.error("Error saving game progress:", error);
-        return { success: false, error: "Could not save progress." };
-    }
+    // Check if the level was already completed
+    const { data: existingProgress, error: fetchError } = await supabase
+        .from('user_game_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('completed_level_id', levelId)
+        .single();
     
-    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp, is_perfect_in: isPerfect });
-
-    if (rpcError) {
-        console.error("Error updating user XP and streak:", rpcError);
-        // This is not a critical failure, so we don't return an error to the client
+    if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error checking existing game progress:", fetchError);
+        // Don't block completion, just log the error
     }
+
+    // Only award XP and update streak on the first completion
+    if (!existingProgress) {
+        const { error } = await supabase.from('user_game_progress').upsert({
+            user_id: user.id,
+            game_id: gameId,
+            completed_level_id: levelId,
+            completed_at: new Date().toISOString(),
+        }, {
+            onConflict: 'user_id,completed_level_id'
+        });
+
+        if (error) {
+            console.error("Error saving game progress:", error);
+            return { success: false, error: "Could not save progress." };
+        }
+        
+        const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp, is_perfect_in: isPerfect });
+
+        if (rpcError) {
+            console.error("Error updating user XP and streak:", rpcError);
+            // This is not a critical failure, so we don't return an error to the client
+        }
+    }
+
 
     revalidatePath(`/playground/${gameId}`);
     revalidatePath('/dashboard');
