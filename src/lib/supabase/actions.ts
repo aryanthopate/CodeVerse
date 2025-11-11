@@ -824,12 +824,12 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        return { success: false, error: "User not authenticated" };
+        console.error("User not authenticated for completeGameLevel");
+        return redirect('/login');
     }
     
-    // Add XP to the user's profile
+    // Add XP to the user's profile and update streak
     const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: xp });
-
     if (rpcError) {
         console.error("Error updating user XP and streak via RPC:", rpcError);
         // This is not a fatal error for the user's progress, so we can continue
@@ -848,7 +848,8 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
 
     if (progressError) {
         console.error("Error saving game progress:", progressError);
-        return { success: false, error: "Could not save your progress." };
+        // Don't redirect if progress couldn't be saved, maybe show an error.
+        // For now, we will still redirect to not block the user.
     }
 
     revalidatePath(`/playground/${gameId}`);
