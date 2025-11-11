@@ -134,10 +134,10 @@ export function Header() {
               </DropdownMenu>
             ) : (
               <>
-                 <Button variant="ghost" asChild className="hidden sm:inline-flex text-zinc-100 transition-all hover:scale-[1.02] hover:bg-zinc-800 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-1 text-base">
+                <Button variant="ghost" asChild className="hidden sm:inline-flex text-zinc-300 transition-all hover:scale-[1.02] hover:bg-zinc-800/50 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-1 text-sm border border-transparent hover:border-zinc-700">
                     <Link href="/login">Sign In</Link>
                 </Button>
-                 <Button asChild variant="outline" className="text-zinc-100 border-zinc-700 hover:bg-zinc-800 hover:text-zinc-50 transition-all hover:scale-[1.02] active:scale-[0.98] rounded-md px-4 py-1.5 text-sm font-bold">
+                <Button asChild className="whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-9 rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-3 py-1.5 text-sm text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70">
                     <Link href="/signup">Sign Up</Link>
                 </Button>
               </>
