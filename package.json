@@ -6,11 +6,12 @@
     "dev": "next dev -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "NODE_ENV=production next build",
+    "build": "npm run rebuild-schema && NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "rebuild-schema": "node src/rebuild-schema.js"
+    "rebuild-schema": "node src/rebuild-schema.js",
+    "postinstall": "npm run rebuild-schema"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

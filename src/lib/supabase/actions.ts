@@ -827,15 +827,44 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
         console.error("User not authenticated for completeGameLevel");
         return { success: false, error: 'User not authenticated' };
     }
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     
-    // Add XP to the user's profile and update streak
-    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: xp });
-    if (rpcError) {
-        console.error("Error updating user XP and streak via RPC:", rpcError);
-        // This is a critical error, return failure
-        return { success: false, error: `Failed to update XP and streak: ${rpcError.message}` };
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('xp, streak, last_played_at')
+        .eq('id', user.id)
+        .single();
+    
+    if (profileError || !profile) {
+        console.error("Error fetching user profile:", profileError);
+        return { success: false, error: `Failed to fetch user profile: ${profileError?.message}` };
+    }
+
+    let newStreak = profile.streak || 0;
+    const lastPlayedDate = profile.last_played_at ? profile.last_played_at.split('T')[0] : null;
+
+    if (lastPlayedDate === yesterday) {
+        newStreak++; // Continue streak
+    } else if (lastPlayedDate !== today) {
+        newStreak = 1; // Reset streak
     }
     
+    const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+            xp: (profile.xp || 0) + xp,
+            streak: newStreak,
+            last_played_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+    if (updateError) {
+        console.error("Error updating user XP and streak:", updateError);
+        return { success: false, error: `Failed to update XP and streak: ${updateError.message}` };
+    }
+
     // Record the level completion
     const { error: progressError } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
@@ -849,6 +878,8 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
 
     if (progressError) {
         console.error("Error saving game progress:", progressError);
+        // Note: At this point, the user's XP has been updated. We might need a transaction here in a real-world app.
+        // For this project, we'll accept this potential inconsistency.
         return { success: false, error: `Failed to save progress: ${progressError.message}` };
     }
 
@@ -857,6 +888,7 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
     
     return { success: true };
 }
+
 
 export async function deleteChat(chatId: string) {
     const supabase = createClient();
