@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from './server';
@@ -818,28 +819,16 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string) {
+export async function completeGameLevel(levelId: string, gameId: string, xp: number, isPerfect: boolean, nextUrl: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
         return { success: false, error: "User not authenticated" };
     }
-
-    // First, fetch the level to get the game_id and reward_xp
-    const { data: level, error: levelError } = await supabase
-        .from('game_levels')
-        .select('game_id, reward_xp')
-        .eq('id', levelId)
-        .single();
-
-    if (levelError || !level) {
-        console.error("Error fetching level details for progress:", levelError);
-        return { success: false, error: "Could not find level details." };
-    }
     
     // Add XP to the user's profile
-    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: level.reward_xp });
+    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: xp });
 
     if (rpcError) {
         console.error("Error updating user XP and streak via RPC:", rpcError);
@@ -849,9 +838,10 @@ export async function completeGameLevel(levelId: string) {
     // Record the level completion
     const { error: progressError } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
-        game_id: level.game_id,
+        game_id: gameId,
         completed_level_id: levelId,
         completed_at: new Date().toISOString(),
+        is_perfect: isPerfect
     }, {
         onConflict: 'user_id,completed_level_id'
     });
@@ -861,11 +851,12 @@ export async function completeGameLevel(levelId: string) {
         return { success: false, error: "Could not save your progress." };
     }
 
-    revalidatePath(`/playground/${level.game_id}`);
+    revalidatePath(`/playground/${gameId}`);
     revalidatePath('/dashboard');
     revalidatePath('/'); // Revalidate homepage for leaderboard
 
-    return { success: true };
+    // Redirect to the next level from the server
+    redirect(nextUrl);
 }
 
 export async function deleteChat(chatId: string) {

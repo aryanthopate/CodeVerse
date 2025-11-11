@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -71,7 +72,9 @@ export function Header() {
   ];
 
   const user = profile;
-  const navLinkClasses = "group flex items-center gap-2 text-sm font-medium text-zinc-300 transition-colors hover:text-white";
+  const navLinkClasses = "group flex items-center gap-2 text-sm font-medium transition-colors";
+  const navLinkGameClasses = "text-[hsl(var(--game-text))]/80 hover:text-[hsl(var(--game-text))]";
+  const navLinkDefaultClasses = "text-zinc-300 hover:text-white";
 
   return (
     <header className={cn(
@@ -88,7 +91,7 @@ export function Header() {
             <ul className="flex gap-8">
               {navLinks.map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className={cn(navLinkClasses, pathname.startsWith(link.href) && 'text-primary')}>
+                  <Link href={link.href} className={cn(navLinkClasses, isPlayground ? navLinkGameClasses : navLinkDefaultClasses, pathname.startsWith(link.href) && (isPlayground ? 'text-[hsl(var(--game-accent))]' : 'text-primary'))}>
                     {link.icon}
                     <span>{link.name}</span>
                   </Link>
@@ -101,12 +104,12 @@ export function Header() {
             {user ? (
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full h-auto">
+                      <Button variant="ghost" className={cn("flex items-center gap-2 p-1 rounded-full h-auto", isPlayground && "hover:bg-[hsl(var(--game-surface))]")}>
                           <Avatar className="h-9 w-9">
                               <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || ''} />
                               <AvatarFallback>{user.full_name?.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <span className="hidden md:inline font-semibold text-zinc-200">{user.full_name}</span>
+                          <span className={cn("hidden md:inline font-semibold", isPlayground ? "text-[hsl(var(--game-text))]" : "text-zinc-200")}>{user.full_name}</span>
                       </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -136,7 +139,7 @@ export function Header() {
               <div className="h-9 w-24 rounded-md bg-zinc-800 animate-pulse" />
             ) : (
               <>
-                <Button variant="ghost" asChild className="hidden sm:inline-flex text-zinc-300 transition-all hover:scale-[1.02] hover:bg-zinc-800/50 hover:text-zinc-50 active:scale-[0.98] rounded-md px-4 py-1 text-sm border border-transparent hover:border-zinc-700">
+                <Button variant="ghost" asChild className={cn("hidden sm:inline-flex text-zinc-300 transition-all hover:scale-[1.02] active:scale-[0.98] rounded-md px-4 py-1 text-sm border", isPlayground ? "border-[hsl(var(--game-border))] hover:bg-[hsl(var(--game-surface))] hover:text-white" : "border-transparent hover:bg-zinc-800/50 hover:text-zinc-50 hover:border-zinc-700")}>
                     <Link href="/login">Sign In</Link>
                 </Button>
                 <Button asChild className="whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-9 rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-3 py-1.5 text-sm text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70">

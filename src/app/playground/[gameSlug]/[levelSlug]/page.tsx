@@ -365,9 +365,15 @@ export default function GameLevelPage() {
         setGameState('levelComplete');
         
         const levelWasPerfect = lives === 3 && !usedHint;
-        await completeGameLevel(level.id, game.id, level.reward_xp, levelWasPerfect);
+        
+        const nextUrl = nextLevel 
+            ? `/playground/${game!.slug}/${nextLevel.slug}` 
+            : `/playground/${game!.slug}`;
 
-    }, [level, game, gameState, lives]);
+        // The server action will handle the redirection
+        await completeGameLevel(level.id, game.id, level.reward_xp, levelWasPerfect, nextUrl);
+
+    }, [level, game, gameState, lives, nextLevel]);
 
     const handleStageComplete = () => {
         setStreak(s => s + 1);
@@ -481,11 +487,13 @@ export default function GameLevelPage() {
                             <h3 className="text-2xl font-bold">{isSuccess ? 'Mission Complete!' : 'Mission Failed'}</h3>
                             <p className="text-muted-foreground mt-2">{isSuccess ? `Outstanding work, recruit! You earned ${level?.reward_xp} XP.` : "You've run out of lives. Better luck next time!"}</p>
                             <div className="flex gap-4 mt-6">
-                                {nextLevel && isSuccess ? (
-                                    <Link href={`/playground/${game!.slug}/${nextLevel.slug}`} className="btn-game flex-1">Next Mission <ArrowRight className="ml-2"/></Link>
-                                ) : isSuccess ? (
-                                    <Link href={`/playground/${game!.slug}`} className="btn-game flex-1">Finish Game <Award className="ml-2"/></Link>
-                                ) : null}
+                                {/* The form now handles the redirection */}
+                                <form action={() => handleLevelComplete(false)} className="contents">
+                                    <button type="submit" className="btn-game flex-1">
+                                        {nextLevel && isSuccess ? "Next Mission" : "Finish Game"}
+                                        {isSuccess ? (nextLevel ? <ArrowRight className="ml-2"/> : <Award className="ml-2"/>) : null}
+                                    </button>
+                                </form>
                                 <Link href={`/playground/${game!.slug}`} className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80 flex-1">Quit Game</Link>
                             </div>
                         </div>
