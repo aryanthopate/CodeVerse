@@ -95,6 +95,13 @@
   body::-webkit-scrollbar {
     display: none; /* Safari and Chrome */
   }
+  
+  .dark-grid-background {
+    background-size: 40px 40px;
+    background-image:
+      linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+  }
 
   /* For webkit browsers */
   ::-webkit-scrollbar {

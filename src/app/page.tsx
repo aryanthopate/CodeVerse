@@ -8,7 +8,7 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn, Gamepad2 } from 'lucide-react';
+import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn, Gamepad2, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCoursesWithChaptersAndTopics, getGameSettings } from '@/lib/supabase/queries';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
@@ -29,7 +29,6 @@ import { cn } from '@/lib/utils';
 import { FuturisticButton } from '@/components/futuristic-button';
 import { NewsletterTerminal } from '@/components/newsletter-terminal';
 import { ContactForm } from '@/components/contact-form';
-import { MatrixBackground } from '@/components/matrix-background';
 
 
 function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
@@ -66,28 +65,27 @@ export default async function Home() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const courses: CourseWithChaptersAndTopics[] = await getCoursesWithChaptersAndTopics() || [];
-  const gameSettings = await getGameSettings();
   
   const features = [
     {
-      icon: <Film className="w-8 h-8 text-primary" />,
+      icon: <Film className="w-6 h-6 text-primary" />,
       title: 'Interactive Video Lessons',
       description: 'Learn step-by-step with our engaging and modern video player.',
     },
     {
-      icon: <Bot className="w-8 h-8 text-primary" />,
+      icon: <Bot className="w-6 h-6 text-primary" />,
       title: 'AI-Powered Guidance',
       description: 'Get instant explanations, code reviews, and hints from your personal AI tutor.',
     },
     {
-      icon: <Code className="w-8 h-8 text-primary" />,
+      icon: <Code className="w-6 h-6 text-primary" />,
       title: 'Hands-on Code Practice',
       description: 'Apply what you learn in our interactive code editor with AI feedback.',
     },
     {
-      icon: <Zap className="w-8 h-8 text-primary" />,
-      title: 'Engaging Quizzes',
-      description: 'Test your knowledge with fun, interactive quizzes after each topic.',
+      icon: <Zap className="w-6 h-6 text-primary" />,
+      title: 'Engaging Quizzes & Games',
+      description: 'Test your knowledge with quizzes and solidify skills in our coding playground.',
     },
   ];
 
@@ -113,31 +111,74 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background dark-grid-background">
       <Header />
       <main className="flex-grow">
         
         {/* Hero Section */}
         <section className="pt-32 pb-20 text-center container mx-auto relative z-10">
-          <Badge variant="outline" className="mb-4 border-primary/50 text-primary animate-float">
-            From Video to Code — The AI Way
+          <Badge variant="outline" className="mb-6 border-primary/30 bg-primary/10 text-primary animate-float">
+            <Sparkles className="w-3 h-3 mr-2" /> Exciting announcement
           </Badge>
           <h1 className="text-5xl md:text-7xl font-bold font-headline bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
-            Learn Java, Python, C++
+            Learn to Code,
             <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary bg-[200%_auto] animate-gradient-x">The Fun Way</span> 👾
+            The Fun Way
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-            Your Code, Your Journey, Your Playground. Master programming with AI-powered lessons, interactive quizzes, and hands-on practice.
+            Build beautiful applications for your startup, clients, and side projects, without having to think about the design.
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <Button size="lg" asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
-              <Link href="/signup">Start Learning Free</Link>
+              <Link href="/signup">Try it free <ArrowRight className="ml-2 w-4 h-4" /></Link>
             </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/playground">Enter Playground <Gamepad2 className="ml-2 w-4 h-4" /></Link>
+            <Button size="lg" variant="link" asChild className="text-muted-foreground hover:text-white">
+              <Link href="/courses">Learn more</Link>
             </Button>
           </div>
+        </section>
+
+        {/* Course Preview */}
+        <section className="py-20">
+            <div className="container mx-auto">
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {courses.slice(0, 3).map((course) => {
+                    const totalTopics = course.chapters.reduce((acc, ch) => acc + ch.topics.length, 0);
+                    return (
+                        <Link key={course.id} href={`/courses/${course.slug}`}>
+                            <Card className="bg-card/50 border-border/50 h-full flex flex-col group overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10">
+                                <CardHeader className="p-0">
+                                    <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/400`} alt={course.name} width={600} height={400} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
+                                </CardHeader>
+                                <CardContent className="p-6 flex-grow">
+                                    <h3 className="text-xl font-bold mb-2">{course.name}</h3>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    )
+                })}
+                </div>
+            </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="py-20">
+            <div className="container mx-auto">
+                <div className="text-center max-w-2xl mx-auto">
+                    <h2 className="text-4xl font-bold">A better way to learn code</h2>
+                    <p className="text-lg text-muted-foreground mt-4">CodeVerse isn't just another video tutorial platform. It's an interactive ecosystem designed to make you a better developer, faster.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
+                    {features.map((feature, i) => (
+                        <Card key={i} className="bg-card/50 border-border/50 p-6">
+                           <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">{feature.icon}</div>
+                           <h3 className="text-lg font-bold">{feature.title}</h3>
+                           <p className="text-sm text-muted-foreground mt-2">{feature.description}</p>
+                        </Card>
+                    ))}
+                </div>
+            </div>
         </section>
 
         {/* New Play & Learn Section */}
@@ -160,32 +201,31 @@ export default async function Home() {
             </div>
         </section>
 
-        {/* Course Preview Carousel */}
-        <section className="py-20 bg-card/20">
-          <div className="container mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Choose Your Path</h2>
+        {/* Testimonials */}
+        <section className="py-20">
+           <div className="container mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">Loved by Learners</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {courses.map((course) => {
-                const freeTopicsCount = course.chapters.flatMap(c => c.topics).filter(t => t.is_free).length;
-                const exploreButton = (
-                    <Button asChild variant="link" className="p-0 text-primary">
-                        <Link href={`/courses/${course.slug}`}>Explore Course <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                    </Button>
-                );
-
-                return (
-                  <Card key={course.id} className="bg-card/50 border-border/50 backdrop-blur-sm overflow-hidden group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
-                    <CardHeader className="p-0">
-                      <Image src={course.image_url || `https://picsum.photos/seed/${course.slug}/600/400`} alt={course.name} width={600} height={400} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" data-ai-hint="abstract code"/>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <CardTitle className="text-2xl font-bold mb-2">{course.name}</CardTitle>
-                      <p className="text-muted-foreground mb-4">{`Learn ${course.name} → ${freeTopicsCount} Free Topics`}</p>
-                      {user ? exploreButton : <AuthRequiredDialog>{exploreButton}</AuthRequiredDialog>}
-                    </CardContent>
-                  </Card>
-                )
-              })}
+              {testimonials.map((testimonial) => (
+                <Card key={testimonial.name} className="bg-card/50 border-border/50 p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex text-yellow-400 mb-4">
+                      {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
+                    </div>
+                    <p className="text-foreground mb-4">"{testimonial.comment}"</p>
+                  </div>
+                  <div className="flex items-center gap-4 mt-auto pt-4 border-t border-border/50">
+                    <Avatar>
+                      <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                      <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{testimonial.name}</p>
+                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           </div>
         </section>
@@ -212,35 +252,6 @@ export default async function Home() {
                     </div>
                 </div>
             </div>
-        </section>
-
-        {/* Testimonials Carousel */}
-        <section className="py-20 bg-card/20">
-           <div className="container mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Loved by Learners</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial) => (
-                <Card key={testimonial.name} className="bg-card/50 border-border/50 p-6 flex flex-col justify-between">
-                  <div>
-                    <div className="flex text-yellow-400 mb-4">
-                      {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
-                    </div>
-                    <p className="text-foreground mb-4">"{testimonial.comment}"</p>
-                  </div>
-                  <div className="flex items-center gap-4 mt-auto">
-                    <Avatar>
-                      <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
-                      <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
         </section>
 
       </main>
