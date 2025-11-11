@@ -211,8 +211,7 @@ export default async function Home() {
         {/* Course Preview */}
         <section className="py-20 container mx-auto">
           <h2 className="text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
-          <div className="dark-grid-background rounded-2xl p-8 md:p-12 relative">
-             <AnimatedGridBackground showParticles={false}/>
+          <div className="container-grid rounded-2xl p-8 md:p-12 relative">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 relative z-10">
               {courses.slice(0,3).map((course) => (
                  <CourseCard key={course.id} course={course} />
@@ -324,6 +323,7 @@ export default async function Home() {
 
 
     
+
 
 
 
