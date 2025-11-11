@@ -60,8 +60,8 @@
     /* New Homepage Theme from Hover.dev */
     --hp-background: 240 6% 10%; /* zinc-900 */
     --hp-background-deep: 240 10% 4%; /* zinc-950 */
-    --hp-accent: 244 80% 60%; /* blue-500 */
-    --hp-accent-glow: 244 80% 70%;
+    --hp-accent: 250 80% 60%;
+    --hp-accent-glow: 250 80% 70%;
     --hp-text: 240 5% 84%; /* zinc-200 */
     --hp-text-muted: 240 5% 63%; /* zinc-400 */
   }
@@ -175,5 +175,27 @@
    .tab-trigger-game[data-state=active] {
       @apply btn-game !py-1.5;
    }
+
+  .box {
+    animation: drop-and-fade var(--duration) var(--delay) infinite;
+    opacity: 0;
+  }
+  
+  @keyframes drop-and-fade {
+    0% {
+      transform: translateY(-100%) scale(0.5);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100vh) scale(1.5);
+      opacity: 0;
+    }
+  }
 
 }

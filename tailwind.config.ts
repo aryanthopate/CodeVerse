@@ -22,7 +22,7 @@ export default {
       },
       fontFamily: {
         body: ['Poppins', 'sans-serif'],
-        headline: ['Poppins', 'sans-serif'],
+        headline: ['Space Grotesk', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -137,7 +137,13 @@ export default {
           '0%': { transform: 'scale(1)', opacity: '1' },
           '50%': { transform: 'scale(1.5)', opacity: '0.5' },
           '100%': { transform: 'scale(2)', opacity: '0' },
-        }
+        },
+         'drop-and-fade': {
+          '0%': { transform: 'translateY(-100%) scale(0.5)', opacity: '0' },
+          '10%': { opacity: '1' },
+          '90%': { opacity: '1' },
+          '100%': { transform: 'translateY(100vh) scale(1.5)', opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -147,6 +153,7 @@ export default {
         'grid-pan': 'grid-pan 15s linear infinite',
         'gradient-x': 'gradient-x 3s ease-in-out infinite',
         'burst': 'burst 0.3s ease-out forwards',
+        'drop-and-fade': 'drop-and-fade var(--duration) var(--delay) infinite linear'
       },
     },
   },

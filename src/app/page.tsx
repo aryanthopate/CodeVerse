@@ -6,60 +6,95 @@ import Image from 'next/image';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Bot, Code, Film, Star, Zap, LogIn, Gamepad2, Sparkles, BookOpen, Clock } from 'lucide-react';
+import { ArrowRight, Bot, Code, Film, Star, Zap, BookOpen, Clock, Trophy, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { getCoursesWithChaptersAndTopics, getGameSettings } from '@/lib/supabase/queries';
-import { CourseWithChaptersAndTopics } from '@/lib/types';
+import { getCoursesWithChaptersAndTopics } from '@/lib/supabase/queries';
+import { CourseWithChaptersAndTopics, UserProfile } from '@/lib/types';
 import { createClient } from '@/lib/supabase/server';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { AnimatedGridBackground } from '@/components/animated-grid-background';
 import { cn } from '@/lib/utils';
 import { FuturisticButton } from '@/components/futuristic-button';
 import { NewsletterTerminal } from '@/components/newsletter-terminal';
 import { ContactForm } from '@/components/contact-form';
 
-
-function AuthRequiredDialog({ children }: { children: React.ReactNode }) {
+function GridAndBoxesBackground() {
+    const boxes = Array.from({ length: 30 });
     return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                {children}
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <div className="flex justify-center mb-2">
-                        <LogIn className="w-12 h-12 text-primary"/>
-                    </div>
-                    <AlertDialogTitle className="text-center text-2xl">Authentication Required</AlertDialogTitle>
-                    <AlertDialogDescription className="text-center">
-                        Please log in or create an account to start your learning journey.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction asChild>
-                        <Link href="/login">Login</Link>
-                    </AlertDialogAction>
-                    <AlertDialogAction asChild>
-                        <Link href="/signup">Sign Up</Link>
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <div className="absolute inset-0 z-0 overflow-hidden bg-hp-background-deep">
+            <div className="absolute inset-0 bg-grid-zinc-700/20 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]"></div>
+            <div className="absolute inset-0 h-full w-full">
+                {boxes.map((_, i) => (
+                    <div
+                        key={i}
+                        className="box absolute bg-gradient-to-br from-indigo-500/20 to-blue-700/10"
+                        style={{
+                            '--top': `${Math.random() * 100}%`,
+                            '--left': `${Math.random() * 100}%`,
+                            '--size': `${Math.random() * 8 + 2}rem`,
+                            '--delay': `${Math.random() * 10}s`,
+                            '--duration': `${Math.random() * 10 + 10}s`,
+                        } as React.CSSProperties}
+                    ></div>
+                ))}
+            </div>
+            <div className="absolute inset-0 z-10 bg-gradient-to-b from-hp-background-deep/0 via-hp-background-deep to-hp-background-deep"></div>
+        </div>
     );
 }
+
+async function Leaderboard() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url, xp, streak')
+    .order('xp', { ascending: false })
+    .limit(5);
+
+  if (error || !data) {
+    console.error("Error fetching leaderboard data:", error);
+    return null;
+  }
+
+  const getRank = (index: number) => {
+    if (index > 0 && data[index].xp === data[index - 1].xp) {
+      return getRank(index - 1);
+    }
+    return index + 1;
+  };
+
+  return (
+    <div className="space-y-4">
+      {data.map((profile, index) => {
+        const rank = getRank(index);
+        return (
+          <div
+            key={profile.full_name}
+            className="flex items-center gap-4 rounded-lg bg-zinc-900/50 p-3 border border-zinc-800 transition-all hover:bg-zinc-800/60 hover:border-hp-accent/50"
+          >
+            <div className="flex items-center gap-3 w-1/3">
+              <span className="text-xl font-bold text-zinc-400 w-8 text-center">{rank}</span>
+              <Avatar>
+                <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
+                <AvatarFallback>{profile.full_name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <span className="font-medium text-white truncate">{profile.full_name}</span>
+            </div>
+            <div className="w-1/3 text-center">
+              <span className="font-semibold text-hp-accent">{profile.xp} XP</span>
+            </div>
+            <div className="flex items-center justify-end gap-2 w-1/3 text-orange-400">
+              <Zap className="h-4 w-4" />
+              <span className="font-semibold">{profile.streak} days</span>
+            </div>
+             {rank <= 3 && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-500" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 
 export default async function Home() {
   const supabase = createClient();
@@ -117,13 +152,13 @@ export default async function Home() {
         
         {/* Hero Section */}
         <section className="relative pt-40 pb-28 text-center container mx-auto z-10">
-          <AnimatedGridBackground />
+          <GridAndBoxesBackground />
           <div className="relative z-10">
             <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
               Learn to Code. Play to Master.
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-lg text-hp-text-muted">
-              Interactive coding, AI mentors, and courses built for your future.
+              CodeVerse is an interactive learning platform that makes mastering programming fun. Through AI-powered guidance, gamified challenges, and hands-on projects, you'll go from novice to pro in no time.
             </p>
             <div className="mt-8 flex justify-center gap-4">
                <Button size="lg" asChild className="bg-hp-accent text-white hover:bg-hp-accent/90 shadow-lg shadow-hp-accent/30 ring-2 ring-hp-accent/50 ring-offset-2 ring-offset-hp-background-deep transition-all hover:scale-105 active:scale-95">
@@ -134,6 +169,17 @@ export default async function Home() {
               </Button>
             </div>
           </div>
+        </section>
+
+        {/* New Leaderboard Section */}
+        <section className="py-20 container mx-auto">
+            <div className="text-center max-w-2xl mx-auto">
+                <h2 className="text-4xl font-bold text-white flex items-center justify-center gap-3"><Trophy className="text-yellow-400"/> Hall of Heroes</h2>
+                <p className="text-lg text-hp-text-muted mt-4">See who's topping the charts. Earn XP by completing levels and climb the ranks!</p>
+            </div>
+            <div className="max-w-4xl mx-auto mt-12">
+                <Leaderboard />
+            </div>
         </section>
 
         {/* Course Preview */}
