@@ -17,31 +17,7 @@ import { cn } from '@/lib/utils';
 import { FuturisticButton } from '@/components/futuristic-button';
 import { NewsletterTerminal } from '@/components/newsletter-terminal';
 import { ContactForm } from '@/components/contact-form';
-
-function GridAndBoxesBackground() {
-    const boxes = Array.from({ length: 30 });
-    return (
-        <div className="absolute inset-0 z-0 overflow-hidden bg-hp-background-deep">
-            <div className="absolute inset-0 bg-grid-zinc-700/20 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]"></div>
-            <div className="absolute inset-0 h-full w-full">
-                {boxes.map((_, i) => (
-                    <div
-                        key={i}
-                        className="box absolute bg-gradient-to-br from-indigo-500/20 to-blue-700/10"
-                        style={{
-                            '--top': `${Math.random() * 100}%`,
-                            '--left': `${Math.random() * 100}%`,
-                            '--size': `${Math.random() * 8 + 2}rem`,
-                            '--delay': `${Math.random() * 10}s`,
-                            '--duration': `${Math.random() * 10 + 10}s`,
-                        } as React.CSSProperties}
-                    ></div>
-                ))}
-            </div>
-            <div className="absolute inset-0 z-10 bg-gradient-to-b from-hp-background-deep/0 via-hp-background-deep to-hp-background-deep"></div>
-        </div>
-    );
-}
+import { GridAndBoxesBackground } from '@/components/animated-grid-background';
 
 async function Leaderboard() {
   const supabase = createClient();
@@ -240,7 +216,7 @@ export default async function Home() {
         <section className="py-20">
             <div className="container mx-auto">
                 <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-100">
-                    <AnimatedGridBackground />
+                    <GridAndBoxesBackground />
                     <div className="relative z-10 flex flex-col items-center">
                         <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
                             ENTER THE PLAYGROUND
