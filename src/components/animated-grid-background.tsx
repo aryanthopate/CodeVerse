@@ -3,7 +3,7 @@
 
 import React from 'react';
 
-export function GridAndBoxesBackground() {
+export function AnimatedGridBackground() {
     const boxes = Array.from({ length: 30 });
     return (
         <div className="absolute inset-0 z-0 overflow-hidden bg-hp-background-deep">
