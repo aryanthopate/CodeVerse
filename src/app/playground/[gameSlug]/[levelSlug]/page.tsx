@@ -21,8 +21,11 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Confetti from 'react-confetti';
 import { completeGameLevel } from '@/lib/supabase/actions';
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, DragOverlay, closestCenter } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 
 const pieceColors = [
     'bg-sky-500/80 border-sky-400 text-sky-50',
@@ -37,23 +40,43 @@ interface Piece {
   id: string;
   text: string;
   color: string;
+  parent: 'bucket' | 'solution';
 }
 
-function DraggablePiece({ piece }: { piece: Piece }) {    
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+function DraggablePiece({ piece, isOverlay = false }: { piece: Piece, isOverlay?: boolean }) {    
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
         id: piece.id,
     });
     
-    const style = transform ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 100,
-    } : undefined;
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        opacity: isDragging && !isOverlay ? 0.5 : 1,
+        zIndex: isDragging ? 100 : 'auto',
+        cursor: isOverlay ? 'grabbing' : 'grab',
+    };
 
     return (
         <div ref={setNodeRef} style={style} {...listeners} {...attributes}
-            className={cn("px-3 py-1.5 rounded-md font-mono cursor-grab flex items-center gap-2 border-2", piece.color)}>
+            className={cn("px-3 py-1.5 rounded-md font-mono flex items-center gap-2 border-2", piece.color, isOverlay && "shadow-lg")}>
             <GripVertical className="w-4 h-4 opacity-70"/>
             {piece.text}
+        </div>
+    );
+}
+
+function DroppableArea({ id, children, isCorrect }: { id: string, children: React.ReactNode, isCorrect?: boolean | null }) {
+    const { setNodeRef, isOver } = useDroppable({ id });
+    return (
+        <div
+            ref={setNodeRef}
+            className={cn(
+                "min-h-[120px] bg-black/30 rounded-lg p-3 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-start content-start transition-colors",
+                isOver && "border-primary bg-primary/10",
+                isCorrect === true && "border-green-500 bg-green-500/10",
+                isCorrect === false && "border-red-500 bg-red-500/10 animate-shake"
+            )}
+        >
+            {children}
         </div>
     );
 }
@@ -72,10 +95,10 @@ function CodeScrambleGame({
     onIncorrect: () => void;
     onCodeChange: (newCode: string) => void;
 }) {
-    const [availablePieces, setAvailablePieces] = useState<Piece[]>([]);
-    const [solutionPieces, setSolutionPieces] = useState<Piece[]>([]);
+    const [pieces, setPieces] = useState<Piece[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+    const [activeId, setActiveId] = useState<string | null>(null);
 
     const correctSnippets = useMemo(() => {
         return level.expected_output?.match(/([a-zA-Z_]\w*|"[^"]*"|'[^']*'|[\(\)\.,=;\[\]\{\}\+\-\*\/]|\d+)/g) || [];
@@ -90,8 +113,8 @@ function CodeScrambleGame({
                 count: Math.max(3, Math.floor(correctSnippets.length / 2)),
             });
 
-            const correctPs: Piece[] = correctSnippets.map((text, i) => ({ id: `corr-${i}`, text, color: pieceColors[i % pieceColors.length] }));
-            const distractorPs: Piece[] = distractors.map((text, i) => ({ id: `dist-${i}`, text, color: pieceColors[(correctSnippets.length + i) % pieceColors.length] }));
+            const correctPs: Piece[] = correctSnippets.map((text, i) => ({ id: `corr-${i}`, text, color: pieceColors[i % pieceColors.length], parent: 'bucket' }));
+            const distractorPs: Piece[] = distractors.map((text, i) => ({ id: `dist-${i}`, text, color: pieceColors[(correctSnippets.length + i) % pieceColors.length], parent: 'bucket' }));
 
             const allPieces = [...correctPs, ...distractorPs];
             for (let i = allPieces.length - 1; i > 0; i--) {
@@ -99,43 +122,44 @@ function CodeScrambleGame({
                 [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
             }
 
-            setAvailablePieces(allPieces);
-            setSolutionPieces([]);
+            setPieces(allPieces);
             setIsLoading(false);
             setIsCorrect(null);
             onCodeChange('');
         };
         setupGame();
     }, [level, correctSnippets, gameLanguage, onCodeChange]);
+
+    function handleDragStart(event: any) {
+        setActiveId(event.active.id);
+    }
     
-    const { setNodeRef: bucketRef } = useDroppable({ id: 'bucket' });
-    const { setNodeRef: solutionRef } = useDroppable({ id: 'solution' });
-
-
     function handleDragEnd(event: DragEndEvent) {
-        const { over, active } = event;
-        const pieceId = active.id as string;
+        const { active, over } = event;
+        setActiveId(null);
+        if (!over) return;
         
-        // Find which array the piece is currently in
-        const pieceInSolution = solutionPieces.find(p => p.id === pieceId);
-        const pieceInAvailable = availablePieces.find(p => p.id === pieceId);
+        const activePiece = pieces.find(p => p.id === active.id);
+        if (!activePiece) return;
 
-        if (over?.id === 'solution' && pieceInAvailable) {
-            // Dragged from available to solution
-            setSolutionPieces(prev => [...prev, pieceInAvailable]);
-            setAvailablePieces(prev => prev.filter(p => p.id !== pieceId));
-        } else if (over?.id === 'bucket' && pieceInSolution) {
-            // Dragged from solution to available
-            setAvailablePieces(prev => [...prev, pieceInSolution]);
-            setSolutionPieces(prev => prev.filter(p => p.id !== pieceId));
+        const overContainerId = over.id as 'solution' | 'bucket';
+        const activeContainerId = activePiece.parent;
+
+        if (activeContainerId !== overContainerId) {
+            setPieces(prevPieces => prevPieces.map(p => p.id === active.id ? { ...p, parent: overContainerId } : p));
         }
     }
 
+    const solutionPieces = useMemo(() => pieces.filter(p => p.parent === 'solution'), [pieces]);
+    const bucketPieces = useMemo(() => pieces.filter(p => p.parent === 'bucket'), [pieces]);
+    
+    useEffect(() => {
+        onCodeChange(solutionPieces.map(p => p.text).join(' '));
+    }, [solutionPieces, onCodeChange]);
+
     const resetSolution = () => {
-        setAvailablePieces(prev => [...prev, ...solutionPieces]);
-        setSolutionPieces([]);
+        setPieces(prev => prev.map(p => ({...p, parent: 'bucket'})));
         setIsCorrect(null);
-        onCodeChange('');
     };
 
     const checkSolution = () => {
@@ -151,14 +175,11 @@ function CodeScrambleGame({
             onIncorrect();
         }
     };
-    
-    useEffect(() => {
-        onCodeChange(solutionPieces.map(p => p.text).join(' '));
-    }, [solutionPieces, onCodeChange]);
 
+    const activePiece = activeId ? pieces.find(p => p.id === activeId) : null;
 
     return (
-        <DndContext onDragEnd={handleDragEnd}>
+        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
             <div className="flex flex-col h-full bg-gray-900/50 rounded-lg border border-border p-4 gap-4">
                 {isLoading ? (
                     <div className="flex-grow flex items-center justify-center">
@@ -168,25 +189,22 @@ function CodeScrambleGame({
                 ) : (
                     <>
                         <div className="flex-grow space-y-4 flex flex-col">
-                             <div
-                                ref={solutionRef}
-                                className={cn(
-                                    "min-h-[120px] bg-black/30 rounded-lg p-3 border-2 border-dashed border-gray-600 flex flex-wrap gap-2 items-start content-start transition-colors",
-                                    isCorrect === true && "border-green-500 bg-green-500/10",
-                                    isCorrect === false && "border-red-500 bg-red-500/10 animate-shake"
-                                )}
-                            >
-                                {solutionPieces.length === 0 && <p className="text-gray-400 ml-2">Drag code pieces here to build your solution</p>}
-                                {solutionPieces.map((piece) => (
-                                     <DraggablePiece key={piece.id} piece={piece} />
-                                ))}
-                            </div>
+                             <DroppableArea id="solution" isCorrect={isCorrect}>
+                                <SortableContext items={solutionPieces.map(p => p.id)}>
+                                    {solutionPieces.length === 0 && <p className="text-gray-400 ml-2">Drag code pieces here to build your solution</p>}
+                                    {solutionPieces.map((piece) => (
+                                        <DraggablePiece key={piece.id} piece={piece} />
+                                    ))}
+                                </SortableContext>
+                            </DroppableArea>
                             <p className="text-sm text-gray-400">Assemble the code pieces in the correct order. Drag pieces back to the bucket to remove them.</p>
-                            <div ref={bucketRef} className="bg-black/30 rounded-lg p-3 flex-grow flex flex-wrap gap-3 content-start">
-                                {availablePieces.map((piece) => (
-                                    <DraggablePiece key={piece.id} piece={piece} />
-                                ))}
-                            </div>
+                            <DroppableArea id="bucket">
+                                <SortableContext items={bucketPieces.map(p => p.id)}>
+                                    {bucketPieces.map((piece) => (
+                                        <DraggablePiece key={piece.id} piece={piece} />
+                                    ))}
+                                </SortableContext>
+                            </DroppableArea>
                         </div>
                         <div className="flex-shrink-0 flex gap-4">
                              <button className="btn-game flex-1" onClick={checkSolution} disabled={solutionPieces.length === 0}>
@@ -199,6 +217,9 @@ function CodeScrambleGame({
                     </>
                 )}
             </div>
+            <DragOverlay>
+                {activePiece ? <DraggablePiece piece={activePiece} isOverlay /> : null}
+            </DragOverlay>
         </DndContext>
     );
 }
