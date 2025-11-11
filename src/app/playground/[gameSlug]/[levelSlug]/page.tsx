@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import Confetti from 'react-confetti';
 import { completeGameLevel } from '@/lib/supabase/actions';
 import { DndContext, useDraggable, useDroppable, DragOverlay, closestCenter, MeasuringStrategy } from '@dnd-kit/core';
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core';
@@ -470,7 +471,7 @@ export default function GameLevelPage() {
             const isSuccess = lives > 0;
             return (
                  <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
-                    
+                    {isSuccess && <Confetti recycle={false} numberOfPieces={400} />}
                     <div className="flex gap-4 items-center">
                          <div className={cn("text-7xl animate-burst", isSuccess ? "text-primary" : "text-red-500")}>
                             {isSuccess ? '🎉' : '💥'}
