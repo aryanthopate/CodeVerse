@@ -23,6 +23,7 @@ export function NewChatDialog({ children, onChatCreated }: { children: React.Rea
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -38,15 +39,19 @@ export function NewChatDialog({ children, onChatCreated }: { children: React.Rea
 
     setLoading(true);
     const newChat = await createNewChat(title);
+    setLoading(false);
+
     if (newChat) {
       toast({
         title: 'Chat Created!',
         description: `Your new chat "${title}" is ready.`,
       });
-      setIsOpen(false);
-      setTitle('');
+      setRedirecting(true);
       if (onChatCreated) {
         onChatCreated(newChat.id);
+        setIsOpen(false);
+        setTitle('');
+        setRedirecting(false);
       } else {
         router.push(`/chat/${newChat.id}`);
       }
@@ -57,11 +62,17 @@ export function NewChatDialog({ children, onChatCreated }: { children: React.Rea
         description: 'An unexpected error occurred. Please try again.',
       });
     }
-    setLoading(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) {
+        setTitle('');
+        setLoading(false);
+        setRedirecting(false);
+      }
+    }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -79,19 +90,22 @@ export function NewChatDialog({ children, onChatCreated }: { children: React.Rea
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Python List Comprehensions"
-            onKeyDown={(e) => { if (e.key === 'Enter') handleCreateChat() }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !loading && !redirecting) handleCreateChat() }}
+            disabled={loading || redirecting}
           />
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => setIsOpen(false)}>
+          <Button variant="secondary" onClick={() => setIsOpen(false)} disabled={loading || redirecting}>
             Cancel
           </Button>
-          <Button onClick={handleCreateChat} disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Chat
+          <Button onClick={handleCreateChat} disabled={loading || redirecting}>
+            {(loading || redirecting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? 'Creating...' : redirecting ? 'Redirecting...' : 'Create Chat'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    

@@ -554,7 +554,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                             <div className="text-center text-muted-foreground pt-24">
                                 <Bot className="mx-auto h-12 w-12" />
                                 <h2 className="mt-2 text-lg font-semibold">Start a new conversation</h2>
-                                <p>Create a new chat from the sidebar to begin.</p>
+                                <p>You can start your conversation now.</p>
                             </div>
                         )}
                     </div>
@@ -642,6 +642,8 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
+
+    
 
     
 
