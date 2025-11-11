@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from '@/components/markdown-renderer';
+import { NewChatDialog } from '@/components/new-chat-dialog';
 
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
@@ -80,8 +81,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     }, [activeChat?.messages, isStreaming]);
 
     const handleNewChat = () => {
-        router.push('/chat');
-        setActiveChat(null);
+        // This will be handled by the NewChatDialog now
     };
 
      const handleSaveRename = async () => {
@@ -158,38 +158,33 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         e.preventDefault();
         if (!input.trim() || isStreaming) return;
         
+        // If there's no active chat and the user is logged in, they must create a chat first.
+        if (!activeChat && profile) {
+            toast({
+                title: 'New Chat Required',
+                description: 'Please create a new chat before sending a message.',
+            });
+            return;
+        }
+
         const userInput: ChatMessage = { role: 'user', content: input } as any;
         const currentInput = input;
         setInput('');
 
         let isNewChat = !activeChat;
 
-        if (isNewChat) {
-             if (profile) {
-                const newChat = await createNewChat(currentInput);
-                if (newChat) {
-                    // Force a full page reload to the new chat URL
-                    router.push(`/chat/${newChat.id}`);
-                } else {
-                     toast({
-                        variant: 'destructive',
-                        title: "An error occurred",
-                        description: "Failed to create a new chat session.",
-                    });
-                }
-            } else {
-                // Handle anonymous user chat locally without saving
-                 setActiveChat({
-                    id: `temp-${Date.now()}`,
-                    title: currentInput.substring(0, 50),
-                    user_id: 'anonymous',
-                    created_at: new Date().toISOString(),
-                    is_archived: false,
-                    is_pinned: false,
-                    messages: [userInput],
-                });
-            }
-             return;
+        if (isNewChat && !profile) {
+            // Special handling for anonymous users: create a temporary local chat
+             setActiveChat({
+                id: `temp-${Date.now()}`,
+                title: currentInput.substring(0, 50),
+                user_id: 'anonymous',
+                created_at: new Date().toISOString(),
+                is_archived: false,
+                is_pinned: false,
+                messages: [userInput],
+            });
+             return; // We will handle the API call in a subsequent effect or action
         }
 
         // Handle existing chat
@@ -381,9 +376,11 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         <div className="flex h-screen bg-background">
             <aside className="w-80 border-r border-border/50 flex-col hidden md:flex">
                 <div className="p-4 border-b border-border/50">
-                    <Button className="w-full rounded-xl" onClick={handleNewChat}>
-                        <Plus className="mr-2" /> New Chat
-                    </Button>
+                    <NewChatDialog>
+                        <Button className="w-full rounded-xl">
+                            <Plus className="mr-2" /> New Chat
+                        </Button>
+                    </NewChatDialog>
                 </div>
                 <ScrollArea className="flex-1">
                     <nav className="p-2 space-y-4">
@@ -557,7 +554,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                             <div className="text-center text-muted-foreground pt-24">
                                 <Bot className="mx-auto h-12 w-12" />
                                 <h2 className="mt-2 text-lg font-semibold">Start a new conversation</h2>
-                                <p>Ask me anything about code, concepts, or your courses.</p>
+                                <p>Create a new chat from the sidebar to begin.</p>
                             </div>
                         )}
                     </div>

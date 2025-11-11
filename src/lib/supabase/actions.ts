@@ -3,7 +3,7 @@
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter, Chat, ChatMessage } from '@/lib/types';
+import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter, Chat, ChatMessage, UserProfile } from '@/lib/types';
 import placeholderGames from '@/lib/placeholder-games.json';
 import { redirect } from 'next/navigation';
 import { analyzeChatConversation } from '@/ai/flows/analyze-chat-conversation';
@@ -818,36 +818,50 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string, rewardXp: number, isPerfect: boolean) {
+export async function completeGameLevel(levelId: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
         return { success: false, error: "User not authenticated" };
     }
-    
-    const { error } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: rewardXp });
 
-    if (error) {
-        console.error("Error updating user XP and streak:", error);
+    // First, fetch the level to get the game_id and reward_xp
+    const { data: level, error: levelError } = await supabase
+        .from('game_levels')
+        .select('game_id, reward_xp')
+        .eq('id', levelId)
+        .single();
+
+    if (levelError || !level) {
+        console.error("Error fetching level details for progress:", levelError);
+        return { success: false, error: "Could not find level details." };
     }
     
+    // Add XP to the user's profile
+    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: level.reward_xp });
+
+    if (rpcError) {
+        console.error("Error updating user XP and streak via RPC:", rpcError);
+        // This is not a fatal error for the user's progress, so we can continue
+    }
+    
+    // Record the level completion
     const { error: progressError } = await supabase.from('user_game_progress').upsert({
         user_id: user.id,
-        game_id: gameId,
+        game_id: level.game_id,
         completed_level_id: levelId,
         completed_at: new Date().toISOString(),
-        is_perfect: isPerfect
     }, {
         onConflict: 'user_id,completed_level_id'
     });
 
     if (progressError) {
         console.error("Error saving game progress:", progressError);
-        return { success: false, error: "Could not save progress." };
+        return { success: false, error: "Could not save your progress." };
     }
 
-    revalidatePath(`/playground/${gameId}`);
+    revalidatePath(`/playground/${level.game_id}`);
     revalidatePath('/dashboard');
     revalidatePath('/'); // Revalidate homepage for leaderboard
 
