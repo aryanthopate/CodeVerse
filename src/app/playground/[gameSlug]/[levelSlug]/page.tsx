@@ -362,17 +362,22 @@ export default function GameLevelPage() {
     
     const handleLevelComplete = useCallback(async (usedHint: boolean) => {
         if (!level || !game || gameState === 'levelComplete') return;
-        setGameState('levelComplete');
         
+        const isSuccess = lives > 0;
+        if (!isSuccess) {
+            setGameState('levelComplete'); // Show failed state
+            return;
+        }
+
+        setGameState('levelComplete');
         const levelWasPerfect = lives === 3 && !usedHint;
         
         const nextUrl = nextLevel 
             ? `/playground/${game!.slug}/${nextLevel.slug}` 
             : `/playground/${game!.slug}`;
 
-        // The server action will handle the redirection
-        await completeGameLevel(level.id, game.id, level.reward_xp, levelWasPerfect, nextUrl);
-
+        // The server action now handles redirection, so we don't need to do it here.
+        // The form submission will trigger the server action.
     }, [level, game, gameState, lives, nextLevel]);
 
     const handleStageComplete = () => {
@@ -424,7 +429,8 @@ export default function GameLevelPage() {
         setLives(l => {
             const newLives = Math.max(0, l - 1);
             if (newLives <= 0) {
-                setGameState('levelComplete');
+                // Let the handleLevelComplete show the failure screen.
+                handleLevelComplete(true); 
             }
             return newLives;
         });
@@ -473,36 +479,41 @@ export default function GameLevelPage() {
     }
 
     const GameStatusOverlay = () => {
-        if (gameState === 'levelComplete') {
-            const isSuccess = lives > 0;
-            return (
-                 <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
-                    {isSuccess && <Confetti recycle={false} numberOfPieces={400} />}
-                    <div className="flex gap-4 items-center">
-                         <div className={cn("text-7xl animate-burst", isSuccess ? "text-primary" : "text-red-500")}>
-                            {isSuccess ? '🎉' : '💥'}
-                         </div>
-                         <div className="p-6 bg-card/80 rounded-xl relative text-left">
-                            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-card/80 rotate-45"></div>
-                            <h3 className="text-2xl font-bold">{isSuccess ? 'Mission Complete!' : 'Mission Failed'}</h3>
-                            <p className="text-muted-foreground mt-2">{isSuccess ? `Outstanding work, recruit! You earned ${level?.reward_xp} XP.` : "You've run out of lives. Better luck next time!"}</p>
-                            <div className="flex gap-4 mt-6">
-                                {/* The form now handles the redirection */}
-                                <form action={() => handleLevelComplete(false)} className="contents">
+        if (gameState !== 'levelComplete') return null;
+
+        const isSuccess = lives > 0;
+        const nextUrl = nextLevel ? `/playground/${game!.slug}/${nextLevel.slug}` : `/playground/${game!.slug}`;
+
+        return (
+             <div className="absolute inset-0 w-full h-full bg-gray-900/90 backdrop-blur-sm rounded-lg z-30 flex flex-col items-center justify-center text-center p-4">
+                {isSuccess && <Confetti recycle={false} numberOfPieces={400} />}
+                <div className="flex gap-4 items-center">
+                     <div className={cn("text-7xl animate-burst", isSuccess ? "text-primary" : "text-red-500")}>
+                        {isSuccess ? '🎉' : '💥'}
+                     </div>
+                     <div className="p-6 bg-card/80 rounded-xl relative text-left">
+                        <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-card/80 rotate-45"></div>
+                        <h3 className="text-2xl font-bold">{isSuccess ? 'Mission Complete!' : 'Mission Failed'}</h3>
+                        <p className="text-muted-foreground mt-2">{isSuccess ? `Outstanding work, recruit! You earned ${level?.reward_xp} XP.` : "You've run out of lives. Better luck next time!"}</p>
+                        <div className="flex gap-4 mt-6">
+                            {isSuccess ? (
+                                <form action={completeGameLevel.bind(null, level!.id, game!.id, level!.reward_xp, (lives === 3), nextUrl)} className="contents">
                                     <button type="submit" className="btn-game flex-1">
-                                        {nextLevel && isSuccess ? "Next Mission" : "Finish Game"}
-                                        {isSuccess ? (nextLevel ? <ArrowRight className="ml-2"/> : <Award className="ml-2"/>) : null}
+                                        {nextLevel ? "Next Mission" : "Finish Game"}
+                                        {nextLevel ? <ArrowRight className="ml-2"/> : <Award className="ml-2"/>}
                                     </button>
                                 </form>
-                                <Link href={`/playground/${game!.slug}`} className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80 flex-1">Quit Game</Link>
-                            </div>
+                            ) : (
+                                <button onClick={() => window.location.reload()} className="btn-game flex-1">
+                                    <RefreshCw className="mr-2"/> Try Again
+                                </button>
+                            )}
+                            <Link href={`/playground/${game!.slug}`} className="btn-game !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80 flex-1">Quit Game</Link>
                         </div>
                     </div>
                 </div>
-            )
-        }
-
-        return null;
+            </div>
+        )
     };
 
 

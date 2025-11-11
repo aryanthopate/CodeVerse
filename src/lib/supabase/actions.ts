@@ -832,7 +832,7 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
     const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: xp });
     if (rpcError) {
         console.error("Error updating user XP and streak via RPC:", rpcError);
-        // This is not a fatal error for the user's progress, so we can continue
+        // This is not a fatal error for the user's progress, so we can continue, but it's a bug to be fixed.
     }
     
     // Record the level completion
@@ -848,13 +848,14 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
 
     if (progressError) {
         console.error("Error saving game progress:", progressError);
-        // Don't redirect if progress couldn't be saved, maybe show an error.
-        // For now, we will still redirect to not block the user.
+        // It's critical to not redirect if progress couldn't be saved.
+        // We will throw an error to be caught by the calling component.
+        throw new Error("Failed to save your level completion. Please try again.");
     }
 
+    // Revalidate paths *after* successful DB operations
     revalidatePath(`/playground/${gameId}`);
     revalidatePath('/dashboard');
-    revalidatePath('/'); // Revalidate homepage for leaderboard
 
     // Redirect to the next level from the server
     redirect(nextUrl);
@@ -973,3 +974,4 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
 
     
     
+
