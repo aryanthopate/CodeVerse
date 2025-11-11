@@ -11,7 +11,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 238 83% 66%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -23,7 +23,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 217.2 91.2% 59.8%;
+    --ring: 238 83% 66%;
     --radius: 0.75rem;
 
     /* Syntax Highlighting Colors */
@@ -50,12 +50,16 @@
 
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary: 238 83% 66%;
     --sidebar-primary-foreground: 222.2 47.4% 11.2%;
     --sidebar-accent: 217.2 32.6% 17.5%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 238 83% 66%;
+
+    /* New Homepage Theme */
+    --hp-background: 224 71% 4%;
+    --hp-grid: 224 71% 9%;
   }
 
   .light {
@@ -65,7 +69,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 238 83% 66%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -79,6 +83,9 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.75rem;
+
+    --hp-background: 0 0% 100%;
+    --hp-grid: 0 0% 95%;
   }
 }
 
@@ -97,11 +104,19 @@
   }
   
   .dark-grid-background {
-    background-size: 40px 40px;
+    background-color: hsl(var(--hp-background));
     background-image:
-      linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+      linear-gradient(hsl(var(--hp-grid)) 1px, transparent 1px),
+      linear-gradient(to right, hsl(var(--hp-grid)) 1px, transparent 1px);
+    background-size: 3rem 3rem;
+    animation: pan-grid 15s linear infinite;
   }
+  
+  @keyframes pan-grid {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 3rem 3rem; }
+  }
+
 
   /* For webkit browsers */
   ::-webkit-scrollbar {

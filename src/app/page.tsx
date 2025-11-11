@@ -116,24 +116,21 @@ export default async function Home() {
       <main className="flex-grow">
         
         {/* Hero Section */}
-        <section className="pt-32 pb-20 text-center container mx-auto relative z-10">
-          <Badge variant="outline" className="mb-6 border-primary/30 bg-primary/10 text-primary animate-float">
-            <Sparkles className="w-3 h-3 mr-2" /> Exciting announcement
-          </Badge>
-          <h1 className="text-5xl md:text-7xl font-bold font-headline bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
-            Learn to Code,
+        <section className="pt-40 pb-28 text-center container mx-auto relative z-10">
+          <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
+            Learn to Code.
             <br />
-            The Fun Way
+            Play to Master.
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-            Build beautiful applications for your startup, clients, and side projects, without having to think about the design.
+            Interactive coding, AI mentors, and courses built for your future.
           </p>
           <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" asChild className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300">
-              <Link href="/signup">Try it free <ArrowRight className="ml-2 w-4 h-4" /></Link>
+            <Button size="lg" asChild className="bg-primary/90 text-primary-foreground hover:bg-primary">
+              <Link href="/signup">Start Learning Free</Link>
             </Button>
-            <Button size="lg" variant="link" asChild className="text-muted-foreground hover:text-white">
-              <Link href="/courses">Learn more</Link>
+            <Button size="lg" variant="outline" asChild className="bg-transparent hover:bg-white/10 text-white border-white/20 hover:border-white/40">
+              <Link href="/courses">Explore Courses</Link>
             </Button>
           </div>
         </section>
@@ -143,7 +140,6 @@ export default async function Home() {
             <div className="container mx-auto">
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {courses.slice(0, 3).map((course) => {
-                    const totalTopics = course.chapters.reduce((acc, ch) => acc + ch.topics.length, 0);
                     return (
                         <Link key={course.id} href={`/courses/${course.slug}`}>
                             <Card className="bg-card/50 border-border/50 h-full flex flex-col group overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10">
