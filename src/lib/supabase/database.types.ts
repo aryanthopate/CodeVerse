@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -715,6 +716,7 @@ export type Database = {
           completed_level_id: string
           game_id: string
           id: number
+          is_perfect: boolean
           user_id: string
         }
         Insert: {
@@ -722,6 +724,7 @@ export type Database = {
           completed_level_id: string
           game_id: string
           id?: number
+          is_perfect?: boolean
           user_id: string
         }
         Update: {
@@ -729,6 +732,7 @@ export type Database = {
           completed_level_id?: string
           game_id?: string
           id?: number
+          is_perfect?: boolean
           user_id?: string
         }
         Relationships: [

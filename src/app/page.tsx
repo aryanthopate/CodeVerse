@@ -17,56 +17,79 @@ import { cn } from '@/lib/utils';
 import { FuturisticButton } from '@/components/futuristic-button';
 import { NewsletterTerminal } from '@/components/newsletter-terminal';
 import { ContactForm } from '@/components/contact-form';
-import { GridAndBoxesBackground } from '@/components/animated-grid-background';
+import { AnimatedGridBackground } from '@/components/animated-grid-background';
 
-async function Leaderboard() {
+async function TopXpLeaderboard() {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('profiles')
-    .select('full_name, avatar_url, xp, streak')
+    .select('full_name, avatar_url, xp')
     .order('xp', { ascending: false })
     .limit(5);
 
   if (error || !data) {
-    console.error("Error fetching leaderboard data:", error);
-    return null;
+    console.error("Error fetching XP leaderboard data:", error);
+    return <p className="text-zinc-400">Could not load XP leaderboard.</p>;
   }
 
-  const getRank = (index: number) => {
-    if (index > 0 && data[index].xp === data[index - 1].xp) {
-      return getRank(index - 1);
-    }
-    return index + 1;
-  };
+  return (
+    <div className="space-y-3">
+      {data.map((profile, index) => (
+        <div
+          key={`xp-${profile.full_name}-${index}`}
+          className="flex items-center gap-4 rounded-lg bg-zinc-900/50 p-3 border border-zinc-800 transition-all hover:bg-zinc-800/60 hover:border-hp-accent/50"
+        >
+          <div className="flex items-center gap-3 flex-1">
+            <span className="text-xl font-bold text-zinc-400 w-8 text-center">{index + 1}</span>
+            <Avatar>
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
+              <AvatarFallback>{profile.full_name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <span className="font-medium text-white truncate">{profile.full_name}</span>
+          </div>
+          <div className="font-semibold text-hp-accent">{profile.xp} XP</div>
+           {index < 3 && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-500" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function TopStreakLeaderboard() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url, streak')
+    .order('streak', { ascending: false })
+    .limit(5);
+
+  if (error || !data) {
+    console.error("Error fetching streak leaderboard data:", error);
+    return <p className="text-zinc-400">Could not load streak leaderboard.</p>;
+  }
 
   return (
-    <div className="space-y-4">
-      {data.map((profile, index) => {
-        const rank = getRank(index);
-        return (
-          <div
-            key={profile.full_name}
-            className="flex items-center gap-4 rounded-lg bg-zinc-900/50 p-3 border border-zinc-800 transition-all hover:bg-zinc-800/60 hover:border-hp-accent/50"
-          >
-            <div className="flex items-center gap-3 w-1/3">
-              <span className="text-xl font-bold text-zinc-400 w-8 text-center">{rank}</span>
-              <Avatar>
-                <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
-                <AvatarFallback>{profile.full_name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <span className="font-medium text-white truncate">{profile.full_name}</span>
-            </div>
-            <div className="w-1/3 text-center">
-              <span className="font-semibold text-hp-accent">{profile.xp} XP</span>
-            </div>
-            <div className="flex items-center justify-end gap-2 w-1/3 text-orange-400">
-              <Zap className="h-4 w-4" />
-              <span className="font-semibold">{profile.streak} days</span>
-            </div>
-             {rank <= 3 && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-500" />}
+    <div className="space-y-3">
+      {data.map((profile, index) => (
+        <div
+          key={`streak-${profile.full_name}-${index}`}
+          className="flex items-center gap-4 rounded-lg bg-zinc-900/50 p-3 border border-zinc-800 transition-all hover:bg-zinc-800/60 hover:border-hp-accent/50"
+        >
+          <div className="flex items-center gap-3 flex-1">
+            <span className="text-xl font-bold text-zinc-400 w-8 text-center">{index + 1}</span>
+            <Avatar>
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
+              <AvatarFallback>{profile.full_name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <span className="font-medium text-white truncate">{profile.full_name}</span>
           </div>
-        );
-      })}
+          <div className="flex items-center justify-end gap-2 text-orange-400">
+            <Zap className="h-4 w-4" />
+            <span className="font-semibold">{profile.streak} days</span>
+          </div>
+           {index < 3 && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-500" />}
+        </div>
+      ))}
     </div>
   );
 }
@@ -128,13 +151,13 @@ export default async function Home() {
         
         {/* Hero Section */}
         <section className="relative pt-40 pb-28 text-center container mx-auto z-10">
-          <GridAndBoxesBackground />
+          <AnimatedGridBackground />
           <div className="relative z-10">
             <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-300">
               Learn to Code. Play to Master.
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-lg text-hp-text-muted">
-              CodeVerse is an interactive learning platform that makes mastering programming fun. Through AI-powered guidance, gamified challenges, and hands-on projects, you'll go from novice to pro in no time.
+             Interactive coding, AI mentors, and courses built for your future. CodeVerse is an interactive learning platform that makes mastering programming fun. Through AI-powered guidance, gamified challenges, and hands-on projects, you'll go from novice to pro in no time.
             </p>
             <div className="mt-8 flex justify-center gap-4">
                <Button size="lg" asChild className="bg-hp-accent text-white hover:bg-hp-accent/90 shadow-lg shadow-hp-accent/30 ring-2 ring-hp-accent/50 ring-offset-2 ring-offset-hp-background-deep transition-all hover:scale-105 active:scale-95">
@@ -149,12 +172,19 @@ export default async function Home() {
 
         {/* New Leaderboard Section */}
         <section className="py-20 container mx-auto">
-            <div className="text-center max-w-2xl mx-auto">
+            <div className="text-center max-w-3xl mx-auto">
                 <h2 className="text-4xl font-bold text-white flex items-center justify-center gap-3"><Trophy className="text-yellow-400"/> Hall of Heroes</h2>
-                <p className="text-lg text-hp-text-muted mt-4">See who's topping the charts. Earn XP by completing levels and climb the ranks!</p>
+                <p className="text-lg text-hp-text-muted mt-4">See who's topping the charts. Earn XP by completing levels and build your daily streak!</p>
             </div>
-            <div className="max-w-4xl mx-auto mt-12">
-                <Leaderboard />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto mt-12">
+              <div>
+                <h3 className="text-2xl font-bold text-center mb-6 text-hp-accent">Top XP Earners</h3>
+                <TopXpLeaderboard />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-center mb-6 text-orange-400">Longest Streaks</h3>
+                <TopStreakLeaderboard />
+              </div>
             </div>
         </section>
 
@@ -216,7 +246,7 @@ export default async function Home() {
         <section className="py-20">
             <div className="container mx-auto">
                 <div className="relative min-h-[80vh] flex flex-col items-center justify-center rounded-2xl overflow-hidden bg-black text-center p-8 transition-colors duration-100">
-                    <GridAndBoxesBackground />
+                    <AnimatedGridBackground />
                     <div className="relative z-10 flex flex-col items-center">
                         <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
                             ENTER THE PLAYGROUND

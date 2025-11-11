@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from './server';
@@ -838,6 +837,7 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
         game_id: gameId,
         completed_level_id: levelId,
         completed_at: new Date().toISOString(),
+        is_perfect: isPerfect
     }, {
         onConflict: 'user_id,completed_level_id'
     });
@@ -849,6 +849,7 @@ export async function completeGameLevel(levelId: string, gameId: string, rewardX
 
     revalidatePath(`/playground/${gameId}`);
     revalidatePath('/dashboard');
+    revalidatePath('/'); // Revalidate homepage for leaderboard
 
     return { success: true };
 }
