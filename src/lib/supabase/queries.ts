@@ -31,6 +31,15 @@ export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChapt
             *,
             course_reviews(count),
             user_enrollments(count),
+            games (*),
+            related_courses!course_id(
+                related_course_id,
+                courses!related_course_id (
+                  id,
+                  name,
+                  slug
+                )
+            ),
             chapters (
                 *,
                 topics (
@@ -55,10 +64,18 @@ export async function getCoursesWithChaptersAndTopics(): Promise<CourseWithChapt
         console.error("Error fetching courses:", error.message);
         return null;
     }
+
+    // Transform the data to match the expected nested structure
+    const transformedCourses = courses.map(course => {
+        const gameData = Array.isArray(course.games) ? course.games[0] : course.games;
+        return {
+            ...course,
+            related_courses: course.related_courses?.map((rc: any) => rc.courses) || [],
+            games: gameData || null
+        };
+    });
     
-    // The type from Supabase might be slightly different, so we cast it.
-    // This is safe as long as the query matches the desired structure.
-    return courses as unknown as CourseWithChaptersAndTopics[];
+    return transformedCourses as unknown as CourseWithChaptersAndTopics[];
 }
 
 export async function getCourseBySlug(slug: string): Promise<CourseWithChaptersAndTopics | null> {
