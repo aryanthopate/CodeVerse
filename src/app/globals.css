@@ -223,6 +223,7 @@
         var(--color) var(--gap)
       );
     background-size: var(--gap) var(--gap);
+    mask-image: linear-gradient(to bottom, white 50%, transparent 100%);
   }
 
 }
@@ -233,6 +234,7 @@
   display: -webkit-box;
   overflow: hidden;
 }
+
 
 
 
