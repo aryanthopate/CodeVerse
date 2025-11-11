@@ -363,16 +363,24 @@ export default function GameLevelPage() {
     
         const levelWasPerfect = lives === 3 && !usedHint;
         
-        // Directly call the server action
-        const result = await completeGameLevel(level.id, game.id, levelWasPerfect);
-    
-        if (!result.success) {
-            toast({
+        try {
+            const result = await completeGameLevel(level.id, game.id, levelWasPerfect);
+            if (!result.success) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Save Failed',
+                    description: result.error || 'There was a problem saving your progress. Please try again.',
+                });
+                // Revert game state to allow user to retry saving
+                setGameState(isCorrect ? 'manual' : 'puzzle');
+            }
+        } catch (error: any) {
+            console.error("Error in handleLevelComplete:", error);
+             toast({
                 variant: 'destructive',
-                title: 'Save Failed',
-                description: result.error || 'There was a problem saving your progress. Please try again.',
+                title: 'An Unexpected Error Occurred',
+                description: 'Could not save progress. Please check your connection and try again.',
             });
-            // Revert game state to allow user to retry saving, maybe by clicking the "Next Mission" button again
             setGameState(isCorrect ? 'manual' : 'puzzle');
         }
     }, [level, game, gameState, lives, usedHint, toast, isCorrect]);
@@ -650,6 +658,3 @@ export default function GameLevelPage() {
         </div>
     );
 }
-
-
-    
