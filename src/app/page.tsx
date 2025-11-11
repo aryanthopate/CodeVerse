@@ -20,6 +20,7 @@ import { NewsletterTerminal } from '@/components/newsletter-terminal';
 import { ContactForm } from '@/components/contact-form';
 import { AnimatedGridBackground } from '@/components/animated-grid-background';
 import { CourseCard } from '@/components/course-card';
+import { MatrixBackground } from '@/components/matrix-background';
 
 async function TopXpLeaderboard() {
   const supabase = createClient();
@@ -154,8 +155,7 @@ export default async function Home() {
         {/* Hero Section */}
         <section className="relative w-full overflow-hidden">
           <AnimatedGridBackground />
-          <div className="relative z-10 flex min-h-[90vh] flex-col items-center justify-center">
-            <div className="container mx-auto flex flex-col items-center justify-center text-center">
+          <div className="container mx-auto flex min-h-[90vh] flex-col items-center justify-center text-center relative z-10 py-12 md:py-0">
                 <div className="relative">
                     <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
                         Exciting announcement 🎉<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
@@ -174,7 +174,6 @@ export default async function Home() {
                         <Link href="/courses">Learn more</Link>
                     </Button>
                 </div>
-            </div>
           </div>
         </section>
 
@@ -278,9 +277,9 @@ export default async function Home() {
 
         {/* Newsletter & Help Section */}
         <section className="py-20 relative w-full overflow-hidden">
+          <MatrixBackground />
           <div className="container mx-auto relative z-10">
-            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[400px] dark-circuit-wrapper">
-                <div className="dark-circuit-background"></div>
+            <div className="relative rounded-2xl overflow-hidden p-8 flex flex-col items-center justify-center min-h-[400px]">
                 <div className="relative z-10 text-center flex flex-col items-center">
                     <h2 className="text-3xl font-bold text-white mb-4">Stay Up-to-Date</h2>
                     <p className="text-neutral-300 max-w-2xl mb-8">
