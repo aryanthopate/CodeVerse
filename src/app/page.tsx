@@ -22,6 +22,12 @@ import { AnimatedGridBackground } from '@/components/animated-grid-background';
 import { CourseCard } from '@/components/course-card';
 import { MatrixBackground } from '@/components/matrix-background';
 
+const crownColors = {
+  0: "text-yellow-400 fill-yellow-500", // Gold
+  1: "text-gray-400 fill-gray-500",     // Silver
+  2: "text-orange-400 fill-orange-500", // Bronze
+};
+
 async function TopXpLeaderboard() {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -42,16 +48,16 @@ async function TopXpLeaderboard() {
           key={`xp-${profile.full_name}-${index}`}
           className="flex items-center gap-4 rounded-lg bg-zinc-900/50 p-3 border border-zinc-800 transition-all hover:bg-zinc-800/60 hover:border-hp-accent/50"
         >
-          <div className="flex items-center gap-3 flex-1">
-            <span className="text-xl font-bold text-zinc-400 w-8 text-center">{index + 1}</span>
-            <Avatar>
-              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
-              <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-            <span className="font-medium text-white truncate">{profile.full_name}</span>
+          <div className="flex flex-col items-center justify-center w-8">
+            {index < 3 && <Crown className={cn("w-6 h-6", crownColors[index as keyof typeof crownColors])} />}
+            <span className="text-xl font-bold text-zinc-400">{index + 1}</span>
           </div>
+          <Avatar>
+            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
+            <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
+          </Avatar>
+          <span className="font-medium text-white truncate flex-1">{profile.full_name}</span>
           <div className="font-semibold text-hp-accent">{profile.xp} XP</div>
-           {index < 3 && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-500" />}
         </div>
       ))}
     </div>
@@ -78,19 +84,19 @@ async function TopStreakLeaderboard() {
           key={`streak-${profile.full_name}-${index}`}
           className="flex items-center gap-4 rounded-lg bg-zinc-900/50 p-3 border border-zinc-800 transition-all hover:bg-zinc-800/60 hover:border-hp-accent/50"
         >
-          <div className="flex items-center gap-3 flex-1">
-            <span className="text-xl font-bold text-zinc-400 w-8 text-center">{index + 1}</span>
-            <Avatar>
-              <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
-              <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-            <span className="font-medium text-white truncate">{profile.full_name}</span>
+          <div className="flex flex-col items-center justify-center w-8">
+             {index < 3 && <Crown className={cn("w-6 h-6", crownColors[index as keyof typeof crownColors])} />}
+            <span className="text-xl font-bold text-zinc-400">{index + 1}</span>
           </div>
+          <Avatar>
+            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
+            <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
+          </Avatar>
+          <span className="font-medium text-white truncate flex-1">{profile.full_name}</span>
           <div className="flex items-center justify-end gap-2 text-orange-400">
             <Zap className="h-4 w-4" />
             <span className="font-semibold">{profile.streak} days</span>
           </div>
-           {index < 3 && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-500" />}
         </div>
       ))}
     </div>
