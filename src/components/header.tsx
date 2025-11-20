@@ -81,10 +81,12 @@ export function Header() {
         isPlayground ? "bg-[hsl(var(--game-bg))]/50 border-b border-[hsl(var(--game-border))]" : "bg-zinc-950/50 border-b border-zinc-800"
     )}>
       <div className="mx-auto max-w-7xl px-4 md:px-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-8">
+        <div className="grid grid-cols-3 items-center">
+          <div className="flex items-center justify-start">
             <Logo isGameTheme={isPlayground} />
-            <nav className="hidden md:flex">
+          </div>
+          
+          <nav className="hidden md:flex justify-center">
               <ul className="flex gap-8">
                 {navLinks.map((link) => (
                   <li key={link.name}>
@@ -95,8 +97,7 @@ export function Header() {
                   </li>
                 ))}
               </ul>
-            </nav>
-          </div>
+          </nav>
           
           <div className="flex items-center justify-end gap-2">
             {user ? (
