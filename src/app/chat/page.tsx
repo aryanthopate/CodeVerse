@@ -5,9 +5,7 @@ import { getUserChats, getWebsiteSettings, getUserProfile } from '@/lib/supabase
 import { ChatClient } from './chat-client';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
+import { NewChatDialog } from '@/components/new-chat-dialog';
 
 export default async function ChatPage() {
   const chats = await getUserChats();
@@ -21,11 +19,11 @@ export default async function ChatPage() {
         <h1 className="text-3xl font-bold">Chatlify AI</h1>
         <p className="mt-2 text-muted-foreground max-w-md">Your personal AI coding assistant. Start a new conversation to ask questions, get code explanations, and more.</p>
         <div className="mt-6">
-             <Button asChild>
-                <Link href="/chat/new">
+            <NewChatDialog>
+                <Button>
                     <Plus className="mr-2"/> New Chat
-                </Link>
-            </Button>
+                </Button>
+            </NewChatDialog>
         </div>
     </div>
   );
@@ -33,4 +31,3 @@ export default async function ChatPage() {
 
   return <ChatClient chats={chats || []} activeChat={null} settings={settings} profile={profile} homepageContent={chatHomepageContent} />;
 }
-
