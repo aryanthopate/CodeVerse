@@ -60,9 +60,8 @@ export default function LoginPage() {
           description: error.message,
         });
       } else {
-         // Using router.replace is more robust for preview environments
-         // as it replaces the current history state, forcing a reload.
-         router.replace('/dashboard?toast=true');
+         // Force a router refresh to reload the layout and check auth state
+         router.refresh();
       }
     } catch (e: any) {
         toast({

@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
 
 
   // Define public routes
-  const publicRoutes = ['/', '/login', '/signup', '/auth/confirm']
+  const publicRoutes = ['/', '/login', '/signup', '/auth/confirm', '/update-password']
   const courseDetailRoutePattern = /^\/courses(\/.*)?$/;
   const playgroundRoutePattern = /^\/playground(\/.*)?$/;
 
@@ -52,7 +52,9 @@ export async function middleware(request: NextRequest) {
 
   // If user is not logged in and tries to access a protected route, redirect to login
   if (!user && authenticatedRoutes.some(route => pathname.startsWith(route))) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const redirectUrl = new URL('/login', request.url);
+    redirectUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(redirectUrl);
   }
 
   return response
