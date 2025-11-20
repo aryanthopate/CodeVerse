@@ -30,22 +30,60 @@ const crownColors = {
 
 async function TopXpLeaderboard() {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('full_name, avatar_url, xp')
-    .order('xp', { ascending: false })
-    .limit(5);
-
-  if (error || !data) {
-    console.error("Error fetching XP leaderboard data:", error);
+  
+  // 1. Fetch all game progress and the xp for each level completed
+  const { data: progressData, error: progressError } = await supabase
+    .from('user_game_progress')
+    .select('user_id, game_levels(reward_xp)');
+  
+  if (progressError || !progressData) {
+    console.error("Error fetching game progress data:", progressError);
     return <p className="text-zinc-400">Could not load XP leaderboard.</p>;
   }
 
+  // 2. Calculate total XP for each user
+  const userXpTotals: { [userId: string]: number } = {};
+  progressData.forEach((progress: any) => {
+    const userId = progress.user_id;
+    const xp = progress.game_levels?.reward_xp || 0;
+    if (!userXpTotals[userId]) {
+      userXpTotals[userId] = 0;
+    }
+    userXpTotals[userId] += xp;
+  });
+
+  // 3. Sort users by total XP and get the top 5
+  const sortedUserIds = Object.keys(userXpTotals).sort((a, b) => userXpTotals[b] - userXpTotals[a]).slice(0, 5);
+  
+  if (sortedUserIds.length === 0) {
+      return <p className="text-zinc-400">No one has earned XP yet. Be the first!</p>;
+  }
+
+  // 4. Fetch profiles for the top 5 users
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url')
+    .in('id', sortedUserIds);
+    
+  if (profilesError || !profiles) {
+    console.error("Error fetching top profiles:", profilesError);
+    return <p className="text-zinc-400">Could not load XP leaderboard profiles.</p>;
+  }
+  
+  // 5. Create the final ordered leaderboard data
+  const leaderboardData = sortedUserIds.map(userId => {
+      const profile = profiles.find(p => p.id === userId);
+      return {
+          ...profile,
+          xp: userXpTotals[userId]
+      };
+  }).filter(p => p.id); // Filter out any potential undefined profiles
+
   return (
     <div className="space-y-3">
-      {data.map((profile, index) => (
+      {leaderboardData.map((profile, index) => (
         <div
-          key={`xp-${profile.full_name}-${index}`}
+          key={`xp-${profile.id}-${index}`}
           className="flex items-center gap-4 rounded-lg bg-zinc-900/50 p-3 border border-zinc-800 transition-all hover:bg-zinc-800/60 hover:border-hp-accent/50"
         >
           <div className="flex flex-col items-center justify-center w-8">
