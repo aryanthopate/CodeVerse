@@ -116,19 +116,8 @@ export function ChatWidget() {
     setMessages(newMessages);
     setInput('');
     setIsStreaming(true);
-
-    let currentChatId = activeChatId;
-    let isNewChat = !currentChatId && !!profile; // Only create a new chat if user is logged in
     
     try {
-        if (isNewChat) {
-            const newChat = await createNewChat(currentInput);
-            if(newChat) {
-                currentChatId = newChat.id;
-                setActiveChatId(newChat.id);
-            }
-        }
-        
         const messagesForApi = newMessages.map(m => ({
             role: m.role as 'user' | 'model',
             content: m.content as string
@@ -139,11 +128,8 @@ export function ChatWidget() {
 
         const streamedResponse = await processStream(readableStream, newMessages);
         
-        // If user is logged in and chat is established, save the conversation
-        if (profile && currentChatId) {
-            const finalMessages: ChatMessage[] = [...newMessages, { role: 'model', content: streamedResponse }] as ChatMessage[];
-            await saveChat(currentChatId, finalMessages);
-        }
+        setMessages(prev => [...prev.slice(0,-1), {role: 'model', content: streamedResponse}]);
+
 
     } catch(error: any) {
         toast({
@@ -183,11 +169,7 @@ export function ChatWidget() {
 
             const stream = await streamChat({ messages: messagesForApi });
             const streamedResponse = await processStream(stream, history);
-
-            if (profile && activeChatId) {
-                const finalMessages = [...history, { role: 'model', content: streamedResponse } as ChatMessage];
-                await saveChat(activeChatId, finalMessages as ChatMessage[]);
-            }
+            setMessages(prev => [...prev.slice(0,-1), {role: 'model', content: streamedResponse}]);
 
         } catch (error: any) {
             toast({
@@ -199,7 +181,7 @@ export function ChatWidget() {
         } finally {
             setIsStreaming(false);
         }
-    }, [messages, isStreaming, activeChatId, profile, toast]);
+    }, [messages, isStreaming, toast]);
 
     const handleCopy = (content: string) => {
         navigator.clipboard.writeText(content).then(() => {

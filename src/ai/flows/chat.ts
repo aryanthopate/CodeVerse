@@ -17,9 +17,6 @@ const ChatInputSchema = z.object({
       content: z.string(),
     })
   ),
-  // We keep chatId in case we want to use it for other purposes later,
-  // but it's not used for the generation logic anymore.
-  chatId: z.string().optional(), 
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
