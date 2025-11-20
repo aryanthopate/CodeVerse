@@ -3,31 +3,29 @@
 
 import React from 'react';
 import { CodeBlock } from './code-block';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Code } from 'lucide-react';
+import { Button } from './ui/button';
+import { CodeRunnerDialog } from './code-runner-dialog';
 
 interface MarkdownRendererProps {
     content: string;
 }
 
-// A more robust inline markdown parser
 const renderInlineMarkdown = (text: string) => {
-    // Escape HTML to prevent XSS
     let escapedText = text
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 
-    // Then apply markdown formatting
     return escapedText
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')           // Italic
-        .replace(/`([^`]+)`/g, '<code class="bg-muted/40 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>'); // Inline code
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`([^`]+)`/g, '<code class="bg-muted/40 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>');
 };
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
     if (!content) return null;
 
-    // Split by code blocks, keeping the delimiters
     const parts = content.split(/(\[-----][\s\S]*?\[-----])/g);
 
     return (
@@ -35,13 +33,32 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
             {parts.map((part, index) => {
                 if (part.startsWith('[-----]') && part.endsWith('[-----]')) {
                     const code = part.substring(7, part.length - 7).trim();
-                    return <CodeBlock key={index} code={code} />;
+                    const langMatch = code.match(/^(html|css|javascript|js|python|py)\n/);
+                    const lang = langMatch ? langMatch[1] : '';
+                    const actualCode = langMatch ? code.substring(lang.length + 1) : code;
+                    
+                    const isRunnable = lang === 'html' || lang === 'css';
+
+                    return (
+                        <div key={index} className="relative group/codeblock">
+                             <CodeBlock code={actualCode} />
+                             {isRunnable && (
+                                <div className="absolute top-2 right-2 opacity-0 group-hover/codeblock:opacity-100 transition-opacity">
+                                    <CodeRunnerDialog code={actualCode} language={lang}>
+                                        <Button variant="secondary" size="sm" className="h-7">
+                                            <Code className="w-4 h-4 mr-2"/> Run Code
+                                        </Button>
+                                    </CodeRunnerDialog>
+                                </div>
+                             )}
+                        </div>
+                    );
                 }
 
                 if (!part.trim()) return null;
 
                 const lines = part.trim().split('\n');
-                const elements = [];
+                const elements: React.JSX.Element[] = [];
                 let listItems: string[] = [];
                 let listType: 'ul' | 'ol' | null = null;
 
@@ -108,7 +125,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
                         elements.push(<p key={elements.length} dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line) }} />);
                     }
                 }
-                flushList(); // Final flush for any trailing list
+                flushList();
 
                 return <div key={index}>{elements}</div>;
             })}

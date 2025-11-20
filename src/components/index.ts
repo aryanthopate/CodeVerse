@@ -18,3 +18,4 @@ export * from './contact-form';
 export * from './matrix-background';
 export * from './course-card';
 export * from './new-chat-dialog';
+export * from './code-runner-dialog';
