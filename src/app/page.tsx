@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import Link from 'next/link';
@@ -57,7 +58,7 @@ async function TopXpLeaderboard() {
             <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           <span className="font-medium text-white truncate flex-1">{profile.full_name}</span>
-          <div className="font-semibold text-hp-accent">{profile.xp} XP</div>
+          <div className="font-semibold text-hp-accent">{profile.xp || 0} XP</div>
         </div>
       ))}
     </div>
@@ -95,7 +96,7 @@ async function TopStreakLeaderboard() {
           <span className="font-medium text-white truncate flex-1">{profile.full_name}</span>
           <div className="flex items-center justify-end gap-2 text-orange-400">
             <Zap className="h-4 w-4" />
-            <span className="font-semibold">{profile.streak} days</span>
+            <span className="font-semibold">{profile.streak || 0} days</span>
           </div>
         </div>
       ))}
@@ -320,3 +321,4 @@ export default async function Home() {
     </div>
   );
 }
+
