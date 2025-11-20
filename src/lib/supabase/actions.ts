@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from './server';
@@ -828,7 +827,71 @@ export async function completeGameLevel(levelId: string, gameId: string): Promis
         return { success: false, error: 'User not authenticated' };
     }
 
-    // Record the level completion
+    // 1. Fetch the reward XP for the completed level
+    const { data: levelData, error: levelError } = await supabase
+        .from('game_levels')
+        .select('reward_xp')
+        .eq('id', levelId)
+        .single();
+    
+    if (levelError || !levelData) {
+        console.error("Could not fetch level details:", levelError);
+        return { success: false, error: "Could not find the level's reward." };
+    }
+
+    // 2. Fetch the user's current profile
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('xp, streak, last_played_at')
+        .eq('id', user.id)
+        .single();
+
+    if (profileError || !profile) {
+        console.error("Could not fetch user profile:", profileError);
+        return { success: false, error: "Could not find user profile to update." };
+    }
+
+    // 3. Calculate new XP and streak
+    const newXp = (profile.xp || 0) + levelData.reward_xp;
+    
+    let newStreak = profile.streak || 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+
+    if (profile.last_played_at) {
+        const lastPlayed = new Date(profile.last_played_at);
+        lastPlayed.setHours(0, 0, 0, 0); // Normalize last played date
+
+        const diffTime = today.getTime() - lastPlayed.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+            newStreak++; // Continued the streak
+        } else if (diffDays > 1) {
+            newStreak = 1; // Streak was broken, reset to 1
+        }
+        // If diffDays is 0, they played today already, streak doesn't change
+    } else {
+        newStreak = 1; // First time playing
+    }
+
+
+    // 4. Update the user's profile with new XP and streak
+    const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+            xp: newXp,
+            streak: newStreak,
+            last_played_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+    if (updateError) {
+        console.error("Failed to update user profile with new XP/streak:", updateError);
+        // We don't return here because saving the progress is still important
+    }
+
+    // 5. Record the level completion
     const { error: progressError } = await supabase.from('user_game_progress').insert({
         user_id: user.id,
         game_id: gameId,
@@ -838,11 +901,13 @@ export async function completeGameLevel(levelId: string, gameId: string): Promis
 
     if (progressError) {
         console.error("Error saving game progress:", progressError);
+        // This is a more critical error, so we'll report it.
         return { success: false, error: `Failed to save progress: ${progressError.message}` };
     }
 
     revalidatePath(`/playground/${gameId}`);
     revalidatePath('/dashboard');
+    revalidatePath('/'); // Revalidate homepage for leaderboard
     
     return { success: true };
 }
@@ -957,14 +1022,3 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     revalidatePath('/chat', 'layout');
     return { success: true, error: null };
 }
-
-
-    
-    
-
-
-
-    
-
-
-
