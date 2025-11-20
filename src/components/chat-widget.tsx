@@ -118,18 +118,33 @@ export function ChatWidget() {
     setIsStreaming(true);
     
     try {
+        let currentChatId = activeChatId;
+        
+        // If it's the first message and the user is logged in, create a new chat session.
+        if (messages.length === 0 && profile) {
+            const newChat = await createNewChat(currentInput);
+            if (newChat) {
+                currentChatId = newChat.id;
+                setActiveChatId(newChat.id);
+            }
+        }
+        
         const messagesForApi = newMessages.map(m => ({
             role: m.role as 'user' | 'model',
             content: m.content as string
         }));
         
-        const readableStream = await streamChat({ messages: messagesForApi });
+        const readableStream = await streamChat({ messages: messagesForApi, chatId: currentChatId || undefined });
         if (!readableStream) throw new Error("AI service did not return a stream.");
 
         const streamedResponse = await processStream(readableStream, newMessages);
-        
-        setMessages(prev => [...prev.slice(0,-1), {role: 'model', content: streamedResponse}]);
+        const finalMessages = [...newMessages, {role: 'model', content: streamedResponse}];
+        setMessages(finalMessages);
 
+        // If logged in, save the conversation in the background
+        if (currentChatId && profile) {
+            saveChat(currentChatId, finalMessages as ChatMessage[]);
+        }
 
     } catch(error: any) {
         toast({
@@ -167,9 +182,15 @@ export function ChatWidget() {
                 content: m.content as string,
             }));
 
-            const stream = await streamChat({ messages: messagesForApi });
+            const stream = await streamChat({ messages: messagesForApi, chatId: activeChatId || undefined });
             const streamedResponse = await processStream(stream, history);
-            setMessages(prev => [...prev.slice(0,-1), {role: 'model', content: streamedResponse}]);
+            const finalMessages = [...history, {role: 'model', content: streamedResponse}];
+            setMessages(finalMessages);
+            
+            // If logged in, save the conversation in the background
+            if (activeChatId && profile) {
+                saveChat(activeChatId, finalMessages as ChatMessage[]);
+            }
 
         } catch (error: any) {
             toast({
@@ -181,7 +202,7 @@ export function ChatWidget() {
         } finally {
             setIsStreaming(false);
         }
-    }, [messages, isStreaming, toast]);
+    }, [messages, isStreaming, toast, activeChatId, profile]);
 
     const handleCopy = (content: string) => {
         navigator.clipboard.writeText(content).then(() => {
@@ -225,7 +246,7 @@ export function ChatWidget() {
             <div className="p-4 space-y-6">
               {messages.length === 0 && (
                  <div className="text-center text-sm text-muted-foreground pt-12">
-                  Start a new conversation to see your messages here.
+                  You can start your conversation now.
                 </div>
               )}
                {messages.map((message, index) => {

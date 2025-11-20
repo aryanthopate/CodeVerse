@@ -9,6 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
 
 const ChatInputSchema = z.object({
   messages: z.array(
@@ -17,6 +18,7 @@ const ChatInputSchema = z.object({
       content: z.string(),
     })
   ),
+  chatId: z.string().optional(),
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
@@ -25,9 +27,7 @@ export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>
     const history = input.messages.slice(0, -1);
     const latestMessage = input.messages[input.messages.length - 1];
 
-    const { stream } = await ai.generateStream({
-      model: 'googleai/gemini-2.5-flash',
-      system: `You are a helpful and friendly AI assistant named Chatlify, part of the CodeVerse platform. Your purpose is to help users learn about programming and understand coding concepts.
+    let systemPrompt = `You are a helpful and friendly AI assistant named Chatlify, part of the CodeVerse platform. Your purpose is to help users learn about programming and understand coding concepts.
 - Always be encouraging and friendly.
 - If asked who you are, introduce yourself as "Chatlify by CodeVerse".
 - Use standard Markdown for formatting (e.g., **bold**, *italic*, lists, # H1, ## H2, ### H3).
@@ -39,7 +39,29 @@ function hello() {
   console.log("Hello, World!");
 }
 [-----]
-This is more text.`,
+This is more text.`;
+
+    // If a chatId is provided, try to get the long-term memory summary.
+    if (input.chatId) {
+        const supabase = createClient();
+        const { data: analysis } = await supabase
+            .from('chat_analysis')
+            .select('summary')
+            .eq('chat_id', input.chatId)
+            .single();
+
+        if (analysis?.summary) {
+            systemPrompt += `\n\n---
+Here is a summary of the conversation so far. Use it to maintain context.
+${analysis.summary}
+---`;
+        }
+    }
+
+
+    const { stream } = await ai.generateStream({
+      model: 'googleai/gemini-2.5-flash',
+      system: systemPrompt,
       prompt: latestMessage.content,
       history: history,
     });
