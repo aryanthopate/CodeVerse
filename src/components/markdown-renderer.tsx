@@ -3,9 +3,7 @@
 
 import React from 'react';
 import { CodeBlock } from './code-block';
-import { Lightbulb, Code } from 'lucide-react';
-import { Button } from './ui/button';
-import { CodeRunnerDialog } from './code-runner-dialog';
+import { Lightbulb } from 'lucide-react';
 
 interface MarkdownRendererProps {
     content: string;
@@ -32,39 +30,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
         <div className="prose prose-sm dark:prose-invert max-w-none break-words space-y-4">
             {parts.map((part, index) => {
                 if (part.startsWith('[-----]') && part.endsWith('[-----]')) {
-                    let codeBlockContent = part.substring(7, part.length - 7);
-                    
-                    // New more robust regex
-                    const langMatch = codeBlockContent.match(/^(html|css|javascript|js|python|py)\s*\n?/);
-                    
-                    let lang = '';
-                    let actualCode = codeBlockContent;
-
-                    if (langMatch) {
-                        lang = langMatch[1];
-                        // Remove the language identifier and the newline from the actual code
-                        actualCode = codeBlockContent.substring(langMatch[0].length).trim();
-                    } else {
-                        // Trim leading newline if no language is specified
-                        actualCode = codeBlockContent.trim();
-                    }
-                    
-                    const isRunnable = lang === 'html' || lang === 'css';
-
-                    return (
-                        <div key={index} className="relative group/codeblock">
-                             <CodeBlock code={actualCode} />
-                             {isRunnable && (
-                                <div className="absolute top-2 right-2 opacity-0 group-hover/codeblock:opacity-100 transition-opacity">
-                                    <CodeRunnerDialog code={actualCode} language={lang}>
-                                        <Button variant="secondary" size="sm" className="h-7">
-                                            <Code className="w-4 h-4 mr-2"/> Run Code
-                                        </Button>
-                                    </CodeRunnerDialog>
-                                </div>
-                             )}
-                        </div>
-                    );
+                    const codeBlockContent = part.substring(7, part.length - 7).trim();
+                    return <CodeBlock key={index} code={codeBlockContent} />;
                 }
 
                 if (!part.trim()) return null;
@@ -90,7 +57,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
                 };
 
                 for (const line of lines) {
-                    if (line.startsWith('#### ')) {
+                     if (line.startsWith('#### ')) {
                         flushList();
                         elements.push(<h4 key={elements.length} className="text-md font-semibold mt-2 mb-1" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(5)) }} />);
                         continue;

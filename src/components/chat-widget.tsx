@@ -1,14 +1,14 @@
 
 'use client';
 import { Button } from '@/components/ui/button';
-import { Bot, X, Send, Paperclip, ArrowUpRight, Loader2, LogIn, RefreshCw, Copy } from 'lucide-react';
+import { Bot, X, Send, Paperclip, Loader2, RefreshCw, Copy } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Input } from './ui/input';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ScrollArea } from './ui/scroll-area';
@@ -19,9 +19,6 @@ import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { getWebsiteSettings } from '@/lib/supabase/queries';
 import { WebsiteSettings, ChatMessage, UserProfile } from '@/lib/types';
 import { MarkdownRenderer } from './markdown-renderer';
-import { createClient } from '@/lib/supabase/client';
-import { createNewChat, saveChat } from '@/lib/supabase/actions';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 
 
 export function ChatWidget() {
@@ -31,27 +28,17 @@ export function ChatWidget() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Partial<ChatMessage>[]>([]);
   const [settings, setSettings] = useState<WebsiteSettings | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
-
 
     useEffect(() => {
         const fetchInitialData = async () => {
             const data = await getWebsiteSettings();
             if (data) setSettings(data);
-            
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-                setProfile(profileData);
-            }
         }
         fetchInitialData();
-    }, [supabase]);
+    }, []);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -70,17 +57,16 @@ export function ChatWidget() {
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    // Reset chat when closing if user is not logged in
-    if (!isOpen && !profile) {
+    // Reset chat when closing
+    if (!isOpen) {
         setMessages([]);
-        setActiveChatId(null);
     }
   }
 
-  const processStream = async (stream: ReadableStream<Uint8Array>, existingMessages: Partial<ChatMessage>[]) => {
+  const processStream = async (stream: ReadableStream<Uint8Array>) => {
       let streamedResponse = '';
       
-      setMessages(prev => [...existingMessages, { role: 'model', content: '' }]);
+      setMessages(prev => [...prev, { role: 'model', content: '' }]);
       scrollToBottom();
       
       const reader = stream.getReader();
@@ -109,42 +95,22 @@ export function ChatWidget() {
     if (!input.trim() || isStreaming) return;
 
     const userInput: Partial<ChatMessage> = { role: 'user', content: input };
-    const currentInput = input;
     
-    // Optimistic update
     const newMessages = [...messages, userInput];
     setMessages(newMessages);
     setInput('');
     setIsStreaming(true);
     
     try {
-        let currentChatId = activeChatId;
-        
-        // If it's the first message and the user is logged in, create a new chat session.
-        if (messages.length === 0 && profile) {
-            const newChat = await createNewChat(currentInput);
-            if (newChat) {
-                currentChatId = newChat.id;
-                setActiveChatId(newChat.id);
-            }
-        }
-        
         const messagesForApi = newMessages.map(m => ({
             role: m.role as 'user' | 'model',
             content: m.content as string
         }));
         
-        const readableStream = await streamChat({ messages: messagesForApi, chatId: currentChatId || undefined, userName: profile?.full_name || undefined });
+        const readableStream = await streamChat({ messages: messagesForApi });
         if (!readableStream) throw new Error("AI service did not return a stream.");
 
-        const streamedResponse = await processStream(readableStream, newMessages);
-        const finalMessages = [...newMessages, {role: 'model', content: streamedResponse}];
-        setMessages(finalMessages);
-
-        // If logged in, save the conversation in the background
-        if (currentChatId && profile) {
-            saveChat(currentChatId, finalMessages as ChatMessage[]);
-        }
+        await processStream(readableStream);
 
     } catch(error: any) {
         toast({
@@ -152,25 +118,22 @@ export function ChatWidget() {
             title: 'An error occurred',
             description: error.message || "Could not get a response from the AI."
         });
-        // Rollback optimistic update
         setMessages(prev => prev.filter(msg => msg !== userInput));
     } finally {
         setIsStreaming(false);
     }
   };
 
-    const handleRegenerate = useCallback(async () => {
+    const handleRegenerate = async () => {
         if (isStreaming || messages.length === 0) return;
         
         let history = [...messages];
         const lastMessage = history[history.length - 1];
 
-        // If the last message is from the user, do nothing.
-        // If it's from the model, pop it to regenerate.
         if (lastMessage?.role === 'model') {
             history.pop();
         } else {
-            return; // Can't regenerate a user's message
+            return;
         }
 
         setIsStreaming(true);
@@ -182,15 +145,8 @@ export function ChatWidget() {
                 content: m.content as string,
             }));
 
-            const stream = await streamChat({ messages: messagesForApi, chatId: activeChatId || undefined, userName: profile?.full_name || undefined });
-            const streamedResponse = await processStream(stream, history);
-            const finalMessages = [...history, {role: 'model', content: streamedResponse}];
-            setMessages(finalMessages);
-            
-            // If logged in, save the conversation in the background
-            if (activeChatId && profile) {
-                saveChat(activeChatId, finalMessages as ChatMessage[]);
-            }
+            const stream = await streamChat({ messages: messagesForApi });
+            await processStream(stream);
 
         } catch (error: any) {
             toast({
@@ -202,7 +158,7 @@ export function ChatWidget() {
         } finally {
             setIsStreaming(false);
         }
-    }, [messages, isStreaming, toast, activeChatId, profile]);
+    };
 
     const handleCopy = (content: string) => {
         navigator.clipboard.writeText(content).then(() => {
@@ -212,7 +168,6 @@ export function ChatWidget() {
         });
     };
 
-    // Do not render the widget on any playground or full chat pages
     if (pathname.startsWith('/playground') || pathname.startsWith('/chat')) {
         return null;
     }
@@ -236,9 +191,9 @@ export function ChatWidget() {
                 <h4 className="font-medium leading-none">AI Assistant</h4>
                 <p className="text-sm text-muted-foreground mt-1">Your personal coding assistant.</p>
              </div>
-             <Button asChild variant="ghost" size="icon" className="group">
-                  <Link href="/chat" target="_blank" rel="noopener noreferrer">
-                    <ArrowUpRight className="h-5 w-5 text-muted-foreground group-hover:text-primary"/>
+             <Button asChild variant="ghost" size="icon" className="group" onClick={() => setOpen(false)}>
+                  <Link href="/chat">
+                    <Bot className="h-5 w-5 text-muted-foreground group-hover:text-primary"/>
                   </Link>
              </Button>
           </div>
