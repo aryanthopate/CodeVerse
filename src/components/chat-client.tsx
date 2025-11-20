@@ -216,12 +216,13 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
             const stream = await streamChat({ 
                 messages: messagesForApi,
-                chatId: currentChatId
+                chatId: currentChatId,
+                userName: profile?.full_name,
             });
             
             const streamedResponse = await processStream(stream, tempActiveChat.messages as ChatMessage[]);
             
-            if (currentChatId && profile) {
+            if (currentChatId && profile && !currentChatId.startsWith('temp-')) {
                 const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
                 // Fire and forget - don't await
                 saveChat(currentChatId, finalMessages as ChatMessage[]);
@@ -264,10 +265,14 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         setActiveChat(prev => prev ? { ...prev, messages: history } : null);
 
         try {
-            const stream = await streamChat({ messages: messagesForApi, chatId: activeChat.id });
+            const stream = await streamChat({ 
+                messages: messagesForApi, 
+                chatId: activeChat.id,
+                userName: profile?.full_name,
+            });
             const streamedResponse = await processStream(stream, history as ChatMessage[]);
             
-            if (activeChat.id && profile) {
+            if (activeChat.id && profile && !activeChat.id.startsWith('temp-')) {
                  const finalMessages = [...history, { role: 'model', content: streamedResponse } as ChatMessage];
                  // Fire and forget
                  saveChat(activeChat.id, finalMessages as ChatMessage[]);
@@ -662,3 +667,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
     
 
     
+

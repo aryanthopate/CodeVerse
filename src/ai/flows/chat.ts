@@ -19,6 +19,7 @@ const ChatInputSchema = z.object({
     })
   ),
   chatId: z.string().optional(),
+  userName: z.string().optional(),
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
@@ -28,6 +29,7 @@ export async function chat(input: ChatInput): Promise<ReadableStream<Uint8Array>
     const latestMessage = input.messages[input.messages.length - 1];
 
     let systemPrompt = `You are a helpful and friendly AI assistant named Chatlify, part of the CodeVerse platform. Your purpose is to help users learn about programming and understand coding concepts.
+- If you know the user's name, greet them by name (e.g., "Hey ${input.userName || 'there'}!").
 - Always be encouraging and friendly.
 - If asked who you are, introduce yourself as "Chatlify by CodeVerse".
 - Use standard Markdown for formatting (e.g., **bold**, *italic*, lists, # H1, ## H2, ### H3).
@@ -52,7 +54,7 @@ This is more text.`;
 
         if (analysis?.summary) {
             systemPrompt += `\n\n---
-Here is a summary of the conversation so far. Use it to maintain context.
+Here is a summary of the conversation so far. Use it to maintain context about what has been discussed previously.
 ${analysis.summary}
 ---`;
         }

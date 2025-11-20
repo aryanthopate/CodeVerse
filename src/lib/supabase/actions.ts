@@ -818,7 +818,7 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string): Promise<{ success: boolean, error?: string }> {
+export async function completeGameLevel(levelId: string, gameId: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -827,8 +827,6 @@ export async function completeGameLevel(levelId: string, gameId: string): Promis
         return { success: false, error: 'User not authenticated' };
     }
     
-    // 1. Record the level completion.
-    // We only insert if the record doesn't already exist to prevent duplicate XP.
     const { error: progressError } = await supabase.from('user_game_progress').insert({
         user_id: user.id,
         game_id: gameId,
@@ -836,44 +834,9 @@ export async function completeGameLevel(levelId: string, gameId: string): Promis
         completed_at: new Date().toISOString(),
     });
 
-    if (progressError && progressError.code !== '23505') { // 23505 is unique_violation, which is fine.
+    if (progressError && progressError.code !== '23505') {
         console.error("Error saving game progress:", progressError);
         return { success: false, error: `Failed to save progress: ${progressError.message}` };
-    }
-
-    // If it's a new completion, update XP and streak.
-    if (!progressError) {
-        const { data: levelData, error: levelError } = await supabase.from('game_levels').select('reward_xp').eq('id', levelId).single();
-        if (levelError || !levelData) {
-            console.error("Could not fetch level reward XP:", levelError);
-            // Non-critical, progress is saved, but XP might not be updated.
-        } else {
-             const { data: profile, error: profileError } = await supabase.from('profiles').select('xp, streak, last_played_at').eq('id', user.id).single();
-            if (profileError || !profile) {
-                console.error("Could not fetch user profile for XP update:", profileError);
-            } else {
-                const newXp = (profile.xp || 0) + levelData.reward_xp;
-                
-                let newStreak = profile.streak || 0;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                if (profile.last_played_at) {
-                    const lastPlayed = new Date(profile.last_played_at);
-                    lastPlayed.setHours(0, 0, 0, 0);
-
-                    const diffTime = today.getTime() - lastPlayed.getTime();
-                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays === 1) newStreak++;
-                    else if (diffDays > 1) newStreak = 1;
-                } else {
-                    newStreak = 1;
-                }
-
-                await supabase.from('profiles').update({ xp: newXp, streak: newStreak, last_played_at: new Date().toISOString() }).eq('id', user.id);
-            }
-        }
     }
     
     revalidatePath(`/playground/${gameId}`);
@@ -929,17 +892,15 @@ export async function deleteChat(chatId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    // Verify user owns the chat or is an admin
-    const { data: chat, error: fetchError } = await supabase.from('chats').select('user_id').eq('id', chatId).single();
-    if (fetchError || !chat) return { success: false, error: 'Chat not found' };
-
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-
-    if (chat.user_id !== user.id && profile?.role !== 'admin') {
-        return { success: false, error: 'Not authorized' };
+    
+    // Admins can delete any chat, users can only delete their own
+    const query = supabase.from('chats').delete().eq('id', chatId);
+    if (profile?.role !== 'admin') {
+        query.eq('user_id', user.id);
     }
-
-    const { error } = await supabase.from('chats').delete().eq('id', chatId);
+    
+    const { error } = await query;
     if (error) {
         console.error('Error deleting chat:', error);
         return { success: false, error: error.message };
@@ -1000,17 +961,26 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
         return { success: false, error: "Failed to save messages." };
     }
 
+    // Generate and save conversation summary
     if (messages.length >= 2) {
         const transcript = messages.map(m => `${m.role}: ${m.content}`).join('\n');
         try {
-            const { summary } = await analyzeChatConversation({ transcript });
-            await supabase.from('chat_analysis').upsert({
-                chat_id: chatId,
-                summary: summary,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'chat_id' });
+            // This is an async call but we don't wait for it to finish,
+            // allowing the UI to feel faster. It runs in the background.
+            analyzeChatConversation({ transcript }).then(analysis => {
+                if (analysis.summary) {
+                    supabase.from('chat_analysis').upsert({
+                        chat_id: chatId,
+                        summary: analysis.summary,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'chat_id' }).then(({ error }) => {
+                        if (error) console.error("Failed to update chat analysis in background:", error);
+                    });
+                }
+            });
         } catch (e) {
-            console.error("Failed to update chat analysis:", e);
+            // Log this error but don't fail the whole operation
+            console.error("Failed to trigger chat analysis generation:", e);
         }
     }
     
