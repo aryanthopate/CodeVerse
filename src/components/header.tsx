@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -19,23 +18,12 @@ import { LogOut, User, Settings } from 'lucide-react';
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
   const isPlayground = pathname.startsWith('/playground');
 
   useEffect(() => {
-    const getProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setProfile(data);
-      }
-      setLoading(false);
-    };
-    getProfile();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
@@ -45,10 +33,21 @@ export function Header() {
       }
     });
 
+    // Also check on initial load, in case onAuthStateChange hasn't fired yet
+    const getInitialUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+             setProfile(data);
+        }
+    };
+    getInitialUser();
+
     return () => {
       subscription.unsubscribe();
     };
   }, [supabase, supabase.auth]);
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -135,8 +134,6 @@ export function Header() {
                       </DropdownMenuItem>
                   </DropdownMenuContent>
               </DropdownMenu>
-            ) : loading ? (
-              <div className="h-9 w-24 rounded-md bg-zinc-800 animate-pulse" />
             ) : (
               <>
                 <Button variant="ghost" asChild className={cn("hidden sm:inline-flex text-zinc-300 transition-all hover:scale-[1.02] active:scale-[0.98] rounded-md px-4 py-1 text-sm border", isPlayground ? "border-[hsl(var(--game-border))] hover:bg-[hsl(var(--game-surface))] hover:text-white" : "border-transparent hover:bg-zinc-800/50 hover:text-zinc-50 hover:border-zinc-700")}>
