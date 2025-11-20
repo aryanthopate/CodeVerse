@@ -17,7 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from '@/components/markdown-renderer';
-import { NewChatDialog } from '@/components/new-chat-dialog';
 
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
@@ -38,6 +37,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     const [activeChat, setActiveChat] = useState(initialActiveChat);
     const [input, setInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
+    const [isCreatingChat, setIsCreatingChat] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const [isClient, setIsClient] = useState(false);
     
@@ -86,6 +86,17 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     useEffect(() => {
         scrollToBottom();
     }, [activeChat?.messages, isStreaming]);
+
+     const handleNewChat = async () => {
+        setIsCreatingChat(true);
+        const newChat = await createNewChat('New Chat');
+        if (newChat) {
+            router.push(`/chat/${newChat.id}`);
+        } else {
+            toast({ variant: 'destructive', title: 'Failed to create chat' });
+        }
+        setIsCreatingChat(false);
+    }
 
      const handleSaveRename = async () => {
         if (!activeChat || renamingTitle.trim() === '' || renamingTitle.trim() === activeChat.title) {
@@ -397,11 +408,10 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         <div className="flex h-screen bg-background">
             <aside className="w-80 border-r border-border/50 flex-col hidden md:flex">
                 <div className="p-4 border-b border-border/50">
-                    <NewChatDialog>
-                        <Button className="w-full rounded-xl">
-                            <Plus className="mr-2" /> New Chat
-                        </Button>
-                    </NewChatDialog>
+                    <Button onClick={handleNewChat} disabled={isCreatingChat} className="w-full rounded-xl">
+                        {isCreatingChat ? <Loader2 className="mr-2 animate-spin"/> : <Plus className="mr-2" />}
+                        New Chat
+                    </Button>
                 </div>
                 <ScrollArea className="flex-1">
                     <nav className="p-2 space-y-4">
@@ -673,3 +683,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
+
