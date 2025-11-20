@@ -33,7 +33,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
             {parts.map((part, index) => {
                 if (part.startsWith('[-----]') && part.endsWith('[-----]')) {
                     const codeBlockContent = part.substring(7, part.length - 7).trim();
-                    const langMatch = codeBlockContent.match(/^(html|css|javascript|js|python|py)\s*/);
+                    const langMatch = codeBlockContent.match(/^(html|css|javascript|js|python|py)(?:\s|$)/);
                     const lang = langMatch ? langMatch[1] : '';
                     const actualCode = langMatch ? codeBlockContent.substring(langMatch[0].length) : codeBlockContent;
                     
