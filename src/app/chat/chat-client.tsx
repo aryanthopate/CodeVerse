@@ -222,7 +222,8 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             
             if (currentChatId && profile) {
                 const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
-                await saveChat(currentChatId, finalMessages as ChatMessage[]);
+                // Fire and forget - don't await
+                saveChat(currentChatId, finalMessages as ChatMessage[]);
             }
 
         } catch(error: any) {
@@ -262,12 +263,13 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         setActiveChat(prev => prev ? { ...prev, messages: history } : null);
 
         try {
-            const stream = await streamChat({ messages: messagesForApi, chatId: activeChat.id });
+            const stream = await streamChat({ messages: messagesForApi });
             const streamedResponse = await processStream(stream, history as ChatMessage[]);
             
             if (activeChat.id && profile) {
                  const finalMessages = [...history, { role: 'model', content: streamedResponse } as ChatMessage];
-                 await saveChat(activeChat.id, finalMessages as ChatMessage[]);
+                 // Fire and forget
+                 saveChat(activeChat.id, finalMessages as ChatMessage[]);
             }
 
         } catch (error: any) {
@@ -653,9 +655,3 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
-
-    
-
-    
-
-    
