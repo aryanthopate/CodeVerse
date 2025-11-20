@@ -3,7 +3,7 @@
 import { AdminLayout } from '@/components/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, PlusCircle, Gamepad2, Loader2, Edit, Trash2, Settings } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Gamepad2, Loader2, Edit, Trash2, Settings, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { getAllGames } from '@/lib/supabase/queries';
@@ -199,6 +199,9 @@ export default function AdminGamesPage() {
                             <DropdownMenuContent>
                                 <DropdownMenuItem asChild>
                                     <Link href="/admin/games/settings">Game Asset Settings</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/admin/games/leaderboard">XP Leaderboard</Link>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

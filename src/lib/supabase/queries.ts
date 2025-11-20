@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
@@ -564,6 +563,19 @@ export async function getUsersWithChatCount(): Promise<(UserProfile & { chat_cou
     }));
 }
 
+export async function getUsersWithProgress() {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('profiles').select('*, user_game_progress(count)');
+    if (error) {
+        console.error("Error fetching users with progress", error);
+        return [];
+    }
+    return data.map(p => ({
+        ...p,
+        completed_levels: p.user_game_progress[0]?.count || 0
+    }));
+}
+
 
 export async function getChatsForUser(userId: string): Promise<{ user: UserProfile | null, chats: Chat[] | null }> {
     const supabase = createClient();
@@ -613,6 +625,3 @@ export async function getChatForAdmin(chatId: string) {
 
     return { chat: data };
 }
-
-
-    

@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import Link from 'next/link';
@@ -58,7 +57,7 @@ async function TopXpLeaderboard() {
             <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           <span className="font-medium text-white truncate flex-1">{profile.full_name}</span>
-          <div className="font-semibold text-hp-accent">{profile.xp || 0} XP</div>
+          <div className="font-semibold text-hp-accent">{profile.xp} XP</div>
         </div>
       ))}
     </div>
@@ -194,8 +193,8 @@ export default async function Home() {
         {/* New Leaderboard Section */}
         <section className="py-20 container mx-auto">
             <div className="text-center max-w-3xl mx-auto">
-                <h2 className="text-4xl font-bold text-white flex items-center justify-center gap-3"><Trophy className="text-yellow-400"/> Hall of Heroes</h2>
-                <p className="text-lg text-hp-text-muted mt-4">See who's topping the charts. Earn XP by completing levels and build your daily streak!</p>
+                <h2 className="text-4xl font-bold text-white flex items-center justify-center gap-3"><Trophy className="text-yellow-400"/> Last Week's Hall of Heroes</h2>
+                <p className="text-lg text-hp-text-muted mt-4">See who topped the charts last week. A new leaderboard is generated every Monday. Keep playing to secure your spot!</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto mt-12">
               <div>
@@ -321,4 +320,3 @@ export default async function Home() {
     </div>
   );
 }
-
