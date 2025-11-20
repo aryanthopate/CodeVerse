@@ -14,6 +14,7 @@ import { Loader2, Zap } from 'lucide-react';
 
 type UserWithProgress = UserProfile & {
     completed_levels: number;
+    total_xp: number; // Use the calculated total_xp
 };
 
 export default function AdminLeaderboardPage() {
@@ -25,7 +26,7 @@ export default function AdminLeaderboardPage() {
     const fetchUsers = async () => {
         setLoading(true);
         const data = await getUsersWithProgress();
-        // Sort by XP descending by default
+        // Sort by the calculated XP descending by default
         data.sort((a, b) => (b.xp || 0) - (a.xp || 0));
         setUsers(data as UserWithProgress[]);
         setLoading(false);

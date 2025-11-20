@@ -565,15 +565,50 @@ export async function getUsersWithChatCount(): Promise<(UserProfile & { chat_cou
 
 export async function getUsersWithProgress() {
     const supabase = createClient();
-    const { data, error } = await supabase.from('profiles').select('*, user_game_progress(count)');
-    if (error) {
-        console.error("Error fetching users with progress", error);
+    
+    // 1. Fetch all profiles
+    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
+    if (profilesError) {
+        console.error("Error fetching profiles for leaderboard:", profilesError);
         return [];
     }
-    return data.map(p => ({
-        ...p,
-        completed_levels: p.user_game_progress[0]?.count || 0
-    }));
+
+    // 2. Fetch all game progress records with their corresponding level XP
+    const { data: progressRecords, error: progressError } = await supabase
+        .from('user_game_progress')
+        .select('user_id, game_levels(reward_xp)');
+    
+    if (progressError) {
+        console.error("Error fetching user game progress for leaderboard:", progressError);
+        return [];
+    }
+
+    // 3. Calculate total XP and completed levels for each user
+    const userStats: { [userId: string]: { total_xp: number, completed_levels: number } } = {};
+    
+    for (const record of progressRecords) {
+        const userId = record.user_id;
+        const xp = record.game_levels?.reward_xp || 0;
+
+        if (!userStats[userId]) {
+            userStats[userId] = { total_xp: 0, completed_levels: 0 };
+        }
+        
+        userStats[userId].total_xp += xp;
+        userStats[userId].completed_levels += 1;
+    }
+
+    // 4. Merge profile data with calculated stats
+    const usersWithProgress = profiles.map(profile => {
+        const stats = userStats[profile.id] || { total_xp: 0, completed_levels: 0 };
+        return {
+            ...profile,
+            xp: stats.total_xp, // Override the potentially stale profile.xp with the fresh calculation
+            completed_levels: stats.completed_levels,
+        };
+    });
+
+    return usersWithProgress;
 }
 
 
