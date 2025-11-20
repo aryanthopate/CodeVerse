@@ -1,10 +1,10 @@
 
+'use server';
+
 import { getUserChats, getChat, getWebsiteSettings, getUserProfile } from '@/lib/supabase/queries';
-import { ChatClient } from '@/app/chat/chat-client';
+import { ChatClient } from '@/components/chat-client';
 import { notFound } from 'next/navigation';
 import type { Chat, ChatMessage } from '@/lib/types';
-
-export const dynamic = 'force-dynamic';
 
 export default async function SpecificChatPage({ params }: { params: { chatId: string }}) {
   const chats = await getUserChats();
