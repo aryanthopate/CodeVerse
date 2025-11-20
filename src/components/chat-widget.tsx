@@ -134,7 +134,7 @@ export function ChatWidget() {
             content: m.content as string
         }));
         
-        const readableStream = await streamChat({ messages: messagesForApi, chatId: currentChatId });
+        const readableStream = await streamChat({ messages: messagesForApi });
         if (!readableStream) throw new Error("AI service did not return a stream.");
 
         const streamedResponse = await processStream(readableStream, newMessages);
@@ -181,7 +181,7 @@ export function ChatWidget() {
                 content: m.content as string,
             }));
 
-            const stream = await streamChat({ messages: messagesForApi, chatId: activeChatId });
+            const stream = await streamChat({ messages: messagesForApi });
             const streamedResponse = await processStream(stream, history);
 
             if (profile && activeChatId) {
@@ -278,7 +278,7 @@ export function ChatWidget() {
                                     onClick={handleRegenerate}
                                     disabled={isStreaming}
                                 >
-                                    <RefreshCw className="h-4 w-4" />
+                                    <RefreshCw className="h-4 h-4" />
                                 </Button>
                             )}
                         </div>

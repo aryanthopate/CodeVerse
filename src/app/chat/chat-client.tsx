@@ -157,15 +157,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isStreaming) return;
-        
-        // If there's no active chat and the user is logged in, they must create a chat first.
-        if (!activeChat && profile) {
-            toast({
-                title: 'New Chat Required',
-                description: 'Please create a new chat before sending a message.',
-            });
-            return;
-        }
 
         const userInput: ChatMessage = { role: 'user', content: input } as any;
         const currentInput = input;
@@ -173,45 +164,65 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
         let isNewChat = !activeChat;
 
-        if (isNewChat && !profile) {
-            // Special handling for anonymous users: create a temporary local chat
-             setActiveChat({
+        // Optimistically update UI
+        let tempActiveChat: ActiveChat;
+        if (isNewChat) {
+            // Special handling for anonymous users or first message in a new chat
+            tempActiveChat = {
                 id: `temp-${Date.now()}`,
                 title: currentInput.substring(0, 50),
-                user_id: 'anonymous',
+                user_id: profile?.id || 'anonymous',
                 created_at: new Date().toISOString(),
                 is_archived: false,
                 is_pinned: false,
                 messages: [userInput],
-            });
-             return; // We will handle the API call in a subsequent effect or action
+            };
+        } else {
+             // Handle existing chat
+            tempActiveChat = {
+                ...(activeChat as ActiveChat),
+                messages: [...(activeChat?.messages || []), userInput],
+            };
         }
-
-        // Handle existing chat
-        const tempActiveChat = {
-            ...(activeChat as ActiveChat),
-            messages: [...(activeChat?.messages || []), userInput],
-        };
-
+        
         setActiveChat(tempActiveChat);
         setIsStreaming(true);
         
         try {
+            let currentChatId = activeChat?.id;
+
+            if (isNewChat && profile) {
+                const newChat = await createNewChat(currentInput);
+                if (newChat) {
+                    currentChatId = newChat.id;
+                     router.replace(`/chat/${newChat.id}`, { scroll: false });
+                     setChats(prev => [newChat, ...prev.filter(c => c.id !== tempActiveChat.id)]);
+                     setActiveChat(prev => {
+                       const finalChat = {
+                         ...(prev ? { ...newChat, messages: prev.messages } : newChat)
+                       };
+                       return finalChat as ActiveChat;
+                    });
+                } else {
+                    throw new Error("Failed to create new chat session.");
+                }
+            }
+
+
             const messagesForApi = tempActiveChat.messages.map(m => ({
                 role: m.role as 'user' | 'model',
                 content: m.content as string,
             }));
 
             const stream = await streamChat({ 
-                messages: messagesForApi,
-                chatId: activeChat.id
+                messages: messagesForApi
             });
             
             const streamedResponse = await processStream(stream, tempActiveChat.messages as ChatMessage[]);
             
-            if (activeChat.id && profile) {
+            if (currentChatId && profile) {
                 const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
-                await saveChat(activeChat.id, finalMessages as ChatMessage[]);
+                await saveChat(currentChatId, finalMessages as ChatMessage[]);
             }
 
         } catch(error: any) {
