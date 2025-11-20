@@ -60,10 +60,10 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                     ))}
                                 </div>
                             </h5>
-                            <p className="block font-sans text-sm font-light leading-relaxed text-inherit antialiased text-hp-text-muted">
-                                {(course.description || '').substring(0, 100)}{course.description && course.description.length > 100 ? '...' : ''}
+                            <p className="block font-sans text-sm font-light leading-relaxed text-inherit antialiased text-hp-text-muted line-clamp-2">
+                                {course.description}
                             </p>
-                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-zinc-400 mt-4">
+                             <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-400 mt-4">
                                 <div className="flex items-center gap-1.5">
                                     <Users className="w-3.5 h-3.5"/>
                                     <span>{enrollments} students</span>
@@ -81,13 +81,13 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                                     </div>
                                 )}
                                 {course.games && (
-                                    <div className="flex items-center gap-1.5 col-span-2">
+                                    <div className="flex items-center gap-1.5">
                                         <Gamepad2 className="w-3.5 h-3.5"/>
                                         <span>Game: {course.games.title}</span>
                                     </div>
                                 )}
                                 {course.related_courses && course.related_courses.length > 0 && (
-                                    <div className="col-span-2 mt-1">
+                                    <div className="w-full mt-1">
                                         <h4 className="font-semibold text-zinc-300 text-xs mb-1">Related Courses:</h4>
                                         <div className="flex flex-wrap gap-1">
                                             {course.related_courses.map(rc => (
@@ -99,7 +99,7 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                             </div>
                         </div>
                         <div className="p-6 pt-0 mt-auto border-t border-zinc-800">
-                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-zinc-400 mt-4">
+                             <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-400 mt-4">
                                 <div className="flex items-center gap-1.5">
                                     <BookOpen className="w-3.5 h-3.5"/>
                                     <span>{course.chapters.length} Chapters / {totalTopics} Topics</span>
