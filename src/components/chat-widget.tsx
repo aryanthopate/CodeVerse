@@ -134,7 +134,7 @@ export function ChatWidget() {
             content: m.content as string
         }));
         
-        const readableStream = await streamChat({ messages: messagesForApi, chatId: currentChatId || undefined });
+        const readableStream = await streamChat({ messages: messagesForApi, chatId: currentChatId || undefined, userName: profile?.full_name || undefined });
         if (!readableStream) throw new Error("AI service did not return a stream.");
 
         const streamedResponse = await processStream(readableStream, newMessages);
@@ -182,7 +182,7 @@ export function ChatWidget() {
                 content: m.content as string,
             }));
 
-            const stream = await streamChat({ messages: messagesForApi, chatId: activeChatId || undefined });
+            const stream = await streamChat({ messages: messagesForApi, chatId: activeChatId || undefined, userName: profile?.full_name || undefined });
             const streamedResponse = await processStream(stream, history);
             const finalMessages = [...history, {role: 'model', content: streamedResponse}];
             setMessages(finalMessages);
