@@ -212,10 +212,11 @@ export function ChatWidget() {
         });
     };
 
-    // Do not render the widget on any playground, chat, or course pages
-    if (pathname.startsWith('/playground') || pathname.startsWith('/chat') || pathname.startsWith('/courses')) {
+    // Do not render the widget on any playground or full chat pages
+    if (pathname.startsWith('/playground') || pathname.startsWith('/chat')) {
         return null;
     }
+
 
   return (
     <>

@@ -32,10 +32,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
         <div className="prose prose-sm dark:prose-invert max-w-none break-words space-y-4">
             {parts.map((part, index) => {
                 if (part.startsWith('[-----]') && part.endsWith('[-----]')) {
-                    const code = part.substring(7, part.length - 7).trim();
-                    const langMatch = code.match(/^(html|css|javascript|js|python|py)\n/);
+                    const codeBlockContent = part.substring(7, part.length - 7).trim();
+                    const langMatch = codeBlockContent.match(/^(html|css|javascript|js|python|py)\s*/);
                     const lang = langMatch ? langMatch[1] : '';
-                    const actualCode = langMatch ? code.substring(lang.length + 1) : code;
+                    const actualCode = langMatch ? codeBlockContent.substring(langMatch[0].length) : codeBlockContent;
                     
                     const isRunnable = lang === 'html' || lang === 'css';
 
