@@ -136,5 +136,3 @@ export default async function LanguagePage({ params }: { params: { languageSlug:
     </div>
   );
 }
-
-    

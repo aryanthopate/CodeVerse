@@ -273,9 +273,9 @@ export default function CoursesShopPage() {
                     filteredAndSortedCourses.map(course => {
                         const userProgress: UserCourseProgress | null = null; // This will be replaced with user progress data
                         const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
-                        const reviewsCount = 0; // Placeholder
+                        const reviewsCount = course.course_reviews?.[0]?.count || 0;
                         
-                        const enrollments = (course.user_enrollments?.[0]?.count) || 0;
+                        const enrollments = course.user_enrollments?.[0]?.count || 0;
                         const isBestseller = enrollments > 10; // Example logic
                         const isBestRated = (course.rating || 0) >= 4.5;
 
@@ -370,4 +370,3 @@ export default function CoursesShopPage() {
     </div>
   );
 }
-
