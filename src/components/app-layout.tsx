@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { LayoutDashboard, BookOpen, Compass, Share2 } from 'lucide-react';
-import { ChatWidget } from './chat-widget';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { UserProfile } from '@/lib/types';
@@ -179,7 +178,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex-1 bg-card border rounded-xl p-4 md:p-6 lg:p-8 overflow-y-auto">
                 {children}
             </div>
-            <ChatWidget />
         </div>
       </div>
     </SidebarProvider>

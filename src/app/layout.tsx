@@ -7,6 +7,7 @@ import './help-section.css';
 import './newsletter-terminal.css';
 import './newsletter-bg.css';
 import './matrix-bg.css';
+import { ChatWidget } from '@/components/chat-widget';
 
 export const metadata: Metadata = {
   title: 'CodeVerse - Learn to Code, Playfully.',
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col" suppressHydrationWarning>
         {children}
         <Toaster />
+        <ChatWidget />
       </body>
     </html>
   );
