@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { CodeBlock } from './code-block';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Code } from 'lucide-react';
+import { CodeRunnerDialog } from './code-runner-dialog';
 
 interface MarkdownRendererProps {
     content: string;
@@ -29,9 +30,28 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
     return (
         <div className="prose prose-sm dark:prose-invert max-w-none break-words space-y-4">
             {parts.map((part, index) => {
-                if (part.startsWith('[-----]') && part.endsWith('[-----]')) {
-                    const codeBlockContent = part.substring(7, part.length - 7).trim();
-                    return <CodeBlock key={index} code={codeBlockContent} />;
+                const codeBlockMatch = part.match(/\[-----]([\s\S]*?)\[-----]/);
+                if (codeBlockMatch) {
+                    const fullBlock = codeBlockMatch[1];
+                    const langMatch = fullBlock.match(/^(html|css|javascript|python|typescript|tsx|jsx|json)\n/i);
+                    const lang = langMatch ? langMatch[1].toLowerCase() : null;
+                    const code = lang ? fullBlock.substring(lang.length + 1) : fullBlock;
+
+                    const isRunnable = lang === 'html' || lang === 'css';
+                    
+                    return (
+                        <div key={index}>
+                            <CodeBlock code={code} />
+                            {isRunnable && (
+                                <CodeRunnerDialog code={code} language={lang}>
+                                    <button className="flex items-center gap-1.5 p-1.5 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition-colors text-xs -mt-3 ml-2">
+                                        <Code className="h-3.5 w-3.5" />
+                                        Run Code
+                                    </button>
+                                </CodeRunnerDialog>
+                            )}
+                        </div>
+                    );
                 }
 
                 if (!part.trim()) return null;

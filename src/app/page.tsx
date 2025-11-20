@@ -161,13 +161,13 @@ export default async function Home() {
         {/* Hero Section */}
         <section className="relative w-full overflow-hidden">
           <AnimatedGridBackground />
-          <div className="container mx-auto flex min-h-[90vh] flex-col items-center justify-center text-center relative z-10 py-24 md:py-32">
+          <div className="container mx-auto flex min-h-screen flex-col items-center justify-center text-center relative z-10 pt-20 md:pt-0">
                 <div className="relative">
                     <span className="relative z-10 mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1.5 text-xs text-zinc-50 md:mb-0 md:text-sm">
                         An AI-Powered Learning Experience ✨<span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
                     </span>
                 </div>
-                <h1 className="mb-3 text-center text-3xl font-bold leading-tight text-zinc-50 sm:text-4xl sm:leading-tight md:text-5xl md:leading-tight lg:text-8xl lg:leading-tight">CodeVerce-Learn to Code by Playing Games</h1>
+                <h1 className="mb-3 text-center text-4xl font-bold leading-tight text-zinc-50 sm:text-5xl sm:leading-tight md:text-6xl md:leading-tight lg:text-8xl lg:leading-tight">CodeVerce-Learn to Code by Playing Games</h1>
                 <p className="mb-9 max-w-2xl text-center text-base text-zinc-400 sm:text-lg md:text-xl">CodeVerse transforms programming education into an interactive adventure. Master new skills with AI-guided lessons, engaging quizzes, and hands-on coding challenges.</p>
                 <div className="flex flex-col items-center gap-4 sm:flex-row">
                     <Button asChild className="justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-10 rounded-md bg-gradient-to-br from-blue-400 to-blue-700 px-4 py-2 text-lg text-zinc-50 ring-2 ring-blue-500/50 ring-offset-2 ring-offset-zinc-950 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-blue-500/70 flex items-center gap-2">
@@ -193,7 +193,7 @@ export default async function Home() {
         {/* New Leaderboard Section */}
         <section className="py-20 container mx-auto">
             <div className="text-center max-w-3xl mx-auto">
-                <h2 className="text-4xl font-bold text-white flex items-center justify-center gap-3"><Trophy className="text-yellow-400"/> Last Week's Hall of Heroes</h2>
+                <h2 className="text-3xl md:text-4xl font-bold text-white flex items-center justify-center gap-3"><Trophy className="text-yellow-400"/> Last Week's Hall of Heroes</h2>
                 <p className="text-lg text-hp-text-muted mt-4">See who topped the charts last week. A new leaderboard is generated every Monday. Keep playing to secure your spot!</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto mt-12">
@@ -212,7 +212,7 @@ export default async function Home() {
         <section className="py-20 relative">
           <div className="absolute inset-0 z-0 container-grid"></div>
           <div className="container mx-auto relative z-10">
-            <h2 className="text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-white">Featured Courses</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
               {courses.slice(0,3).map((course) => (
                   <CourseCard key={course.id} course={course} />
@@ -225,10 +225,10 @@ export default async function Home() {
         <section className="py-20">
             <div className="container mx-auto">
                 <div className="text-center max-w-2xl mx-auto">
-                    <h2 className="text-4xl font-bold text-white">A better way to learn code</h2>
+                    <h2 className="text-3xl md:text-4xl font-bold text-white">A better way to learn code</h2>
                     <p className="text-lg text-hp-text-muted mt-4">CodeVerse isn't just another video tutorial platform. It's an interactive ecosystem designed to make you a better developer, faster.</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
                     {features.map((feature, i) => (
                         <Card key={i} className="bg-zinc-900/50 border-zinc-800 p-6">
                            <div className="p-3 bg-hp-accent/10 rounded-lg w-fit mb-4">{feature.icon}</div>
@@ -246,7 +246,7 @@ export default async function Home() {
             <div className="container mx-auto relative z-10">
                 <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center p-8">
                     <div className="relative z-10 flex flex-col items-center">
-                        <h2 className="text-6xl md:text-8xl font-black text-white uppercase">
+                        <h2 className="text-4xl md:text-6xl lg:text-8xl font-black text-white uppercase">
                             ENTER THE PLAYGROUND
                         </h2>
                         <p className="mt-6 max-w-xl mx-auto text-lg text-neutral-300">
@@ -263,8 +263,8 @@ export default async function Home() {
         {/* Testimonials */}
         <section className="py-20">
            <div className="container mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12 text-white">Loved by Learners</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-white">Loved by Learners</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {testimonials.map((testimonial) => (
                 <Card key={testimonial.name} className="bg-zinc-900/50 border-zinc-800 p-6 flex flex-col justify-between">
                   <div>
@@ -299,7 +299,7 @@ export default async function Home() {
                     <p className="text-neutral-300 max-w-2xl mb-8">
                         Join our newsletter to get the latest updates on new courses, game releases, and special offers delivered straight to your inbox.
                     </p>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center w-full max-w-md">
                         <NewsletterTerminal />
                     </div>
                     <div className="mt-8">

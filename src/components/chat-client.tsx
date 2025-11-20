@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy } from 'lucide-react';
+import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy, Code } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,13 +17,20 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from '@/components/markdown-renderer';
-import { NewChatDialog } from '@/components/new-chat-dialog';
+import { CodeRunnerDialog } from './code-runner-dialog';
 
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
 }
 
-export function ChatClient({ chats: initialChats, activeChat: initialActiveChat, settings, profile }: { chats: Chat[] | null, activeChat: ActiveChat | null, settings: WebsiteSettings | null, profile: UserProfile | null }) {
+const initialPrompts = [
+    "Explain what a variable is in Python",
+    "How do I write a for loop in JavaScript?",
+    "What's the difference between a list and a tuple?",
+    "Write a simple HTML boilerplate",
+]
+
+export function ChatClient({ chats: initialChats, activeChat: initialActiveChat, settings, profile, homepageContent }: { chats: Chat[] | null, activeChat: ActiveChat | null, settings: WebsiteSettings | null, profile: UserProfile | null, homepageContent?: React.ReactNode }) {
     const router = useRouter();
     const params = useParams();
     const { toast } = useToast();
@@ -31,6 +38,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     const [activeChat, setActiveChat] = useState(initialActiveChat);
     const [input, setInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
+    const [isCreatingChat, setIsCreatingChat] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const [isClient, setIsClient] = useState(false);
     
@@ -80,9 +88,16 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         scrollToBottom();
     }, [activeChat?.messages, isStreaming]);
 
-    const handleNewChat = () => {
-        // This will be handled by the NewChatDialog now
-    };
+     const handleNewChat = async () => {
+        setIsCreatingChat(true);
+        const newChat = await createNewChat('New Chat');
+        if (newChat) {
+            router.push(`/chat/${newChat.id}`);
+        } else {
+            toast({ variant: 'destructive', title: 'Failed to create chat' });
+        }
+        setIsCreatingChat(false);
+    }
 
      const handleSaveRename = async () => {
         if (!activeChat || renamingTitle.trim() === '' || renamingTitle.trim() === activeChat.title) {
@@ -92,7 +107,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
         const originalTitle = activeChat.title;
         
-        // Optimistic UI update
         const updatedChat = { ...activeChat, title: renamingTitle.trim() };
         setActiveChat(updatedChat);
         setChats(prevChats => prevChats.map(c => c.id === activeChat.id ? updatedChat : c));
@@ -111,7 +125,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 title: 'Rename Failed',
                 description: error.message,
             });
-            // Revert on error
             setActiveChat(prev => prev ? { ...prev, title: originalTitle } : null);
             setChats(prevChats => prevChats.map(c => c.id === activeChat.id ? { ...c, title: originalTitle } : c));
         } else {
@@ -154,20 +167,25 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         return streamedResponse;
     };
     
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!input.trim() || isStreaming) return;
+    const handleSubmit = async (e: React.FormEvent | string) => {
+        let messageToSend: string;
+        if (typeof e === 'string') {
+            messageToSend = e;
+        } else {
+            e.preventDefault();
+            messageToSend = input;
+        }
 
-        const userInput: ChatMessage = { role: 'user', content: input } as any;
-        const currentInput = input;
+        if (!messageToSend.trim() || isStreaming) return;
+
+        const userInput: ChatMessage = { role: 'user', content: messageToSend } as any;
+        const currentInput = messageToSend;
         setInput('');
 
         let isNewChat = !activeChat;
 
-        // Optimistically update UI
         let tempActiveChat: ActiveChat;
         if (isNewChat) {
-            // Special handling for anonymous users or first message in a new chat
             tempActiveChat = {
                 id: `temp-${Date.now()}`,
                 title: currentInput.substring(0, 50),
@@ -178,7 +196,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 messages: [userInput],
             };
         } else {
-             // Handle existing chat
             tempActiveChat = {
                 ...(activeChat as ActiveChat),
                 messages: [...(activeChat?.messages || []), userInput],
@@ -208,7 +225,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 }
             }
 
-
             const messagesForApi = tempActiveChat.messages.map(m => ({
                 role: m.role as 'user' | 'model',
                 content: m.content as string,
@@ -217,14 +233,13 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             const stream = await streamChat({ 
                 messages: messagesForApi,
                 chatId: currentChatId,
-                userName: profile?.full_name,
+                userName: profile?.full_name || undefined,
             });
             
             const streamedResponse = await processStream(stream, tempActiveChat.messages as ChatMessage[]);
             
             if (currentChatId && profile && !currentChatId.startsWith('temp-')) {
                 const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
-                // Fire and forget - don't await
                 saveChat(currentChatId, finalMessages as ChatMessage[]);
             }
 
@@ -268,13 +283,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             const stream = await streamChat({ 
                 messages: messagesForApi, 
                 chatId: activeChat.id,
-                userName: profile?.full_name,
+                userName: profile?.full_name || undefined,
             });
             const streamedResponse = await processStream(stream, history as ChatMessage[]);
             
             if (activeChat.id && profile && !activeChat.id.startsWith('temp-')) {
                  const finalMessages = [...history, { role: 'model', content: streamedResponse } as ChatMessage];
-                 // Fire and forget
                  saveChat(activeChat.id, finalMessages as ChatMessage[]);
             }
 
@@ -345,7 +359,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
             if (profile && !chatId.startsWith('temp-')) {
                 if (action === 'delete') {
-                    await deleteChatAction(chatId);
+                    deleteChatAction(chatId);
                 } else {
                     const updates: Partial<Chat> = {};
                     if (action === 'pin') updates.is_pinned = true;
@@ -393,13 +407,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
     return (
         <div className="flex h-screen bg-background">
-            <aside className="w-80 border-r border-border/50 flex-col hidden md:flex">
+            <aside className="w-full md:w-80 border-r border-border/50 flex-col hidden md:flex">
                 <div className="p-4 border-b border-border/50">
-                    <NewChatDialog>
-                        <Button className="w-full rounded-xl">
-                            <Plus className="mr-2" /> New Chat
-                        </Button>
-                    </NewChatDialog>
+                    <Button onClick={handleNewChat} disabled={isCreatingChat} className="w-full rounded-xl">
+                        {isCreatingChat ? <Loader2 className="mr-2 animate-spin"/> : <Plus className="mr-2" />}
+                        New Chat
+                    </Button>
                 </div>
                 <ScrollArea className="flex-1">
                     <nav className="p-2 space-y-4">
@@ -506,7 +519,9 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                     )}
                 </header>
                 <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                    <div className="p-6 space-y-8">
+                    <div className="p-4 md:p-6 space-y-8">
+                         {homepageContent && !activeChat && homepageContent}
+                         
                         {(activeChat?.messages || []).map((message, index) => {
                              const isUser = message.role === 'user';
                              const isLastMessage = index === (activeChat?.messages?.length ?? 0) - 1;
@@ -521,7 +536,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                             </Avatar>
                                         )}
                                         <div className={cn(
-                                            "max-w-2xl p-4 rounded-2xl", 
+                                            "max-w-xs sm:max-w-md md:max-w-2xl p-4 rounded-2xl", 
                                             isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none"
                                         )}>
                                             <MarkdownRenderer content={message.content} />
@@ -569,11 +584,19 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                             </div>
                         )}
 
-                        {!activeChat && (
-                            <div className="text-center text-muted-foreground pt-24">
-                                <Bot className="mx-auto h-12 w-12" />
-                                <h2 className="mt-2 text-lg font-semibold">Start a new conversation</h2>
-                                <p>You can start your conversation now.</p>
+                        {activeChat && (activeChat.messages || []).length === 0 && (
+                            <div className="text-center text-muted-foreground pt-12 md:pt-24 space-y-8">
+                                <div>
+                                    <Bot className="mx-auto h-12 w-12" />
+                                    <h2 className="mt-2 text-lg font-semibold">Start your conversation now</h2>
+                                </div>
+                                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto'>
+                                    {initialPrompts.map((prompt) => (
+                                        <Button key={prompt} variant="outline" className="text-left h-auto text-sm" onClick={() => handleSubmit(prompt)}>
+                                            {prompt}
+                                        </Button>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -661,10 +684,3 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
-
-    
-
-    
-
-    
-
