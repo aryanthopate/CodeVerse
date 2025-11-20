@@ -961,8 +961,8 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
         return { success: false, error: "Failed to save messages." };
     }
 
-    // Generate and save conversation summary
-    if (messages.length >= 2) {
+    // Generate and save conversation summary, even after the first message
+    if (messages.length >= 1) {
         const transcript = messages.map(m => `${m.role}: ${m.content}`).join('\n');
         try {
             // This is an async call but we don't wait for it to finish,
