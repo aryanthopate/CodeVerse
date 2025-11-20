@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-export default function UpdatePasswordPage() {
+function UpdatePasswordFormComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -23,9 +23,6 @@ export default function UpdatePasswordPage() {
 
   const supabase = createClient();
   
-  // This page is accessed from a magic link or password reset link.
-  // The access token is in the URL hash. Supabase client library
-  // automatically handles it and sets the session.
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -124,4 +121,13 @@ export default function UpdatePasswordPage() {
         </Card>
     </div>
   );
+}
+
+
+export default function UpdatePasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UpdatePasswordFormComponent />
+    </Suspense>
+  )
 }
