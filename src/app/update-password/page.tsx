@@ -12,7 +12,7 @@ import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-function UpdatePasswordFormComponent() {
+function UpdatePasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -126,8 +126,8 @@ function UpdatePasswordFormComponent() {
 
 export default function UpdatePasswordPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <UpdatePasswordFormComponent />
+    <Suspense fallback={<div className="flex h-screen w-full items-center justify-center">Loading...</div>}>
+      <UpdatePasswordForm />
     </Suspense>
-  )
+  );
 }
