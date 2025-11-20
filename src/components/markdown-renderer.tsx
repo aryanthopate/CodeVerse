@@ -78,9 +78,14 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
                 };
 
                 for (const line of lines) {
-                    if (line.startsWith('# ')) {
+                    if (line.startsWith('#### ')) {
                         flushList();
-                        elements.push(<h1 key={elements.length} className="text-2xl font-bold mt-4 mb-2" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(2)) }} />);
+                        elements.push(<h4 key={elements.length} className="text-md font-semibold mt-2 mb-1" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(5)) }} />);
+                        continue;
+                    }
+                    if (line.startsWith('### ')) {
+                        flushList();
+                        elements.push(<h3 key={elements.length} className="text-lg font-semibold mt-2 mb-1" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(4)) }} />);
                         continue;
                     }
                     if (line.startsWith('## ')) {
@@ -88,9 +93,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
                         elements.push(<h2 key={elements.length} className="text-xl font-semibold mt-3 mb-1" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(3)) }} />);
                         continue;
                     }
-                    if (line.startsWith('### ')) {
+                    if (line.startsWith('# ')) {
                         flushList();
-                        elements.push(<h3 key={elements.length} className="text-lg font-semibold mt-2 mb-1" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(4)) }} />);
+                        elements.push(<h1 key={elements.length} className="text-2xl font-bold mt-4 mb-2" dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(line.substring(2)) }} />);
                         continue;
                     }
                     if (line.startsWith('> ')) {
