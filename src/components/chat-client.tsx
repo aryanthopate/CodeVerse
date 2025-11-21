@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy, Plus } from 'lucide-react';
+import { Bot, User, Send, Paperclip, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy, Plus, Code } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from './markdown-renderer';
 import { NewChatDialog } from './new-chat-dialog';
+import { CodeRunnerDialog } from './code-runner-dialog';
 
 
 interface ActiveChat extends Chat {
@@ -294,7 +295,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         }
     };
     
-    const handleChatAction = useCallback(async (chatId: string, action: 'pin' | 'unpin' | 'archive' | 'unarchive' | 'delete') => {
+    const handleChatAction = useCallback((chatId: string, action: 'pin' | 'unpin' | 'archive' | 'unarchive' | 'delete') => {
         if (!profile && (action !== 'delete' || chatId.startsWith('temp-'))) {
              toast({
                 variant: 'destructive',
@@ -304,13 +305,11 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             return;
         }
 
-        const originalChats = [...chats];
-        
         if (action === 'delete') {
-            setChats(prev => prev.filter(c => c.id !== chatId));
             if (params.chatId === chatId) {
                 router.push('/chat');
             }
+            setChats(prev => prev.filter(c => c.id !== chatId));
         } else {
             setChats(prev => prev.map(c => {
                 if (c.id === chatId) {
@@ -326,25 +325,24 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         }
 
         if (profile && !chatId.startsWith('temp-')) {
-            let error;
+            let promise;
             if (action === 'delete') {
-                ({ error } = await deleteChatAction(chatId));
+                promise = deleteChat(chatId);
             } else {
                 const updates: Partial<Chat> = {};
                 if (action === 'pin') updates.is_pinned = true;
                 if (action === 'unpin') updates.is_pinned = false;
                 if (action === 'archive') updates.is_archived = true;
                 if (action === 'unarchive') updates.is_archived = false;
-                ({ error } = await updateChat(chatId, updates));
+                promise = updateChat(chatId, updates);
             }
-
-            if (error) {
-                toast({ variant: 'destructive', title: 'Action Failed', description: error });
-                // Revert state on error
-                setChats(originalChats);
-            }
+            promise.then(result => {
+                if (result?.error) {
+                    toast({ variant: 'destructive', title: 'Action Failed', description: result.error });
+                }
+            });
         }
-    }, [profile, params.chatId, chats, router, toast]);
+    }, [profile, params.chatId, router, toast]);
 
     const handleFileUploadClick = () => {
         toast({
@@ -466,23 +464,30 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                             </Button>
                         )}
                     </div>
-                     {profile && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Avatar className="h-9 w-9 cursor-pointer">
-                                    <AvatarImage src={profile.avatar_url || ''} />
-                                    <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
-                                </Avatar>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>Profile</DropdownMenuItem>
-                                <DropdownMenuItem>Settings</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>Logout</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
+                     <div className="flex items-center gap-2">
+                        <CodeRunnerDialog code="" language="html">
+                           <Button variant="outline" size="sm" className="hidden sm:flex">
+                               <Code className="mr-2 h-4 w-4"/> Run Code
+                           </Button>
+                        </CodeRunnerDialog>
+                         {profile && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Avatar className="h-9 w-9 cursor-pointer">
+                                        <AvatarImage src={profile.avatar_url || ''} />
+                                        <AvatarFallback>{profile.full_name?.charAt(0) || 'U'}</AvatarFallback>
+                                    </Avatar>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>Profile</DropdownMenuItem>
+                                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>Logout</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                     </div>
                 </header>
                 <ScrollArea className="flex-1" ref={scrollAreaRef}>
                     <div className="p-4 md:p-6 space-y-8">
@@ -556,7 +561,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                     <Bot className="mx-auto h-12 w-12" />
                                     <h2 className="mt-2 text-lg font-semibold">Start your conversation now</h2>
                                 </div>
-                                <div className='grid grid-cols-1 gap-3 max-w-lg mx-auto'>
+                                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto'>
                                     {initialPrompts.map((prompt) => (
                                         <Button key={prompt} variant="outline" className="text-left h-auto text-sm" onClick={() => handleSubmit(prompt)}>
                                             {prompt}
@@ -611,7 +616,7 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
                     </Button>
                 </div>
             ) : (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/opacity-100 transition-opacity z-10">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -652,4 +657,5 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 }
 
     
+
 

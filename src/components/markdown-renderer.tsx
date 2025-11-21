@@ -43,7 +43,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
                         <div key={index}>
                             <CodeBlock code={code} />
                             {isRunnable && (
-                                <CodeRunnerDialog code={code} language={lang}>
+                                <CodeRunnerDialog code={code} language={lang as 'html' | 'css'}>
                                     <button className="flex items-center gap-1.5 p-1.5 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition-colors text-xs -mt-3 ml-2">
                                         <Code className="h-3.5 w-3.5" />
                                         Run Code
