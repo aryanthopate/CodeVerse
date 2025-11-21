@@ -304,72 +304,47 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             return;
         }
         
-        let optimisticChats = [...chats];
-        const originalChats = [...chats]; 
-
-        try {
-            if (action === 'delete') {
-                optimisticChats = chats.filter(c => c.id !== chatId);
-                 if (params.chatId === chatId || activeChat?.id === chatId) {
-                    router.push('/chat');
-                    setActiveChat(null);
-                }
-            } else {
-                optimisticChats = chats.map(c => {
-                    if (c.id === chatId) {
-                        const updates: Partial<Chat> = {};
-                        if (action === 'pin') updates.is_pinned = true;
-                        if (action === 'unpin') updates.is_pinned = false;
-                        if (action === 'archive') updates.is_archived = true;
-                        if (action === 'unarchive') updates.is_archived = false;
-                        return { ...c, ...updates };
-                    }
-                    return c;
-                });
+        // Optimistic UI Update
+        if (action === 'delete') {
+            setChats(prev => prev.filter(c => c.id !== chatId));
+            if (params.chatId === chatId || activeChat?.id === chatId) {
+                router.push('/chat');
             }
-            
-            setChats(optimisticChats);
-
-            if (params.chatId === chatId) {
-                if(action === 'archive' || action === 'delete') {
-                    router.push('/chat');
-                    setActiveChat(null);
-                } else if (action === 'unarchive' && activeChat) {
-                    setActiveChat(prev => prev ? {...prev, is_archived: false} : null);
-                }
-            }
-            
-            if (action === 'unarchive' && params.chatId !== chatId) {
-                const chatToUnarchive = chats.find(c => c.id === chatId);
-                if (chatToUnarchive) {
-                    router.push(`/chat/${chatId}`);
-                }
-            }
-
-            if (profile && !chatId.startsWith('temp-')) {
-                 if (action === 'delete') {
-                    const { error } = await deleteChatAction(chatId);
-                    if (error) throw new Error(error.message);
-                } else {
+        } else {
+            setChats(prev => prev.map(c => {
+                if (c.id === chatId) {
                     const updates: Partial<Chat> = {};
                     if (action === 'pin') updates.is_pinned = true;
                     if (action === 'unpin') updates.is_pinned = false;
                     if (action === 'archive') updates.is_archived = true;
                     if (action === 'unarchive') updates.is_archived = false;
-                    const { error } = await updateChat(chatId, updates);
-                    if(error) throw new Error(error.message);
+                    return { ...c, ...updates };
                 }
-            }
-        } catch (error: any) {
-             toast({
-                variant: 'destructive',
-                title: 'Action Failed',
-                description: `Could not perform action: ${error.message}`,
-            });
-            setChats(originalChats);
+                return c;
+            }));
         }
 
-    }, [chats, profile, params.chatId, router, toast, activeChat]);
+        // Server Action
+        if (profile && !chatId.startsWith('temp-')) {
+            let error;
+            if (action === 'delete') {
+                ({ error } = await deleteChatAction(chatId));
+            } else {
+                const updates: Partial<Chat> = {};
+                if (action === 'pin') updates.is_pinned = true;
+                if (action === 'unpin') updates.is_pinned = false;
+                if (action === 'archive') updates.is_archived = true;
+                if (action === 'unarchive') updates.is_archived = false;
+                ({ error } = await updateChat(chatId, updates));
+            }
+
+            if (error) {
+                toast({ variant: 'destructive', title: 'Action Failed', description: error });
+                // Revert state on error by refetching from props
+                setChats(initialChats || []);
+            }
+        }
+    }, [profile, params.chatId, activeChat?.id, router, toast, initialChats]);
 
     const handleFileUploadClick = () => {
         toast({
@@ -545,7 +520,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                         )}
                                     </div>
                                     <div className={cn("flex items-center gap-1 transition-opacity opacity-0 group-hover/message:opacity-100", isUser ? "justify-end pr-14" : "justify-start pl-14")}>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(message.content)}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(message.content || '')}>
                                             <Copy className="w-4 h-4" />
                                         </Button>
                                         {!isUser && isLastMessage && !isStreaming && (

@@ -892,9 +892,10 @@ export async function deleteChat(chatId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
 
+    // Find out if the user is an admin
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     
-    // Admins can delete any chat, users can only delete their own
+    // Admins can delete any chat. Users can only delete their own.
     const query = supabase.from('chats').delete().eq('id', chatId);
     if (profile?.role !== 'admin') {
         query.eq('user_id', user.id);
@@ -907,7 +908,8 @@ export async function deleteChat(chatId: string) {
     }
     
     revalidatePath('/chat', 'layout');
-    revalidatePath('/admin/users', 'layout');
+    revalidatePath('/admin/users', 'page');
+    revalidatePath('/admin/chats', 'page');
 
     return { success: true };
 }
