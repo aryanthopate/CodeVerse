@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { Bot, User, Send, Paperclip, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { ScrollArea } from './ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { Chat, ChatMessage, UserProfile, WebsiteSettings } from '@/lib/types';
 import { chat as streamChat } from '@/ai/flows/chat';
@@ -16,7 +16,7 @@ import { createNewChat, saveChat, updateChat, deleteChat as deleteChatAction } f
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MarkdownRenderer } from '@/components/markdown-renderer';
+import { MarkdownRenderer } from './markdown-renderer';
 import { NewChatDialog } from './new-chat-dialog';
 
 
@@ -303,11 +303,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             });
             return;
         }
+
+        const originalChats = [...chats];
         
-        // Optimistic UI Update
         if (action === 'delete') {
             setChats(prev => prev.filter(c => c.id !== chatId));
-            if (params.chatId === chatId || activeChat?.id === chatId) {
+            if (params.chatId === chatId) {
                 router.push('/chat');
             }
         } else {
@@ -324,7 +325,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }));
         }
 
-        // Server Action
         if (profile && !chatId.startsWith('temp-')) {
             let error;
             if (action === 'delete') {
@@ -340,11 +340,11 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
 
             if (error) {
                 toast({ variant: 'destructive', title: 'Action Failed', description: error });
-                // Revert state on error by refetching from props
-                setChats(initialChats || []);
+                // Revert state on error
+                setChats(originalChats);
             }
         }
-    }, [profile, params.chatId, activeChat?.id, router, toast, initialChats]);
+    }, [profile, params.chatId, chats, router, toast]);
 
     const handleFileUploadClick = () => {
         toast({
@@ -652,3 +652,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
 }
 
     
+

@@ -911,7 +911,7 @@ export async function deleteChat(chatId: string) {
     revalidatePath('/admin/users', 'page');
     revalidatePath('/admin/chats', 'page');
 
-    return { success: true };
+    return { success: true, error: null };
 }
 
 export async function createNewChat(title: string): Promise<Chat | null> {
