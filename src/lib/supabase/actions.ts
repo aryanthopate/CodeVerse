@@ -892,13 +892,15 @@ export async function deleteChat(chatId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    // Find out if the user is an admin
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     
-    // Admins can delete any chat. Users can only delete their own.
-    const query = supabase.from('chats').delete().eq('id', chatId);
-    if (profile?.role !== 'admin') {
-        query.eq('user_id', user.id);
+    let query;
+    if (profile?.role === 'admin') {
+        // Admin can delete any chat
+        query = supabase.from('chats').delete().eq('id', chatId);
+    } else {
+        // Regular user can only delete their own chat
+        query = supabase.from('chats').delete().eq('id', chatId).eq('user_id', user.id);
     }
     
     const { error } = await query;
