@@ -19,3 +19,4 @@ export * from './matrix-background';
 export * from './course-card';
 export * from './new-chat-dialog';
 export * from './chat-widget';
+export * from './reset-password-dialog';

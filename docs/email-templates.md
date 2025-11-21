@@ -102,9 +102,9 @@ Use this for the **Confirm signup** email.
 
 ---
 
-## 2. Reset Password Template
+## 2. Reset Password (OTP) Template
 
-Use this for the **Reset password** email.
+Use this for the **Reset password** email. This is an OTP-based template.
 
 ```html
 <!DOCTYPE html>
@@ -112,7 +112,7 @@ Use this for the **Reset password** email.
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Your CodeVerse Password</title>
+    <title>Your CodeVerse Password Reset Code</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         body {
@@ -146,15 +146,17 @@ Use this for the **Reset password** email.
             font-size: 16px;
             line-height: 1.6;
         }
-        .button {
-            display: inline-block;
-            background-color: #7c3aed; /* violet-600 */
-            color: #ffffff;
-            padding: 14px 28px;
+        .otp-code {
+            background-color: #18181b;
+            color: #c084fc;
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: 10px;
+            text-align: center;
+            padding: 20px;
             border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
             margin: 25px 0;
+            border: 1px dashed #3f3f46;
         }
         .footer {
             text-align: center;
@@ -170,13 +172,12 @@ Use this for the **Reset password** email.
             <h1>CodeVerse</h1>
         </div>
         <div class="card">
-            <h2>Password Reset Request</h2>
-            <p>We received a request to reset the password for the CodeVerse account associated with {{ .Email }}.</p>
-            <p>Click the button below to set a new password. This link is valid for 1 hour.</p>
-            <p style="text-align: center;">
-                <a href="{{ .ConfirmationURL }}" class="button">Reset Your Password</a>
-            </p>
-            <p>If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.</p>
+            <h2>Your Password Reset Code</h2>
+            <p>We received a request to reset the password for your CodeVerse account. Enter the code below to proceed.</p>
+            <div class="otp-code">
+                {{ .Token }}
+            </div>
+            <p>This code will expire in 10 minutes. If you didn't request a password reset, you can safely ignore this email.</p>
             <br>
             <p>Happy coding!</p>
             <p><strong>The CodeVerse Team</strong></p>
@@ -200,7 +201,7 @@ Use this for the **Magic Link** email.
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Your CodeVerse Magic Link</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');

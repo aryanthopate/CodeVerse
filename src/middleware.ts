@@ -7,8 +7,10 @@ export async function middleware(request: NextRequest) {
 
   // This will refresh the session cookie if it's expired.
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  const user = session?.user
 
   const pathname = request.nextUrl.pathname
 
@@ -34,13 +36,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.rewrite(url)
     }
   }
-
-
-  // Define public routes
-  const publicRoutes = ['/', '/login', '/signup', '/auth/confirm', '/update-password']
-  const courseDetailRoutePattern = /^\/courses(\/.*)?$/;
-  const playgroundRoutePattern = /^\/playground(\/.*)?$/;
-
 
   // Define authenticated routes prefixes
   const authenticatedRoutes = ['/dashboard', '/chat'];
