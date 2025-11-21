@@ -305,11 +305,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             return;
         }
 
+        // Perform optimistic UI update
         if (action === 'delete') {
+            setChats(prev => prev.filter(c => c.id !== chatId));
             if (params.chatId === chatId) {
                 router.push('/chat');
             }
-            setChats(prev => prev.filter(c => c.id !== chatId));
         } else {
             setChats(prev => prev.map(c => {
                 if (c.id === chatId) {
@@ -324,10 +325,11 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }));
         }
 
+        // Call the server action in the background
         if (profile && !chatId.startsWith('temp-')) {
             let promise;
             if (action === 'delete') {
-                promise = deleteChat(chatId);
+                promise = deleteChatAction(chatId);
             } else {
                 const updates: Partial<Chat> = {};
                 if (action === 'pin') updates.is_pinned = true;
@@ -339,6 +341,8 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             promise.then(result => {
                 if (result?.error) {
                     toast({ variant: 'destructive', title: 'Action Failed', description: result.error });
+                    // Revert UI on failure if needed, though revalidation from server action should handle this
+                    router.refresh();
                 }
             });
         }
@@ -454,7 +458,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                             <h1 className="text-xl font-semibold truncate">{activeChat?.title || 'Chatlify AI'}</h1>
                         )}
                         {activeChat && !isRenaming && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover/title:opacity-100" onClick={() => setIsRenaming(true)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => setIsRenaming(true)}>
                                 <Edit className="w-4 h-4" />
                             </Button>
                         )}
@@ -510,7 +514,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                             "max-w-xs sm:max-w-md md:max-w-2xl p-4 rounded-2xl", 
                                             isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none"
                                         )}>
-                                            <MarkdownRenderer content={message.content} />
+                                            <MarkdownRenderer content={message.content || ''} />
                                         </div>
                                         {isUser && profile && (
                                             <Avatar>
@@ -524,7 +528,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                             </Avatar>
                                         )}
                                     </div>
-                                    <div className={cn("flex items-center gap-1 transition-opacity opacity-0 group-hover/message:opacity-100", isUser ? "justify-end pr-14" : "justify-start pl-14")}>
+                                    <div className={cn("flex items-center gap-1 transition-opacity opacity-0 group-hover:opacity-100", isUser ? "justify-end pr-14" : "justify-start pl-14")}>
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(message.content || '')}>
                                             <Copy className="w-4 h-4" />
                                         </Button>
@@ -611,12 +615,12 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
             </div>
             {isArchived ? (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction(chat.id, 'unarchive')}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAction(chat.id, 'unarchive'); }}>
                         <Archive className="w-4 h-4" />
                     </Button>
                 </div>
             ) : (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/opacity-100 transition-opacity z-10">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -624,14 +628,14 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => onAction(chat.id, chat.is_pinned ? 'unpin' : 'pin')}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAction(chat.id, chat.is_pinned ? 'unpin' : 'pin'); }}>
                                 <Pin className="mr-2 h-4 w-4" /> {chat.is_pinned ? 'Unpin' : 'Pin'}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onAction(chat.id, 'archive')}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAction(chat.id, 'archive'); }}>
                                  <Archive className="mr-2 h-4 w-4" /> Archive
                             </DropdownMenuItem>
                              <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => onAction(chat.id, 'delete')}>
+                            <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); onAction(chat.id, 'delete'); }}>
                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -659,3 +663,6 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
     
 
 
+
+
+    

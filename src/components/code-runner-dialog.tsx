@@ -32,8 +32,8 @@ export function CodeRunnerDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-none w-full h-full max-h-screen p-0 m-0 border-0 rounded-none bg-background">
         <DialogHeader className="sr-only">
-          <DialogTitle>Code Runner</DialogTitle>
-          <DialogDescription>An interactive playground to run HTML and CSS code snippets.</DialogDescription>
+            <DialogTitle>Code Runner</DialogTitle>
+            <DialogDescription>An interactive playground to run HTML and CSS code snippets.</DialogDescription>
         </DialogHeader>
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={50}>
@@ -73,3 +73,5 @@ export function CodeRunnerDialog({
     </Dialog>
   );
 }
+
+    
