@@ -1,7 +1,7 @@
 
 'use client';
 import { Button } from '@/components/ui/button';
-import { Bot, X, Send, Paperclip, Loader2, RefreshCw, Copy, Code } from 'lucide-react';
+import { Bot, X, Send, Paperclip, Loader2, RefreshCw, Copy, Code, Terminal } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -183,7 +183,7 @@ export function ChatWidget() {
           className="fixed bottom-4 right-4 md:bottom-8 md:right-8 h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 transform transition-transform hover:scale-110"
           aria-label="AI Tutor"
         >
-          {open ? <X className="h-8 w-8" /> : <Bot className="h-8 w-8" />}
+          {open ? <X className="h-8 w-8" /> : <Terminal className="h-8 w-8" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={16} className="w-[22rem] sm:w-[26rem] h-[70vh] mr-4 mb-2 bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden rounded-2xl flex flex-col">
