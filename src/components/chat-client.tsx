@@ -305,12 +305,12 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             return;
         }
 
-        // Perform optimistic UI update
+        // Optimistic UI update
         if (action === 'delete') {
-            setChats(prev => prev.filter(c => c.id !== chatId));
-            if (params.chatId === chatId) {
+             if (params.chatId === chatId || activeChat?.id === chatId) {
                 router.push('/chat');
             }
+            setChats(prev => prev.filter(c => c.id !== chatId));
         } else {
             setChats(prev => prev.map(c => {
                 if (c.id === chatId) {
@@ -341,12 +341,11 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             promise.then(result => {
                 if (result?.error) {
                     toast({ variant: 'destructive', title: 'Action Failed', description: result.error });
-                    // Revert UI on failure if needed, though revalidation from server action should handle this
                     router.refresh();
                 }
             });
         }
-    }, [profile, params.chatId, router, toast]);
+    }, [profile, params.chatId, router, toast, activeChat]);
 
     const handleFileUploadClick = () => {
         toast({
@@ -559,7 +558,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                             </div>
                         )}
 
-                        {activeChat && (activeChat.messages || []).length === 0 && (
+                        {activeChat && (activeChat.messages || []).length === 0 && !homepageContent && (
                             <div className="text-center text-muted-foreground pt-12 md:pt-24 space-y-8">
                                 <div>
                                     <Bot className="mx-auto h-12 w-12" />
@@ -576,25 +575,27 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                         )}
                     </div>
                 </ScrollArea>
-                <div className="p-4 md:p-6 border-t border-border/50 shrink-0">
-                     <div className="flex items-center gap-2">
-                         <Button type="button" variant="ghost" size="icon" onClick={handleFileUploadClick} className="shrink-0">
-                            <Paperclip className="h-5 w-5" />
-                         </Button>
-                        <form onSubmit={handleSubmit} className="flex-grow relative">
-                            <Input
-                                placeholder="Ask anything..."
-                                className="pr-12 rounded-full h-12 bg-muted border-muted-foreground/20"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                disabled={isStreaming}
-                            />
-                             <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full disabled:cursor-not-allowed hover:scale-110 transition-transform" disabled={!input.trim() || isStreaming}>
-                                <Send className="h-4 w-4" />
+                {activeChat && (
+                    <div className="p-4 md:p-6 border-t border-border/50 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <Button type="button" variant="ghost" size="icon" onClick={handleFileUploadClick} className="shrink-0">
+                                <Paperclip className="h-5 w-5" />
                             </Button>
-                        </form>
+                            <form onSubmit={handleSubmit} className="flex-grow relative">
+                                <Input
+                                    placeholder="Ask anything..."
+                                    className="pr-12 rounded-full h-12 bg-muted border-muted-foreground/20"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    disabled={isStreaming}
+                                />
+                                <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full disabled:cursor-not-allowed hover:scale-110 transition-transform" disabled={!input.trim() || isStreaming}>
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </form>
+                        </div>
                     </div>
-                </div>
+                )}
             </main>
         </div>
     );
