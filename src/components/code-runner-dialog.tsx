@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Code, Play } from 'lucide-react';
 import { Button } from './ui/button';
@@ -31,6 +31,10 @@ export function CodeRunnerDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-none w-full h-full max-h-screen p-0 m-0 border-0 rounded-none bg-background">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Code Runner</DialogTitle>
+          <DialogDescription>An interactive playground to run HTML and CSS code snippets.</DialogDescription>
+        </DialogHeader>
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={50}>
             <div className="flex flex-col h-full">
