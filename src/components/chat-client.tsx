@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy } from 'lucide-react';
+import { Bot, User, Send, Paperclip, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from '@/components/markdown-renderer';
-import { NewChatDialog } from '@/components/new-chat-dialog';
+import { NewChatDialog } from './new-chat-dialog';
+
 
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
@@ -346,8 +347,18 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }
 
             if (profile && !chatId.startsWith('temp-')) {
-                const { error } = await deleteChatAction(chatId);
-                if (error) throw new Error(error.message);
+                 if (action === 'delete') {
+                    const { error } = await deleteChatAction(chatId);
+                    if (error) throw new Error(error.message);
+                } else {
+                    const updates: Partial<Chat> = {};
+                    if (action === 'pin') updates.is_pinned = true;
+                    if (action === 'unpin') updates.is_pinned = false;
+                    if (action === 'archive') updates.is_archived = true;
+                    if (action === 'unarchive') updates.is_archived = false;
+                    const { error } = await updateChat(chatId, updates);
+                    if(error) throw new Error(error.message);
+                }
             }
         } catch (error: any) {
              toast({
@@ -665,3 +676,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
     );
 }
 
+    
