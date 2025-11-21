@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Bot, User, Send, Paperclip, Plus, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy, Code } from 'lucide-react';
+import { Bot, User, Send, Paperclip, MessageSquare, Loader2, Home, LayoutDashboard, ChevronDown, MoreHorizontal, Archive, Trash2, Pin, ArrowLeft, Edit, Check, RefreshCw, Copy } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from '@/components/markdown-renderer';
-import { CodeRunnerDialog } from './code-runner-dialog';
+import { NewChatDialog } from '@/components/new-chat-dialog';
 
 interface ActiveChat extends Chat {
     messages: ChatMessage[];
@@ -38,7 +38,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     const [activeChat, setActiveChat] = useState(initialActiveChat);
     const [input, setInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
-    const [isCreatingChat, setIsCreatingChat] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const [isClient, setIsClient] = useState(false);
     
@@ -87,17 +86,6 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
     useEffect(() => {
         scrollToBottom();
     }, [activeChat?.messages, isStreaming]);
-
-     const handleNewChat = async () => {
-        setIsCreatingChat(true);
-        const newChat = await createNewChat('New Chat');
-        if (newChat) {
-            router.push(`/chat/${newChat.id}`);
-        } else {
-            toast({ variant: 'destructive', title: 'Failed to create chat' });
-        }
-        setIsCreatingChat(false);
-    }
 
      const handleSaveRename = async () => {
         if (!activeChat || renamingTitle.trim() === '' || renamingTitle.trim() === activeChat.title) {
@@ -342,7 +330,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             setChats(optimisticChats);
 
             if (params.chatId === chatId) {
-                if(action === 'archive') {
+                if(action === 'archive' || action === 'delete') {
                     router.push('/chat');
                     setActiveChat(null);
                 } else if (action === 'unarchive' && activeChat) {
@@ -358,17 +346,8 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
             }
 
             if (profile && !chatId.startsWith('temp-')) {
-                if (action === 'delete') {
-                    deleteChatAction(chatId);
-                } else {
-                    const updates: Partial<Chat> = {};
-                    if (action === 'pin') updates.is_pinned = true;
-                    if (action === 'unpin') updates.is_pinned = false;
-                    if (action === 'archive') updates.is_archived = true;
-                    if (action === 'unarchive') updates.is_archived = false;
-                    const { error } = await updateChat(chatId, updates);
-                    if(error) throw new Error(error.message);
-                }
+                const { error } = await deleteChatAction(chatId);
+                if (error) throw new Error(error.message);
             }
         } catch (error: any) {
              toast({
@@ -409,10 +388,11 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         <div className="flex h-screen bg-background">
             <aside className="w-full md:w-80 border-r border-border/50 flex-col hidden md:flex">
                 <div className="p-4 border-b border-border/50">
-                    <Button onClick={handleNewChat} disabled={isCreatingChat} className="w-full rounded-xl">
-                        {isCreatingChat ? <Loader2 className="mr-2 animate-spin"/> : <Plus className="mr-2" />}
-                        New Chat
-                    </Button>
+                    <NewChatDialog>
+                         <Button className="w-full rounded-xl">
+                            <Plus className="mr-2" /> New Chat
+                        </Button>
+                    </NewChatDialog>
                 </div>
                 <ScrollArea className="flex-1">
                     <nav className="p-2 space-y-4">
@@ -590,7 +570,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                     <Bot className="mx-auto h-12 w-12" />
                                     <h2 className="mt-2 text-lg font-semibold">Start your conversation now</h2>
                                 </div>
-                                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto'>
+                                <div className='grid grid-cols-1 gap-3 max-w-lg mx-auto'>
                                     {initialPrompts.map((prompt) => (
                                         <Button key={prompt} variant="outline" className="text-left h-auto text-sm" onClick={() => handleSubmit(prompt)}>
                                             {prompt}
@@ -684,3 +664,4 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
+

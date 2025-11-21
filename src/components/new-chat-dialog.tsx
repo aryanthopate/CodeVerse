@@ -107,5 +107,3 @@ export function NewChatDialog({ children, onChatCreated }: { children: React.Rea
     </Dialog>
   );
 }
-
-    
