@@ -20,6 +20,7 @@ import { getWebsiteSettings } from '@/lib/supabase/queries';
 import { WebsiteSettings, ChatMessage, UserProfile } from '@/lib/types';
 import { MarkdownRenderer } from './markdown-renderer';
 import { CodeRunnerDialog } from './code-runner-dialog';
+import Image from 'next/image';
 
 
 export function ChatWidget() {
@@ -180,10 +181,16 @@ export function ChatWidget() {
       <PopoverTrigger asChild>
         <Button
           size="icon"
-          className="fixed bottom-4 right-4 md:bottom-8 md:right-8 h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 transform transition-transform hover:scale-110"
+          className="fixed bottom-4 right-4 md:bottom-8 md:right-8 h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 transform transition-transform hover:scale-110 p-0 overflow-hidden"
           aria-label="AI Tutor"
         >
-          {open ? <X className="h-8 w-8" /> : <Terminal className="h-8 w-8" />}
+          {open ? <X className="h-8 w-8" /> : (
+            settings?.chat_bot_avatar_url ? (
+                <Image src={settings.chat_bot_avatar_url} alt="Chatlify AI" fill className="object-cover"/>
+            ) : (
+                <Terminal className="h-8 w-8" />
+            )
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={16} className="w-[22rem] sm:w-[26rem] h-[70vh] mr-4 mb-2 bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden rounded-2xl flex flex-col">
