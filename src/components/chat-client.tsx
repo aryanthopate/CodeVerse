@@ -564,9 +564,9 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                     <Bot className="mx-auto h-12 w-12" />
                                     <h2 className="mt-2 text-lg font-semibold">Start your conversation now</h2>
                                 </div>
-                                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto'>
+                                <div className='flex flex-col items-center gap-3 max-w-md mx-auto'>
                                     {initialPrompts.map((prompt) => (
-                                        <Button key={prompt} variant="outline" className="text-left h-auto text-sm" onClick={() => handleSubmit(prompt)}>
+                                        <Button key={prompt} variant="outline" className="w-full text-left justify-start h-auto text-sm" onClick={() => handleSubmit(prompt)}>
                                             {prompt}
                                         </Button>
                                     ))}
@@ -660,10 +660,3 @@ function ChatItem({ chat, onAction, isArchived = false }: { chat: Chat, onAction
         </Link>
     );
 }
-
-    
-
-
-
-
-    
