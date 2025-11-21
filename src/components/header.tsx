@@ -14,16 +14,28 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from './ui/dropdown-menu';
 import { LogOut, User, Settings } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
   const isPlayground = pathname.startsWith('/playground');
 
   useEffect(() => {
+    const getInitialUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+             setProfile(data);
+        }
+        setLoading(false);
+    };
+    getInitialUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
@@ -31,17 +43,9 @@ export function Header() {
       } else {
         setProfile(null);
       }
+      setLoading(false);
     });
 
-    // Also check on initial load, in case onAuthStateChange hasn't fired yet
-    const getInitialUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-             setProfile(data);
-        }
-    };
-    getInitialUser();
 
     return () => {
       subscription.unsubscribe();
@@ -100,7 +104,12 @@ export function Header() {
           </nav>
           
           <div className="flex items-center justify-end gap-2">
-            {user ? (
+            {loading ? (
+                <div className="flex items-center gap-2">
+                    <Skeleton className="h-9 w-24 hidden sm:block" />
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                </div>
+            ) : user ? (
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className={cn("flex items-center gap-2 p-1 rounded-full h-auto", isPlayground && "hover:bg-[hsl(var(--game-surface))]")}>
