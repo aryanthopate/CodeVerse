@@ -21,3 +21,4 @@ export * from './new-chat-dialog';
 export * from './chat-widget';
 export * from './reset-password-dialog';
 export * from './code-runner-dialog';
+export * from './floating-nav';

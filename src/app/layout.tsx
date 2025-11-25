@@ -8,6 +8,7 @@ import './newsletter-terminal.css';
 import './newsletter-bg.css';
 import './matrix-bg.css';
 import { ChatWidget } from '@/components/chat-widget';
+import { FloatingNav } from '@/components/floating-nav';
 
 export const metadata: Metadata = {
   title: 'CodeVerse - Learn to Code, Playfully.',
@@ -30,6 +31,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <ChatWidget />
+        <FloatingNav />
       </body>
     </html>
   );
