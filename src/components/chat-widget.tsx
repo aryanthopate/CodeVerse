@@ -301,7 +301,7 @@ export function ChatWidget() {
                 )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" side="top" sideOffset={16} className="w-[calc(100vw-2rem)] h-[70vh] bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden rounded-2xl flex flex-col">
+            <PopoverContent align="center" side="top" sideOffset={16} className="w-[calc(100vw-2rem)] h-[70vh] bg-card/80 backdrop-blur-lg border-primary/20 p-0 overflow-hidden rounded-2xl flex flex-col">
                  <div className="p-4 border-b border-border/50 flex justify-between items-center">
                     <div>
                         <h4 className="font-medium leading-none">AI Assistant</h4>

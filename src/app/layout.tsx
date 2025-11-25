@@ -30,8 +30,13 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col" suppressHydrationWarning>
         {children}
         <Toaster />
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-end justify-center gap-2">
+        {/* Mobile-only floating nav group */}
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-end justify-center gap-2 md:hidden">
             <FloatingNav />
+            <ChatWidget />
+        </div>
+        {/* Desktop-only chat widget */}
+        <div className="hidden md:block">
             <ChatWidget />
         </div>
       </body>
