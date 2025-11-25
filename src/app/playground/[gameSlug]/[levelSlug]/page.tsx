@@ -27,6 +27,7 @@ import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 const pieceColors = [
@@ -326,6 +327,7 @@ export default function GameLevelPage() {
     const router = useRouter();
     const supabase = createClient();
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const [game, setGame] = useState<GameWithChaptersAndLevels | null>(null);
     const [level, setLevel] = useState<GameLevel | null>(null);
@@ -563,32 +565,32 @@ export default function GameLevelPage() {
             <Tour tourStep={tourStep} setTourStep={setTourStep} level={level} endTour={endTour} />
 
             <main className="flex-grow pt-16 flex flex-col">
-                <div id="tour-status" className={cn("p-4 border-b-2 border-[hsl(var(--game-border))] flex items-center justify-between relative", tourStep === 5 && "z-50 bg-[hsl(var(--game-surface))] rounded-lg")}>
-                    <div className="flex items-center gap-4">
-                        <Link href={`/playground/${game.slug}`} className="btn-game !py-2 !px-4">
-                            <X className="mr-2" /> Quit
+                <div id="tour-status" className={cn("p-2 sm:p-4 border-b-2 border-[hsl(var(--game-border))] flex items-center justify-between relative", tourStep === 5 && "z-50 bg-[hsl(var(--game-surface))] rounded-lg")}>
+                    <div className="flex items-center gap-1 sm:gap-4">
+                        <Link href={`/playground/${game.slug}`} className="btn-game !py-1.5 !px-2 sm:!py-2 sm:!px-4">
+                            <X className="mr-0 sm:mr-2" /> <span className="hidden sm:inline">Quit</span>
                         </Link>
-                         <button onClick={() => window.location.reload()} className="btn-game !py-2 !px-4 !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80">
-                            <RefreshCw className="mr-2"/> Restart
+                         <button onClick={() => window.location.reload()} className="btn-game !py-1.5 !px-2 sm:!py-2 sm:!px-4 !bg-gray-600/80 !border-gray-500/80 !shadow-gray-800/80">
+                            <RefreshCw className="mr-0 sm:mr-2"/> <span className="hidden sm:inline">Restart</span>
                         </button>
                     </div>
-                     <div className="text-center">
-                        <h1 className="text-xl font-bold">Level {level.order} - {level.title}</h1>
+                     <div className="text-center absolute left-1/2 -translate-x-1/2">
+                        <h1 className="text-md sm:text-xl font-bold truncate max-w-[150px] sm:max-w-xs">{level.title}</h1>
                     </div>
-                    <div className="w-[200px] flex justify-end items-center gap-4">
-                        <div className="flex items-center gap-2 font-bold text-yellow-400">
-                            <Zap className="text-yellow-400 fill-yellow-400"/>
+                    <div className="flex justify-end items-center gap-2 sm:gap-4">
+                        <div className="flex items-center gap-1 sm:gap-2 font-bold text-yellow-400">
+                            <Zap className="text-yellow-400 fill-yellow-400 w-5 h-5 sm:w-auto"/>
                             {streak}
                         </div>
                         <div className="flex items-center gap-1">
                             {[...Array(3)].map((_, i) => (
-                                <Heart key={i} className={cn("w-6 h-6 transition-all", i < lives ? "text-red-500 fill-red-500" : "text-white/30")} />
+                                <Heart key={i} className={cn("w-5 h-5 sm:w-6 sm:h-6 transition-all", i < lives ? "text-red-500 fill-red-500" : "text-white/30")} />
                             ))}
                         </div>
                     </div>
                 </div>
 
-                <ResizablePanelGroup direction="horizontal" className="flex-grow">
+                <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"} className="flex-grow">
                     <ResizablePanel defaultSize={50} minSize={30} id="tour-playground" className={cn("relative transition-all duration-300", tourStep === 3 && "z-50")}>
                         <div className="flex flex-col h-full relative">
                             <div className="flex-grow relative">
@@ -693,7 +695,9 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
     ], [level.intro_text]);
 
     useEffect(() => {
-        const currentTourStep = tourStep > 0 ? tourSteps[tourStep - 1] : null;
+        if (tourStep === 0) return;
+
+        const currentTourStep = tourSteps[tourStep - 1];
 
         if (currentTourStep && currentTourStep.targetId) {
             const elem = document.querySelector(currentTourStep.targetId);
@@ -705,8 +709,8 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
         }
 
         if (tourStep === 3) {
-            const bucket = document.querySelector("#tour-playground [id='dnd-droppable-bucket']");
-            const solution = document.querySelector("#tour-playground [id='dnd-droppable-solution']");
+            const bucket = document.querySelector("#tour-playground [id^='droppable-bucket']"); // Use starts-with selector
+            const solution = document.querySelector("#tour-playground [id^='droppable-solution']");
             
             if (bucket && solution) {
                 const bucketRect = bucket.getBoundingClientRect();
@@ -750,11 +754,19 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
         if (!targetRect) {
             return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
         }
-        if (targetRect.left > window.innerWidth / 2) {
-            return { top: targetRect.top, left: targetRect.left - 20, transform: 'translateX(-100%)' };
-        } else {
-            return { top: targetRect.top, left: targetRect.right + 20 };
+        
+        // Center the card below the spotlight
+        const top = targetRect.bottom + 20;
+        const left = targetRect.left + targetRect.width / 2;
+        
+        let transform = 'translateX(-50%)';
+        if (left < 190) { // Card width is 384px, so 192 is half
+            transform = 'translateX(0)';
+        } else if (left > window.innerWidth - 190) {
+            transform = 'translateX(-100%)';
         }
+
+        return { top, left, transform };
     };
 
     const handleNext = () => {
@@ -767,11 +779,10 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
 
 
     return (
-        <div className="fixed inset-0 z-40 transition-opacity duration-300">
+        <div className="fixed inset-0 z-40 transition-opacity duration-300" onClick={endTour}>
             {/* Dark overlay */}
             <div 
                 className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-                onClick={endTour}
             />
             
             {/* Spotlight element */}
@@ -782,7 +793,7 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
             
             {/* Demo Drag-and-Drop Piece */}
             {tourStep === 3 && (
-                 <div className="absolute px-3 py-1.5 rounded-md font-mono flex items-center gap-2 border-2 cursor-grabbing shadow-lg bg-sky-500/80 border-sky-400 text-sky-50 z-50 transition-all duration-1000 ease-in-out" style={{ left: demoPiecePos.x, top: demoPiecePos.y, opacity: demoPiecePos.opacity }}>
+                 <div className="absolute px-3 py-1.5 rounded-md font-mono flex items-center gap-2 border-2 cursor-grabbing shadow-lg bg-sky-500/80 border-sky-400 text-sky-50 z-50 transition-all duration-1000 ease-in-out pointer-events-none" style={{ left: demoPiecePos.x, top: demoPiecePos.y, opacity: demoPiecePos.opacity }}>
                     <GripVertical className="w-4 h-4 opacity-70"/>
                     drag_me
                 </div>
@@ -797,6 +808,7 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
                          tourStep > 0 ? "opacity-100" : "opacity-0"
                     )}
                     style={cardPositionStyle()}
+                    onClick={(e) => e.stopPropagation()} // Prevent card click from closing the tour
                 >
                     <Card className="bg-[hsl(var(--game-surface))] text-[hsl(var(--game-text))] border-2 border-[hsl(var(--game-border))]">
                         <CardHeader>
