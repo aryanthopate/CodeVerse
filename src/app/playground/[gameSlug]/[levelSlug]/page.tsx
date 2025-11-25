@@ -664,7 +664,7 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const [demoPiecePos, setDemoPiecePos] = useState({ x: 0, y: 0, opacity: 0 });
 
-    const tourSteps = [
+    const tourSteps = useMemo(() => [
         {
             title: "Mission Briefing",
             content: level.intro_text || "Your mission, should you choose to accept it, is to complete the objective. Good luck, recruit!",
@@ -690,11 +690,11 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
             content: "Keep an eye on your lives and your hot streak. Don't run out of lives!",
             targetId: "#tour-status",
         }
-    ];
-
-    const currentTourStep = tourStep > 0 ? tourSteps[tourStep - 1] : null;
+    ], [level.intro_text]);
 
     useEffect(() => {
+        const currentTourStep = tourStep > 0 ? tourSteps[tourStep - 1] : null;
+
         if (currentTourStep && currentTourStep.targetId) {
             const elem = document.querySelector(currentTourStep.targetId);
             if (elem) {
@@ -705,9 +705,9 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
         }
 
         if (tourStep === 3) {
-            const bucket = document.querySelector("#tour-playground [data-rbd-droppable-id='bucket']");
-            const solution = document.querySelector("#tour-playground [data-rbd-droppable-id='solution']");
-
+            const bucket = document.querySelector("#tour-playground [id='dnd-droppable-bucket']");
+            const solution = document.querySelector("#tour-playground [id='dnd-droppable-solution']");
+            
             if (bucket && solution) {
                 const bucketRect = bucket.getBoundingClientRect();
                 const solutionRect = solution.getBoundingClientRect();
@@ -717,18 +717,25 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
 
                 setDemoPiecePos({ ...startPos, opacity: 1 });
                 
-                setTimeout(() => {
+                const timeout1 = setTimeout(() => {
                    setDemoPiecePos({ ...endPos, opacity: 1 });
-                }, 500); // Start moving after a delay
-                 setTimeout(() => {
+                }, 500);
+                 const timeout2 = setTimeout(() => {
                    setDemoPiecePos({ ...endPos, opacity: 0 });
-                }, 2000); // Fade out at the end
+                }, 2000);
+                
+                return () => {
+                    clearTimeout(timeout1);
+                    clearTimeout(timeout2);
+                };
             }
         }
+    }, [tourStep, tourSteps]);
 
-    }, [tourStep, currentTourStep]);
 
     if (tourStep === 0) return null;
+
+    const currentTourStep = tourSteps[tourStep - 1];
 
     const spotlightStyle: React.CSSProperties = targetRect ? {
         left: `${targetRect.left - 8}px`,
