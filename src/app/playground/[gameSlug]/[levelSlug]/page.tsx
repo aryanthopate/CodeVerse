@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { getGameAndLevelDetails } from '@/lib/supabase/queries';
 import { GameWithChaptersAndLevels, GameLevel, GameChapter } from '@/lib/types';
 import Link from 'next/link';
-import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, RefreshCw, Code, BookOpen, GripVertical, Heart, Zap } from 'lucide-react';
+import { ArrowLeft, Bot, Lightbulb, Loader2, Play, CheckCircle, ArrowRight, X, Award, RefreshCw, Code, BookOpen, GripVertical, Heart, Zap, ArrowDown } from 'lucide-react';
 import { reviewCodeAndProvideFeedback } from '@/ai/flows/review-code-and-provide-feedback';
 import { provideHintForCodePractice } from '@/ai/flows/provide-hint-for-code-practice';
 import { generateDistractors } from '@/ai/flows/generate-distractors';
@@ -319,6 +319,8 @@ function ManualCodePractice({ level, onRunCode, onGetHint, onCodeChange, code, i
     )
 }
 
+const TOUR_STORAGE_KEY = 'codeverse_game_tour_completed';
+
 export default function GameLevelPage() {
     const params = useParams();
     const router = useRouter();
@@ -331,7 +333,9 @@ export default function GameLevelPage() {
     const [nextLevel, setNextLevel] = useState<GameLevel | null>(null);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
-    const [showIntro, setShowIntro] = useState(true);
+    
+    const [tourStep, setTourStep] = useState(0); // 0 = no tour, 1-N for steps
+    
     const [gameState, setGameState] = useState<'puzzle' | 'manual' | 'levelComplete'>('puzzle');
     const [showSolution, setShowSolution] = useState(false);
     
@@ -453,6 +457,11 @@ export default function GameLevelPage() {
                 setChapter(chapter as GameChapter);
                 setNextLevel(nextLevel);
                 setFinalCode(level.starter_code || '');
+
+                const tourCompleted = localStorage.getItem(TOUR_STORAGE_KEY);
+                if (!tourCompleted) {
+                    setTourStep(1);
+                }
             }
             setLoading(false);
         };
@@ -477,6 +486,11 @@ export default function GameLevelPage() {
             setIsGettingHint(false);
         }
     }
+    
+    const endTour = () => {
+        setTourStep(0);
+        localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+    };
 
     const GameStatusOverlay = () => {
         if (gameState !== 'levelComplete') return null;
@@ -542,41 +556,70 @@ export default function GameLevelPage() {
     if (!game || !level || !chapter) {
         notFound();
     }
+    
+    const tourSteps = [
+        {
+            title: "Mission Briefing",
+            content: level.intro_text || "Your mission, should you choose to accept it, is to complete the objective. Good luck, recruit!",
+            target: "self",
+            position: "center",
+        },
+        {
+            title: "The Objective",
+            content: "This is your mission objective. Read it carefully to know what you need to build.",
+            target: "#tour-objective",
+            position: "left"
+        },
+        {
+            title: "The Playground",
+            content: "This is where the magic happens! Drag and drop code pieces or switch to manual mode to write your solution.",
+            target: "#tour-playground",
+            position: "right"
+        },
+        {
+            title: "AI Feedback",
+            content: "Stuck? Get a hint! Submit your code to get instant feedback from your AI partner.",
+            target: "#tour-feedback",
+            position: "left"
+        },
+        {
+            title: "Check Your Status",
+            content: "Keep an eye on your lives and your hot streak. Don't run out of lives!",
+            target: "#tour-status",
+            position: "bottom"
+        }
+    ];
+    
+    const currentTourStep = tourStep > 0 ? tourSteps[tourStep - 1] : null;
 
-    if (showIntro) {
-        return (
-            <div className="flex flex-col h-screen bg-[hsl(var(--game-bg))] text-[hsl(var(--game-text))]">
-                <Header />
-                <main className="flex-grow pt-16 flex items-center justify-center relative overflow-hidden">
-                    <Image src={game.thumbnail_url || `https://picsum.photos/seed/${level.id}/1920/1080`} alt="Mission Background" fill className="object-cover -z-10 opacity-10 blur-sm" data-ai-hint="futuristic space" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--game-bg))]/50 via-[hsl(var(--game-bg))] to-[hsl(var(--game-bg))] -z-10"></div>
-                    <Card className="w-full max-w-2xl bg-[hsl(var(--game-surface))] text-[hsl(var(--game-text))] border-2 border-[hsl(var(--game-border))] text-center animate-in fade-in-0 zoom-in-95 duration-500" style={{ boxShadow: '0 8px 16px hsla(0,0%,0%,0.4), inset 0 2px 4px hsl(var(--game-border)/0.6)'}}>
-                        <CardHeader>
-                            <CardTitle className="text-3xl font-bold" style={{ color: 'hsl(var(--game-accent))', textShadow: '0 0 8px hsl(var(--game-accent-glow)/0.7)' }}>Mission Briefing</CardTitle>
-                            <CardDescription className="text-[hsl(var(--game-text))]/80">{chapter.title}: Level {level.order} - {level.title}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex gap-4 items-start">
-                                <Bot className="w-16 h-16 text-[hsl(var(--game-accent))] flex-shrink-0" />
-                                <p className="text-left p-4 bg-[hsl(var(--game-bg))] rounded-lg border border-[hsl(var(--game-border))]">
-                                    {level.intro_text || "Your mission, should you choose to accept it, is to complete the objective. Good luck, recruit!"}
-                                </p>
-                            </div>
-                            <button className="btn-game" onClick={() => setShowIntro(false)}>
-                                Start Challenge <ArrowRight className="ml-2" />
-                            </button>
-                        </CardContent>
-                    </Card>
-                </main>
-            </div>
-        )
-    }
 
     return (
         <div className="flex flex-col h-screen bg-[hsl(var(--game-bg))] text-[hsl(var(--game-text))]">
             <Header />
+            {tourStep > 0 && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-40 transition-opacity duration-300"></div>
+            )}
             <main className="flex-grow pt-16 flex flex-col">
-                <div className="p-4 border-b-2 border-[hsl(var(--game-border))] flex items-center justify-between">
+                 {tourStep > 0 && currentTourStep && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
+                        <Card className="w-full max-w-sm bg-[hsl(var(--game-surface))] text-[hsl(var(--game-text))] border-2 border-[hsl(var(--game-border))]">
+                             <CardHeader>
+                                <CardTitle className="text-xl" style={{ color: 'hsl(var(--game-accent))'}}>{currentTourStep.title}</CardTitle>
+                             </CardHeader>
+                             <CardContent>
+                                <p>{currentTourStep.content}</p>
+                                 <div className="flex justify-between items-center mt-6">
+                                     <span className="text-xs text-muted-foreground">{tourStep} / {tourSteps.length}</span>
+                                     <Button onClick={() => tourStep < tourSteps.length ? setTourStep(s => s + 1) : endTour()}>
+                                        {tourStep < tourSteps.length ? 'Next' : "Let's Go!"} <ArrowRight className="ml-2 h-4 w-4"/>
+                                     </Button>
+                                 </div>
+                             </CardContent>
+                        </Card>
+                    </div>
+                 )}
+
+                <div id="tour-status" className={cn("p-4 border-b-2 border-[hsl(var(--game-border))] flex items-center justify-between transition-all duration-300", tourStep === 5 && "z-50 bg-[hsl(var(--game-surface))] rounded-lg")}>
                     <div className="flex items-center gap-4">
                         <Link href={`/playground/${game.slug}`} className="btn-game !py-2 !px-4">
                             <X className="mr-2" /> Quit
@@ -602,7 +645,7 @@ export default function GameLevelPage() {
                 </div>
 
                 <ResizablePanelGroup direction="horizontal" className="flex-grow">
-                    <ResizablePanel defaultSize={50} minSize={30}>
+                    <ResizablePanel defaultSize={50} minSize={30} id="tour-playground" className={cn("transition-all duration-300", tourStep === 3 && "z-50")}>
                         <div className="flex flex-col h-full relative">
                             <div className="flex-grow relative">
                                 {gameState === 'manual' ? (
@@ -625,7 +668,7 @@ export default function GameLevelPage() {
                     <ResizableHandle withHandle />
                     <ResizablePanel defaultSize={50}>
                         <ResizablePanelGroup direction="vertical">
-                            <ResizablePanel defaultSize={30} minSize={20}>
+                            <ResizablePanel defaultSize={30} minSize={20} id="tour-objective" className={cn("transition-all duration-300", tourStep === 2 && "z-50")}>
                                 <ScrollArea className="h-full p-4">
                                     <h2 className="text-lg font-semibold mb-2">Objective</h2>
                                     <p className="text-sm text-[hsl(var(--game-text))]/80">{level.objective}</p>
@@ -640,7 +683,7 @@ export default function GameLevelPage() {
                                 </ScrollArea>
                             </ResizablePanel>
                             <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={70} minSize={20}>
+                            <ResizablePanel defaultSize={70} minSize={20} id="tour-feedback" className={cn("transition-all duration-300", tourStep === 4 && "z-50")}>
                                 <div className="flex flex-col h-full">
                                      <Tabs defaultValue="feedback" className="flex-grow flex flex-col">
                                         <TabsList className="m-4 tabs-game">
