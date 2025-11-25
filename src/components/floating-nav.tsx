@@ -23,8 +23,8 @@ export function FloatingNav() {
   const pathname = usePathname();
   const isMobile = useIsMobile();
 
-  // Hide the floating nav on admin pages, the main landing page, or on desktop
-  if (!isMobile || pathname.startsWith('/admin') || pathname === '/') {
+  // Hide the floating nav on admin pages or on desktop
+  if (!isMobile || pathname.startsWith('/admin')) {
     return null;
   }
 

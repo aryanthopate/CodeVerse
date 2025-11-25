@@ -181,8 +181,7 @@ export function Header() {
                             <div className="mt-auto border-t border-zinc-800 pt-4 space-y-2">
                                {userDropdownLinks.map(link => (
                                     <Link key={link.href} href={link.href} className="flex items-center gap-3 text-md font-medium text-zinc-300" onClick={() => setIsOpen(false)}>
-                                        {link.icon}
-                                        {link.name}
+                                        {link.icon}{link.name}
                                     </Link>
                                ))}
                                 <Button variant="outline" onClick={handleLogout} className="w-full justify-start gap-3 text-md">
