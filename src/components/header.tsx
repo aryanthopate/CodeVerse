@@ -86,11 +86,11 @@ export function Header() {
     )}>
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="flex items-center justify-between">
-          <div className="flex items-center justify-start">
+          <div className="flex items-center justify-start lg:flex-1">
             <Logo isGameTheme={isPlayground} />
           </div>
           
-          <nav className="hidden md:flex justify-center absolute left-1/2 -translate-x-1/2">
+          <nav className="hidden md:flex justify-center">
               <ul className="flex gap-8">
                 {navLinks.map((link) => (
                   <li key={link.name}>
@@ -103,7 +103,7 @@ export function Header() {
               </ul>
           </nav>
           
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-2 lg:flex-1">
             {loading ? (
                 <div className="flex items-center gap-2">
                     <Skeleton className="h-9 w-24 hidden sm:block" />
@@ -162,13 +162,8 @@ export function Header() {
                 </SheetTrigger>
                 <SheetContent side="right" className={cn("w-full bg-zinc-950/95 backdrop-blur-xl border-l-zinc-800", isPlayground && "bg-[hsl(var(--game-bg))]/95 border-l-[hsl(var(--game-border))]")}>
                     <div className="flex flex-col h-full">
-                        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+                        <div className="border-b border-zinc-800 pb-4">
                             <Logo isGameTheme={isPlayground} />
-                            <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <X className="h-6 w-6" />
-                                </Button>
-                            </SheetTrigger>
                         </div>
                         <nav className="flex-grow mt-8">
                              <ul className="flex flex-col gap-6">
