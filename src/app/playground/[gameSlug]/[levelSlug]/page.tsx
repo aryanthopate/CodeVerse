@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -661,6 +662,7 @@ export default function GameLevelPage() {
 
 function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; setTourStep: React.Dispatch<React.SetStateAction<number>>; level: GameLevel; endTour: () => void; }) {
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+    const [demoPiecePos, setDemoPiecePos] = useState({ x: 0, y: 0, opacity: 0 });
 
     const tourSteps = [
         {
@@ -675,12 +677,12 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
         },
         {
             title: "The Playground",
-            content: "This is where the magic happens! Drag and drop code pieces or switch to manual mode to write your solution.",
+            content: "This is where the magic happens! Drag and drop code pieces from the bucket to the solution area to build your code.",
             targetId: "#tour-playground",
         },
         {
             title: "AI Feedback",
-            content: "Stuck? Get a hint! Submit your code to get instant feedback from your AI partner.",
+            content: "Stuck? Get a hint! Submit your code to get instant feedback from your AI partner. It will tell you if you're on the right track.",
             targetId: "#tour-feedback",
         },
         {
@@ -701,15 +703,38 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
         } else {
             setTargetRect(null);
         }
+
+        if (tourStep === 3) {
+            const bucket = document.querySelector("#tour-playground [data-rbd-droppable-id='bucket']");
+            const solution = document.querySelector("#tour-playground [data-rbd-droppable-id='solution']");
+
+            if (bucket && solution) {
+                const bucketRect = bucket.getBoundingClientRect();
+                const solutionRect = solution.getBoundingClientRect();
+                
+                const startPos = { x: bucketRect.left + 30, y: bucketRect.top + 30 };
+                const endPos = { x: solutionRect.left + 30, y: solutionRect.top + 30 };
+
+                setDemoPiecePos({ ...startPos, opacity: 1 });
+                
+                setTimeout(() => {
+                   setDemoPiecePos({ ...endPos, opacity: 1 });
+                }, 500); // Start moving after a delay
+                 setTimeout(() => {
+                   setDemoPiecePos({ ...endPos, opacity: 0 });
+                }, 2000); // Fade out at the end
+            }
+        }
+
     }, [tourStep, currentTourStep]);
 
     if (tourStep === 0) return null;
 
     const spotlightStyle: React.CSSProperties = targetRect ? {
-        left: `${targetRect.left}px`,
-        top: `${targetRect.top}px`,
-        width: `${targetRect.width}px`,
-        height: `${targetRect.height}px`,
+        left: `${targetRect.left - 8}px`,
+        top: `${targetRect.top - 8}px`,
+        width: `${targetRect.width + 16}px`,
+        height: `${targetRect.height + 16}px`,
     } : {
         left: '50%', top: '50%', width: '0px', height: '0px',
     };
@@ -719,34 +744,49 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
             return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
         }
         if (targetRect.left > window.innerWidth / 2) {
-            // Target is on the right, show card on the left
             return { top: targetRect.top, left: targetRect.left - 20, transform: 'translateX(-100%)' };
         } else {
-            // Target is on the left, show card on the right
             return { top: targetRect.top, left: targetRect.right + 20 };
         }
     };
 
+    const handleNext = () => {
+        if (tourStep < tourSteps.length) {
+            setTourStep(s => s + 1);
+        } else {
+            endTour();
+        }
+    }
+
 
     return (
-        <div className="fixed inset-0 z-50 transition-opacity duration-300">
+        <div className="fixed inset-0 z-40 transition-opacity duration-300">
             {/* Dark overlay */}
-            <div className="absolute inset-0 bg-black/80" style={{
-                 maskImage: `radial-gradient(circle at ${spotlightStyle.left} ${spotlightStyle.top}, transparent 0%, transparent ${Math.max(targetRect?.width || 0, targetRect?.height || 0) / 1.5}px, black 100%)`,
-                 WebkitMaskImage: `radial-gradient(circle at ${spotlightStyle.left} ${spotlightStyle.top}, transparent 0%, transparent ${Math.max(targetRect?.width || 0, targetRect?.height || 0) / 1.5}px, black 100%)`,
-            }}></div>
+            <div 
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                onClick={endTour}
+            />
             
             {/* Spotlight element */}
             <div 
-                className="absolute border-2 border-primary border-dashed rounded-lg shadow-2xl shadow-primary/50 transition-all duration-500 ease-in-out pointer-events-none"
+                className="absolute border-2 border-primary border-dashed rounded-lg shadow-2xl shadow-primary/50 transition-all duration-500 ease-in-out pointer-events-none z-50"
                 style={spotlightStyle}
             ></div>
+            
+            {/* Demo Drag-and-Drop Piece */}
+            {tourStep === 3 && (
+                 <div className="absolute px-3 py-1.5 rounded-md font-mono flex items-center gap-2 border-2 cursor-grabbing shadow-lg bg-sky-500/80 border-sky-400 text-sky-50 z-50 transition-all duration-1000 ease-in-out" style={{ left: demoPiecePos.x, top: demoPiecePos.y, opacity: demoPiecePos.opacity }}>
+                    <GripVertical className="w-4 h-4 opacity-70"/>
+                    drag_me
+                </div>
+            )}
+
 
             {/* Tour Card */}
             {currentTourStep && (
                 <div
                     className={cn(
-                        "absolute w-full max-w-sm z-10 transition-all duration-500 ease-in-out",
+                        "absolute w-full max-w-sm z-50 transition-all duration-500 ease-in-out",
                          tourStep > 0 ? "opacity-100" : "opacity-0"
                     )}
                     style={cardPositionStyle()}
@@ -759,9 +799,12 @@ function Tour({ tourStep, setTourStep, level, endTour }: { tourStep: number; set
                             <p>{currentTourStep.content}</p>
                             <div className="flex justify-between items-center mt-6">
                                 <span className="text-xs text-muted-foreground">{tourStep} / {tourSteps.length}</span>
-                                <Button onClick={() => tourStep < tourSteps.length ? setTourStep(s => s + 1) : endTour()}>
-                                    {tourStep < tourSteps.length ? 'Next' : "Let's Go!"} <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="ghost" onClick={endTour}>Skip</Button>
+                                    <Button onClick={handleNext}>
+                                        {tourStep < tourSteps.length ? 'Next' : "Let's Go!"} <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
