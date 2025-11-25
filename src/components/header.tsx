@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Menu, X, Shield, ShoppingCart, Heart, Gamepad2, LogIn, ArrowRight, MessageSquare, BookOpen, Compass, GitCompareArrows } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -161,6 +161,10 @@ export function Header() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className={cn("w-full bg-zinc-950/95 backdrop-blur-xl border-l-zinc-800", isPlayground && "bg-[hsl(var(--game-bg))]/95 border-l-[hsl(var(--game-border))]")}>
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>Mobile Menu</SheetTitle>
+                        <SheetDescription>Main navigation and user options for mobile view.</SheetDescription>
+                    </SheetHeader>
                     <div className="flex flex-col h-full">
                         <div className="border-b border-zinc-800 pb-4">
                             <Logo isGameTheme={isPlayground} />
