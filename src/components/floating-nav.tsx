@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MessageSquare, Gamepad2, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Tooltip,
   TooltipContent,
@@ -20,15 +21,16 @@ const navItems = [
 
 export function FloatingNav() {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
 
-  // Hide the floating nav on admin pages or the main landing page
-  if (pathname.startsWith('/admin') || pathname === '/') {
+  // Hide the floating nav on admin pages, the main landing page, or on desktop
+  if (!isMobile || pathname.startsWith('/admin') || pathname === '/') {
     return null;
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
-        <div className="group flex items-center gap-2 bg-white/90 dark:bg-black/80 backdrop-blur-lg p-2 rounded-full border border-white/10 shadow-lg transition-all duration-300 hover:gap-3">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 md:hidden">
+        <div className="group flex items-center gap-2 bg-white/90 dark:bg-black/80 backdrop-blur-lg p-2 rounded-full border border-white/10 shadow-lg transition-all duration-300">
         <TooltipProvider>
             {navItems.map((item) => (
             <Tooltip key={item.name}>
@@ -43,13 +45,10 @@ export function FloatingNav() {
                     )}
                     >
                     <item.icon className="h-5 w-5" />
-                    <span className="text-sm font-medium hidden group-hover:block transition-all duration-300">
-                        {item.name}
-                    </span>
                     </div>
                 </Link>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="block group-hover:hidden">
+                <TooltipContent side="top">
                     <p>{item.name}</p>
                 </TooltipContent>
             </Tooltip>
