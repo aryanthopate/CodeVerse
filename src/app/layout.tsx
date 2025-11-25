@@ -30,8 +30,10 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col" suppressHydrationWarning>
         {children}
         <Toaster />
-        <ChatWidget />
-        <FloatingNav />
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-end gap-2">
+            <FloatingNav />
+            <ChatWidget />
+        </div>
       </body>
     </html>
   );

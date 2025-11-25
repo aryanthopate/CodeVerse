@@ -21,6 +21,7 @@ import { WebsiteSettings, ChatMessage, UserProfile } from '@/lib/types';
 import { MarkdownRenderer } from './markdown-renderer';
 import { CodeRunnerDialog } from './code-runner-dialog';
 import Image from 'next/image';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 export function ChatWidget() {
@@ -30,6 +31,7 @@ export function ChatWidget() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Partial<ChatMessage>[]>([]);
   const [settings, setSettings] = useState<WebsiteSettings | null>(null);
+  const isMobile = useIsMobile();
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -170,7 +172,7 @@ export function ChatWidget() {
         });
     };
 
-    if (pathname.startsWith('/playground') || pathname.startsWith('/chat')) {
+    if (pathname.startsWith('/playground') || pathname.startsWith('/chat') || pathname.startsWith('/admin')) {
         return null;
     }
 
@@ -181,7 +183,10 @@ export function ChatWidget() {
       <PopoverTrigger asChild>
         <Button
           size="icon"
-          className="fixed bottom-4 right-4 md:bottom-8 md:right-8 h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 transform transition-transform hover:scale-110 p-0 overflow-hidden"
+          className={cn(
+              "rounded-full bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 transform transition-transform hover:scale-110 p-0 overflow-hidden",
+              isMobile ? "h-16 w-16" : "fixed bottom-8 right-8 h-16 w-16"
+          )}
           aria-label="AI Tutor"
         >
           {open ? <X className="h-8 w-8" /> : (

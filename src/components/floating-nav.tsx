@@ -29,8 +29,7 @@ export function FloatingNav() {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 md:hidden">
-        <div className="group flex items-center gap-2 bg-white/90 dark:bg-black/80 backdrop-blur-lg p-2 rounded-full border border-white/10 shadow-lg transition-all duration-300">
+    <div className="flex items-center gap-2 bg-white/90 dark:bg-black/80 backdrop-blur-lg p-2 rounded-full border border-white/10 shadow-lg">
         <TooltipProvider>
             {navItems.map((item) => (
             <Tooltip key={item.name}>
@@ -38,13 +37,13 @@ export function FloatingNav() {
                 <Link href={item.href}>
                     <div
                     className={cn(
-                        'flex items-center gap-2 p-3 rounded-full transition-colors duration-300',
+                        'flex items-center justify-center p-4 rounded-full transition-colors duration-300',
                         pathname.startsWith(item.href)
                         ? 'bg-primary text-primary-foreground'
                         : 'text-black dark:text-white hover:bg-gray-200 dark:hover:bg-zinc-800'
                     )}
                     >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-6 w-6" />
                     </div>
                 </Link>
                 </TooltipTrigger>
@@ -54,7 +53,6 @@ export function FloatingNav() {
             </Tooltip>
             ))}
         </TooltipProvider>
-        </div>
     </div>
   );
 }
