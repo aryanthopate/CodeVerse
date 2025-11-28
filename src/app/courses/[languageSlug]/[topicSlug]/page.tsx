@@ -31,7 +31,7 @@ export default async function TopicPage({ params }: { params: { languageSlug: st
     const hasQuiz = topic.quizzes && topic.quizzes.length > 0 && topic.quizzes[0].questions.length > 0;
     const hasPractice = !!topic.content;
     
-    // Determine the next logical step
+    // Enforce the "Lesson -> Quiz -> Practice" workflow
     let nextStepUrl: string;
     let nextStepText: string;
 
