@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { UserProfile, CourseWithChaptersAndTopics, GameWithChaptersAndLevels, UserGameProgress } from '@/lib/types';
+import type { UserProfile, CourseWithChaptersAndTopics, GameWithChaptersAndLevels, UserGameProgress, Topic, Chapter } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getUserEnrollments, getInProgressGames } from '@/lib/supabase/queries';
@@ -23,6 +23,7 @@ function DashboardContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [enrolledCourses, setEnrolledCourses] = useState<CourseWithChaptersAndTopics[]>([]);
   const [inProgressGames, setInProgressGames] = useState<GameWithChaptersAndLevels[]>([]);
+  const [courseProgress, setCourseProgress] = useState<{ topic_id: string }[] | null>(null);
   const [gameProgress, setGameProgress] = useState<UserGameProgress[] | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -46,6 +47,7 @@ function DashboardContent() {
         
         if (enrollmentsData) {
           setEnrolledCourses(enrollmentsData.enrolledCourses);
+          setCourseProgress(enrollmentsData.progress);
         }
         if (gamesData) {
             setInProgressGames(gamesData);
@@ -113,10 +115,6 @@ function DashboardContent() {
         return { xp: totalXp, streak: currentStreak };
     }, [gameProgress]);
 
-  const lastCourse = enrolledCourses.length > 0 ? enrolledCourses[0] : null;
-  const firstTopic = lastCourse?.chapters[0]?.topics[0];
-  const lastGame = inProgressGames.length > 0 ? inProgressGames[0] : null;
-
   const stats = [
     { title: 'XP Earned', value: `${calculatedStats.xp} XP`, icon: <Star className="text-yellow-400" /> },
     { title: 'Courses in Progress', value: enrolledCourses.length, icon: <BookOpen className="text-blue-400" /> },
@@ -146,29 +144,22 @@ function DashboardContent() {
       <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Continue Learning or Game Card */}
-          {lastCourse || lastGame ? (
-            <Card className="lg:col-span-2 bg-card border-border/50">
+          {enrolledCourses.length > 0 ? (
+             <Card className="lg:col-span-2 bg-card border-border/50">
               <CardHeader>
-                <CardTitle>{lastGame ? 'Continue Playing' : 'Continue Learning'}</CardTitle>
+                <CardTitle>Continue Learning</CardTitle>
               </CardHeader>
               <CardContent>
-                {lastGame ? (
-                    <ContinuePlayingCard game={lastGame} />
-                ) : lastCourse && firstTopic ? (
-                    <div className="flex flex-col sm:flex-row gap-6 items-center p-4 rounded-lg bg-muted/50">
-                    <Image src={lastCourse.image_url || `https://picsum.photos/seed/${lastCourse.slug}/150/100`} alt={lastCourse.name} width={150} height={100} className="rounded-md object-cover" data-ai-hint="abstract technology" />
-                    <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{lastCourse.name} / {lastCourse.chapters[0].title}</p>
-                        <h3 className="text-xl font-semibold mt-1">{firstTopic.title}</h3>
-                        <Progress value={0} className="mt-4 h-2" />
-                    </div>
-                    <Button asChild>
-                        <Link href={`/courses/${lastCourse.slug}/${firstTopic.slug}`}>
-                        Jump Back In <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
-                    </div>
-                ) : null}
+                <ContinueLearningCard courses={enrolledCourses} progress={courseProgress || []}/>
+              </CardContent>
+            </Card>
+          ) : inProgressGames.length > 0 ? (
+             <Card className="lg:col-span-2 bg-card border-border/50">
+              <CardHeader>
+                <CardTitle>Continue Playing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ContinuePlayingCard game={inProgressGames[0]} />
               </CardContent>
             </Card>
           ) : (
@@ -241,6 +232,70 @@ function DashboardContent() {
         )}
       </div>
   );
+}
+
+function ContinueLearningCard({ courses, progress }: { courses: CourseWithChaptersAndTopics[], progress: { topic_id: string }[] }) {
+    const completedTopicIds = new Set(progress.map(p => p.topic_id));
+
+    let nextTopic: Topic | null = null;
+    let currentCourse: CourseWithChaptersAndTopics | null = null;
+    let currentChapter: Chapter | null = null;
+    let totalTopics = 0;
+    let completedTopics = 0;
+
+    // Find the first uncompleted topic from all enrolled courses
+    for (const course of courses) {
+        let found = false;
+        totalTopics += course.chapters.reduce((acc, ch) => acc + ch.topics.length, 0);
+        completedTopics += course.chapters.reduce((acc, ch) => acc + ch.topics.filter(t => completedTopicIds.has(t.id)).length, 0);
+
+        for (const chapter of course.chapters) {
+            for (const topic of chapter.topics) {
+                if (!completedTopicIds.has(topic.id)) {
+                    nextTopic = topic;
+                    currentCourse = course;
+                    currentChapter = chapter;
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        if (found) break;
+    }
+
+    // If all topics in all courses are completed, show the first topic of the first course as a fallback.
+    if (!nextTopic && courses.length > 0) {
+        currentCourse = courses[0];
+        currentChapter = currentCourse.chapters[0];
+        nextTopic = currentChapter?.topics[0] || null;
+    }
+    
+    if (!nextTopic || !currentCourse || !currentChapter) {
+        return (
+            <div className="flex items-center justify-center p-8">
+                <p>Unable to determine next lesson. Please go to a course page.</p>
+            </div>
+        )
+    }
+
+    const progressPercentage = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
+
+    return (
+        <div className="flex flex-col sm:flex-row gap-6 items-center p-4 rounded-lg bg-muted/50">
+            <Image src={currentCourse.image_url || `https://picsum.photos/seed/${currentCourse.slug}/150/100`} alt={currentCourse.name} width={150} height={100} className="rounded-md object-cover" data-ai-hint="abstract technology" />
+            <div className="flex-1">
+                <p className="text-sm text-muted-foreground">{currentCourse.name} / {currentChapter.title}</p>
+                <h3 className="text-xl font-semibold mt-1">{nextTopic.title}</h3>
+                <Progress value={progressPercentage} className="mt-4 h-2" />
+            </div>
+            <Button asChild>
+                <Link href={`/courses/${currentCourse.slug}/${nextTopic.slug}`}>
+                    Jump Back In <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </div>
+    )
 }
 
 function ContinuePlayingCard({ game }: { game: GameWithChaptersAndLevels }) {

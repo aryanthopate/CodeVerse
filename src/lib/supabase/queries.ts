@@ -218,7 +218,7 @@ export async function getCourseAndTopicDetails(courseSlug: string, topicSlug: st
 }
 
 
-export async function getUserEnrollments(userId: string): Promise<{ enrolledCourses: CourseWithChaptersAndTopics[], enrollments: UserEnrollment[] } | null> {
+export async function getUserEnrollments(userId: string): Promise<{ enrolledCourses: CourseWithChaptersAndTopics[], enrollments: UserEnrollment[], progress: { topic_id: string }[] } | null> {
     const supabase = createClient();
     const { data: enrollments, error } = await supabase
         .from('user_enrollments')
@@ -228,11 +228,21 @@ export async function getUserEnrollments(userId: string): Promise<{ enrolledCour
                 *,
                 chapters (
                     id,
-                    topics (id)
+                    order,
+                    title,
+                    topics (
+                        id,
+                        order,
+                        title,
+                        slug
+                    )
                 )
             )
         `)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .order('order', { foreignTable: 'courses.chapters', ascending: true })
+        .order('order', { foreignTable: 'courses.chapters.topics', ascending: true });
+
 
     if (error) {
         console.error("Error fetching user enrollments:", error.message);
@@ -240,8 +250,16 @@ export async function getUserEnrollments(userId: string): Promise<{ enrolledCour
     }
 
     const enrolledCourses = enrollments.map(e => e.courses) as unknown as CourseWithChaptersAndTopics[];
+    
+    const courseIds = enrolledCourses.map(c => c.id);
 
-    return { enrolledCourses, enrollments: enrollments as UserEnrollment[] };
+    const { data: progress } = await supabase
+        .from('user_topic_progress')
+        .select('topic_id')
+        .eq('user_id', userId)
+        .in('course_id', courseIds);
+
+    return { enrolledCourses, enrollments: enrollments as UserEnrollment[], progress: progress || [] };
 }
 
 
