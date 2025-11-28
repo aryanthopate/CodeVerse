@@ -26,7 +26,7 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
 
     return (
         <div className="group w-full h-[450px] [perspective:1000px]">
-            <div className="relative h-full w-full rounded-xl shadow-xl transition-all duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+            <div className="relative h-full w-full rounded-xl shadow-xl transition-all duration-500 [transform-style:preserve-3d] md:group-hover:[transform:rotateY(180deg)]">
                 {/* Front of Card */}
                 <div className="absolute inset-0">
                      <div className="relative flex w-full h-full flex-col rounded-xl bg-zinc-900 bg-clip-border text-gray-200 shadow-md">

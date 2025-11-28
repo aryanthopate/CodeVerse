@@ -299,7 +299,7 @@ export default async function Home() {
                     <p className="text-neutral-300 max-w-2xl mb-8">
                         Join our newsletter to get the latest updates on new courses, game releases, and special offers delivered straight to your inbox.
                     </p>
-                    <div className="flex justify-center w-full max-w-md">
+                    <div className="flex justify-center w-full max-w-md px-4 sm:px-0">
                         <NewsletterTerminal />
                     </div>
                     <div className="mt-8">
