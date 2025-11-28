@@ -9,7 +9,7 @@ import { ChevronRight, ArrowRight, CheckCircle, Lightbulb, FileText } from 'luci
 import Link from 'next/link';
 import { getCourseAndTopicDetails, getUserNoteForTopic } from '@/lib/supabase/queries';
 import { Topic } from '@/lib/types';
-import { completeTopicAction, upsertUserNote } from '@/lib/supabase/actions';
+import { completeTopicAction } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 import { ExplainCodeDialog } from '@/components/explain-code-dialog';
 import { CourseSidebar } from '@/components/course-sidebar';

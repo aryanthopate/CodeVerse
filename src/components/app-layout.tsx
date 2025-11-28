@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -137,7 +138,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuItem key={item.href}>
                             <SidebarMenuButton
                             asChild
-                            isActive={pathname.startsWith(item.href)}
+                            isActive={pathname.startsWith(item.href) && (item.href !== '/courses' || pathname === '/courses')}
                             tooltip={{ children: item.label }}
                             >
                             <Link href={item.href}>

@@ -120,5 +120,3 @@ declare module 'next/navigation' {
         levelSlug?: string;
     }
 }
-
-    
