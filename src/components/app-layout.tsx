@@ -18,7 +18,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { LayoutDashboard, BookOpen, Compass, Share2 } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Compass, Share2, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { UserProfile } from '@/lib/types';
@@ -35,6 +35,7 @@ import { ScrollArea } from './ui/scroll-area';
 
 const mainNav = [
   { href: '/dashboard', icon: <LayoutDashboard />, label: 'Dashboard' },
+  { href: '/profile', icon: <User />, label: 'Profile & Progress' },
 ];
 
 const coursesNav = [
