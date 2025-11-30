@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
@@ -677,4 +678,35 @@ export async function getChatForAdmin(chatId: string) {
     }
 
     return { chat: data };
+}
+
+export async function getUserWishlist(): Promise<CourseWithChaptersAndTopics[] | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return [];
+    }
+
+    const { data, error } = await supabase
+        .from('user_wishlist')
+        .select(`
+            courses (
+                *,
+                chapters (
+                    *,
+                    topics (*)
+                ),
+                course_reviews(count),
+                user_enrollments(count)
+            )
+        `)
+        .eq('user_id', user.id);
+
+    if (error) {
+        console.error("Error fetching wishlist:", error);
+        return null;
+    }
+
+    return data.map(item => item.courses) as CourseWithChaptersAndTopics[];
 }

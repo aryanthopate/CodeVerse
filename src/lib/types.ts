@@ -66,6 +66,9 @@ export type UserTopicProgress = Database['public']['Tables']['user_topic_progres
 export type UserQuizAttempt = Database['public']['Tables']['user_quiz_attempts']['Row'];
 export type UserNote = Database['public']['Tables']['user_notes']['Row'];
 
+// This was added for the wishlist feature
+export type UserWishlist = Database['public']['Tables']['user_wishlist']['Row'];
+
 
 // The type from the DB has a different column name
 export type UserGameProgress = Database['public']['Tables']['user_game_progress']['Row'];

@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createClient } from './server';
@@ -1014,4 +1015,36 @@ export async function updateChat(chatId: string, updates: Partial<Chat>) {
     
     revalidatePath('/chat', 'layout');
     return { success: true, error: null };
+}
+
+
+export async function toggleWishlist(courseId: string, isWishlisted: boolean): Promise<{ success: boolean; error?: string }> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: "You must be logged in to modify your wishlist." };
+    }
+    
+    if (isWishlisted) {
+        // Remove from wishlist
+        const { error } = await supabase.from('user_wishlist').delete().match({ user_id: user.id, course_id: courseId });
+        if (error) {
+            console.error("Error removing from wishlist:", error);
+            return { success: false, error: error.message };
+        }
+    } else {
+        // Add to wishlist
+        const { error } = await supabase.from('user_wishlist').insert({ user_id: user.id, course_id: courseId });
+        if (error) {
+             console.error("Error adding to wishlist:", error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    revalidatePath('/wishlist');
+    revalidatePath('/courses/explore');
+    revalidatePath('/');
+    
+    return { success: true };
 }

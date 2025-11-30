@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -8,8 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart, Star, BookOpen, Clock, Users, Globe, Gamepad2, GitCompareArrows, FileText } from 'lucide-react';
 import { CourseWithChaptersAndTopics } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useCourseInteractions } from '@/hooks/use-course-interactions';
 
 export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) {
+    const {
+        isWishlisted,
+        isInCompare,
+        toggleWishlist,
+        toggleCompare
+    } = useCourseInteractions(course.id);
+    
     const totalTopics = course.chapters.reduce((acc, ch) => acc + (ch.topics?.length || 0), 0);
     const reviewsCount = (course.course_reviews as any)?.[0]?.count || 0;
     const enrollments = (course.user_enrollments?.[0]?.count) || 0;
@@ -118,11 +127,11 @@ export function CourseCard({ course }: { course: CourseWithChaptersAndTopics }) 
                 {/* Back of Card */}
                 <div className="absolute inset-0 h-full w-full rounded-xl bg-zinc-900 px-6 py-4 text-center text-slate-200 [transform:rotateY(180deg)] [backface-visibility:hidden]">
                     <div className="absolute top-4 right-4 flex gap-1 z-10">
-                        <Button variant="outline" size="icon" className="border-hp-text-muted/50 hover:bg-hp-text-muted/20 w-8 h-8">
-                            <Heart className="w-4 h-4" />
+                        <Button variant="outline" size="icon" className="border-hp-text-muted/50 hover:bg-hp-text-muted/20 w-8 h-8" onClick={() => toggleWishlist(course)}>
+                            <Heart className={cn("w-4 h-4", isWishlisted && "fill-red-500 text-red-500")} />
                         </Button>
-                        <Button variant="outline" size="icon" className="border-hp-text-muted/50 hover:bg-hp-text-muted/20 w-8 h-8">
-                            <GitCompareArrows className="w-4 h-4" />
+                        <Button variant="outline" size="icon" className="border-hp-text-muted/50 hover:bg-hp-text-muted/20 w-8 h-8" onClick={() => toggleCompare(course)}>
+                            <GitCompareArrows className={cn("w-4 h-4", isInCompare && "text-primary")} />
                         </Button>
                     </div>
                      <div className="absolute top-4 left-4 flex gap-1">
