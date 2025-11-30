@@ -67,7 +67,9 @@ export type UserQuizAttempt = Database['public']['Tables']['user_quiz_attempts']
 export type UserNote = Database['public']['Tables']['user_notes']['Row'];
 
 // This was added for the wishlist feature
-export type UserWishlist = Database['public']['Tables']['user_wishlist']['Row'];
+export type UserWishlist = Database['public']['Tables']['user_wishlist']['Row'] & {
+  courses: Course;
+};
 
 
 // The type from the DB has a different column name

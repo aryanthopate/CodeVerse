@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { CourseWithChaptersAndTopics, UserWishlist } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCourseInteractions } from '@/hooks/use-course-interactions';
 
 export default function WishlistPage() {
     const [wishlistCourses, setWishlistCourses] = useState<CourseWithChaptersAndTopics[]>([]);

@@ -819,7 +819,7 @@ export async function deleteMultipleGames(gameIds: string[]) {
     return { success: true };
 }
 
-export async function completeGameLevel(levelId: string, gameId: string, xp: number, isPerfect: boolean) {
+export async function completeGameLevel(levelId: string, gameId: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -833,20 +833,11 @@ export async function completeGameLevel(levelId: string, gameId: string, xp: num
         game_id: gameId,
         completed_level_id: levelId,
         completed_at: new Date().toISOString(),
-        is_perfect: isPerfect,
     });
 
     if (progressError && progressError.code !== '23505') { // Ignore if already completed
         console.error("Error saving game progress:", progressError);
         return { success: false, error: `Failed to save progress: ${progressError.message}` };
-    }
-    
-    // Increment user's XP
-    const { error: rpcError } = await supabase.rpc('add_xp', { user_id_in: user.id, xp_to_add: xp });
-
-    if(rpcError) {
-        console.error("Error updating user XP:", rpcError);
-        // Don't fail the whole operation, as progress was saved
     }
 
     revalidatePath(`/playground/${gameId}`);

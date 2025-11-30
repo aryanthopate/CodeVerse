@@ -3,7 +3,7 @@
 'use server';
 
 import { createClient } from "@/lib/supabase/server";
-import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter, WebsiteSettings, Chat, UserProfile, ChatMessage, UserNote } from "../types";
+import type { CourseWithChaptersAndTopics, Topic, UserEnrollment, QuizWithQuestions, GameWithChaptersAndLevels, GameLevel, UserGameProgress, GameSettings, GameChapter, WebsiteSettings, Chat, UserProfile, ChatMessage, UserNote, UserWishlist } from "../types";
 
 // This function can be used in Server Components or Server Actions.
 // It should not be used in Client Components.
@@ -680,7 +680,7 @@ export async function getChatForAdmin(chatId: string) {
     return { chat: data };
 }
 
-export async function getUserWishlist(): Promise<CourseWithChaptersAndTopics[] | null> {
+export async function getUserWishlist(): Promise<UserWishlist[] | null> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -691,6 +691,7 @@ export async function getUserWishlist(): Promise<CourseWithChaptersAndTopics[] |
     const { data, error } = await supabase
         .from('user_wishlist')
         .select(`
+            *,
             courses (
                 *,
                 chapters (
@@ -708,5 +709,5 @@ export async function getUserWishlist(): Promise<CourseWithChaptersAndTopics[] |
         return null;
     }
 
-    return data.map(item => item.courses) as CourseWithChaptersAndTopics[];
+    return data as UserWishlist[];
 }
