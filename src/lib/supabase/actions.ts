@@ -887,6 +887,8 @@ export async function recalculateAllUserXp(): Promise<{ success: boolean, error?
 }
 
 
+import { generateChatTitle } from '@/ai/flows/generate-chat-title';
+
 export async function deleteChat(chatId: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -916,7 +918,7 @@ export async function deleteChat(chatId: string) {
     return { success: true, error: null };
 }
 
-export async function createNewChat(title: string): Promise<Chat | null> {
+export async function createNewChat(title: string = 'New Chat'): Promise<Chat | null> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -965,12 +967,27 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
         return { success: false, error: "Failed to save messages." };
     }
 
-    // Generate and save conversation summary, even after the first message
+    // Handle Auto-Naming and Conversation Analysis
     if (messages.length >= 1) {
         const transcript = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+        
         try {
-            // This is an async call but we don't wait for it to finish,
-            // allowing the UI to feel faster. It runs in the background.
+            // 1. Auto-Naming (Only if it's the first bot response and title is generic)
+            if (messages.length === 2) {
+                const { data: chat } = await supabase.from('chats').select('title').eq('id', chatId).single();
+                if (chat && (chat.title === 'New Chat' || !chat.title)) {
+                    generateChatTitle(messages[0].content || '').then(newTitle => {
+                        if (newTitle) {
+                            supabase.from('chats').update({ title: newTitle }).eq('id', chatId).then(({ error }) => {
+                                if (error) console.error("Failed to update chat title in background:", error);
+                                else revalidatePath('/chat', 'layout');
+                            });
+                        }
+                    });
+                }
+            }
+
+            // 2. Continuous Transcription Analysis
             analyzeChatConversation({ transcript }).then(analysis => {
                 if (analysis.summary) {
                     supabase.from('chat_analysis').upsert({
@@ -983,8 +1000,7 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
                 }
             });
         } catch (e) {
-            // Log this error but don't fail the whole operation
-            console.error("Failed to trigger chat analysis generation:", e);
+            console.error("Failed to trigger background processes:", e);
         }
     }
     
