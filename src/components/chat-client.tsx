@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from './markdown-renderer';
+import { NewChatDialog } from './new-chat-dialog';
 import { CodeRunnerDialog } from './code-runner-dialog';
 
 
@@ -374,11 +375,11 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         <div className="flex h-screen bg-background">
             <aside className="w-full md:w-80 border-r border-border/50 flex-col hidden md:flex">
                 <div className="p-4 border-b border-border/50">
-                    <Button className="w-full rounded-xl" asChild>
-                        <Link href="/chat">
+                    <NewChatDialog>
+                         <Button className="w-full rounded-xl">
                             <Plus className="mr-2" /> New Chat
-                        </Link>
-                    </Button>
+                        </Button>
+                    </NewChatDialog>
                 </div>
                 <ScrollArea className="flex-1">
                     <nav className="p-2 space-y-4">
