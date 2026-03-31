@@ -197,37 +197,47 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         try {
             let currentChatId = activeChat?.id;
 
-            if (isNewChat && profile) {
-                const newChat = await createNewChat(currentInput);
-                if (newChat) {
-                    currentChatId = newChat.id;
-                     router.replace(`/chat/${newChat.id}`, { scroll: false });
-                     setChats(prev => [newChat, ...prev.filter(c => c.id !== tempActiveChat.id)]);
-                     setActiveChat(prev => {
-                       const finalChat = {
-                         ...(prev ? { ...newChat, messages: prev.messages } : newChat)
-                       };
-                       return finalChat as ActiveChat;
-                    });
-                } else {
-                    throw new Error("Failed to create new chat session.");
-                }
-            }
-
             const messagesForApi = tempActiveChat.messages.map(m => ({
                 role: m.role as 'user' | 'model',
                 content: m.content as string,
             }));
 
+            // 1. Immediately start stream
             const stream = await streamChat({ 
                 messages: messagesForApi,
-                chatId: currentChatId,
+                chatId: isNewChat ? undefined : currentChatId,
                 userName: profile?.full_name || undefined,
             });
             
+            // 2. Process stream characters
             const streamedResponse = await processStream(stream, tempActiveChat.messages as ChatMessage[]);
             
-            if (currentChatId && profile && !currentChatId.startsWith('temp-')) {
+            // 3. After stream completes, create chat if necessary and save
+            if (isNewChat && profile) {
+                const newChat = await createNewChat(currentInput);
+                if (newChat) {
+                    currentChatId = newChat.id;
+                    const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
+                    
+                    // Fire-and-forget save
+                    saveChat(currentChatId, finalMessages as ChatMessage[]);
+                    
+                    setChats(prev => [newChat, ...prev.filter(c => c.id !== tempActiveChat.id)]);
+                    
+                    setActiveChat(prev => {
+                        // Only switch activeChat if the user didn't navigate away from this temp chat
+                        if (prev && prev.id === tempActiveChat.id) {
+                            return { ...newChat, messages: prev.messages } as ActiveChat;
+                        }
+                        return prev;
+                    });
+                    
+                    // Replace route at the end so it doesn't stutter the stream
+                    router.replace(`/chat/${newChat.id}`, { scroll: false });
+                } else {
+                    throw new Error("Failed to create new chat session.");
+                }
+            } else if (currentChatId && profile && !currentChatId.startsWith('temp-')) {
                 const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
                 saveChat(currentChatId, finalMessages as ChatMessage[]);
             }
@@ -578,27 +588,25 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                         )}
                     </div>
                 </ScrollArea>
-                {activeChat && (
-                    <div className="p-4 md:p-6 border-t border-border/50 shrink-0">
-                        <div className="flex items-center gap-2">
-                            <Button type="button" variant="ghost" size="icon" onClick={handleFileUploadClick} className="shrink-0">
-                                <Paperclip className="h-5 w-5" />
+                <div className="p-4 md:p-6 border-t border-border/50 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <Button type="button" variant="ghost" size="icon" onClick={handleFileUploadClick} className="shrink-0">
+                            <Paperclip className="h-5 w-5" />
+                        </Button>
+                        <form onSubmit={handleSubmit} className="flex-grow relative">
+                            <Input
+                                placeholder="Ask anything..."
+                                className="pr-12 rounded-full h-12 bg-muted border-muted-foreground/20"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                disabled={isStreaming}
+                            />
+                            <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full disabled:cursor-not-allowed hover:scale-110 transition-transform" disabled={!input.trim() || isStreaming}>
+                                <Send className="h-4 w-4" />
                             </Button>
-                            <form onSubmit={handleSubmit} className="flex-grow relative">
-                                <Input
-                                    placeholder="Ask anything..."
-                                    className="pr-12 rounded-full h-12 bg-muted border-muted-foreground/20"
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    disabled={isStreaming}
-                                />
-                                <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full disabled:cursor-not-allowed hover:scale-110 transition-transform" disabled={!input.trim() || isStreaming}>
-                                    <Send className="h-4 w-4" />
-                                </Button>
-                            </form>
-                        </div>
+                        </form>
                     </div>
-                )}
+                </div>
             </main>
         </div>
     );
