@@ -12,7 +12,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { Chat, ChatMessage, UserProfile, WebsiteSettings } from '@/lib/types';
 import { chat as streamChat } from '@/ai/flows/chat';
-import { createNewChat, saveChat, updateChat, deleteChat as deleteChatAction } from '@/lib/supabase/actions';
+import { createNewChat, saveChat, updateChat, deleteChat as deleteChatAction, getChatSummary } from '@/lib/supabase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -171,87 +171,92 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
         const currentInput = messageToSend;
         setInput('');
 
-        let isNewChat = !activeChat;
+        const isNewChat = !activeChat;
+        const existingChatId = activeChat?.id;
 
-        let tempActiveChat: ActiveChat;
-        if (isNewChat) {
-            tempActiveChat = {
+        // Build an optimistic local chat so the UI shows the message immediately
+        const optimisticMessages = isNewChat
+            ? [userInput]
+            : [...(activeChat?.messages || []), userInput];
+
+        const tempActiveChat: ActiveChat = isNewChat
+            ? {
                 id: `temp-${Date.now()}`,
                 title: currentInput.substring(0, 50),
                 user_id: profile?.id || 'anonymous',
                 created_at: new Date().toISOString(),
                 is_archived: false,
                 is_pinned: false,
-                messages: [userInput],
-            };
-        } else {
-            tempActiveChat = {
-                ...(activeChat as ActiveChat),
-                messages: [...(activeChat?.messages || []), userInput],
-            };
-        }
-        
+                messages: optimisticMessages,
+            }
+            : { ...(activeChat as ActiveChat), messages: optimisticMessages };
+
         setActiveChat(tempActiveChat);
         setIsStreaming(true);
-        
-        try {
-            let currentChatId = activeChat?.id;
 
-            const messagesForApi = tempActiveChat.messages.map(m => ({
+        try {
+            // For EXISTING chats: fetch the brain summary BEFORE streaming
+            // so the AI has context from previous turns.
+            let contextSummary: string | undefined;
+            if (!isNewChat && existingChatId && (activeChat?.messages || []).length >= 2) {
+                // Non-blocking: run in parallel while we set up state
+                contextSummary = (await getChatSummary(existingChatId)) ?? undefined;
+            }
+
+            const messagesForApi = optimisticMessages.map(m => ({
                 role: m.role as 'user' | 'model',
                 content: m.content as string,
             }));
 
-            // 1. Immediately start stream
-            const stream = await streamChat({ 
+            // Start streaming immediately — no DB waits.
+            const stream = await streamChat({
                 messages: messagesForApi,
-                chatId: isNewChat ? undefined : currentChatId,
+                chatId: isNewChat ? undefined : existingChatId,
                 userName: profile?.full_name || undefined,
+                contextSummary,
             });
-            
-            // 2. Process stream characters
-            const streamedResponse = await processStream(stream, tempActiveChat.messages as ChatMessage[]);
-            
-            // 3. After stream completes, create chat if necessary and save
+
+            // Process the stream (this also updates the UI progressively)
+            const streamedResponse = await processStream(stream, optimisticMessages as ChatMessage[]);
+
+            const finalMessages: ChatMessage[] = [
+                ...optimisticMessages,
+                { role: 'model', content: streamedResponse } as ChatMessage,
+            ];
+
             if (isNewChat && profile) {
+                // NEW CHAT path:
+                // Stream is done → now create the DB record → save messages → navigate.
+                // This ensures the DB record exists before the route change fires.
                 const newChat = await createNewChat(currentInput);
-                if (newChat) {
-                    currentChatId = newChat.id;
-                    const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
-                    
-                    // Fire-and-forget save
-                    saveChat(currentChatId, finalMessages as ChatMessage[]);
-                    
-                    setChats(prev => [newChat, ...prev.filter(c => c.id !== tempActiveChat.id)]);
-                    
-                    setActiveChat(prev => {
-                        // Only switch activeChat if the user didn't navigate away from this temp chat
-                        if (prev && prev.id === tempActiveChat.id) {
-                            return { ...newChat, messages: prev.messages } as ActiveChat;
-                        }
-                        return prev;
-                    });
-                    
-                    // Replace route at the end so it doesn't stutter the stream
-                    router.replace(`/chat/${newChat.id}`, { scroll: false });
-                } else {
-                    throw new Error("Failed to create new chat session.");
-                }
-            } else if (currentChatId && profile && !currentChatId.startsWith('temp-')) {
-                const finalMessages = [...tempActiveChat.messages, { role: 'model', content: streamedResponse } as ChatMessage];
-                saveChat(currentChatId, finalMessages as ChatMessage[]);
+                if (!newChat) throw new Error('Failed to create new chat session.');
+
+                // Save all messages (fire-and-forget; the DB record already exists)
+                await saveChat(newChat.id, finalMessages);
+
+                // Update UI state locally before navigation
+                setChats(prev => [newChat, ...prev.filter((c: Chat) => c.id !== tempActiveChat.id)]);
+                setActiveChat({ ...newChat, messages: finalMessages } as ActiveChat);
+
+                // Navigate AFTER saving — guaranteed no race condition
+                router.replace(`/chat/${newChat.id}`, { scroll: false });
+
+            } else if (existingChatId && profile && !existingChatId.startsWith('temp-')) {
+                // EXISTING CHAT path — just save
+                saveChat(existingChatId, finalMessages);
             }
 
-        } catch(error: any) {
-            console.error("Error streaming chat:", error);
+        } catch (error: any) {
+            console.error('Error in handleSubmit:', error);
             toast({
                 variant: 'destructive',
-                title: "An error occurred",
-                description: error.message || "Could not get a response from the AI. Please try again.",
+                title: 'An error occurred',
+                description: error.message || 'Could not get a response from the AI. Please try again.',
             });
-             setActiveChat(prev => {
+            // Rollback the optimistic message
+            setActiveChat(prev => {
                 if (!prev) return null;
-                return { ...prev, messages: prev.messages.filter(m => m !== userInput) };
+                return { ...prev, messages: prev.messages.filter((m: ChatMessage) => m !== userInput) };
             });
         } finally {
             setIsStreaming(false);

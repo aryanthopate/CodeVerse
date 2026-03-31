@@ -10,6 +10,19 @@ import { redirect } from 'next/navigation';
 import { analyzeChatConversation } from '@/ai/flows/analyze-chat-conversation';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 
+export async function getChatSummary(chatId: string): Promise<string | null> {
+    if (!chatId || chatId.startsWith('temp-')) return null;
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('chat_analysis')
+        .select('summary')
+        .eq('chat_id', chatId)
+        .single();
+    if (error || !data) return null;
+    return data.summary || null;
+}
+
+
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
     id?: string; // id is present when updating
     order: number;
