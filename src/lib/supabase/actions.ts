@@ -1,27 +1,13 @@
 
+
 'use server';
 
 import { createClient } from './server';
 import { revalidatePath } from 'next/cache';
-import { unstable_after as after } from 'next/server';
 import type { QuizWithQuestions, QuestionWithOptions, QuestionOption, Topic, Chapter, Course, Game, GameLevel, GameChapter, Chat, ChatMessage, UserProfile, UserNote } from '@/lib/types';
 import placeholderGames from '@/lib/placeholder-games.json';
 import { redirect } from 'next/navigation';
 import { analyzeChatConversation } from '@/ai/flows/analyze-chat-conversation';
-import { generateChatTitle } from '@/ai/flows/generate-chat-title';
-
-export async function getChatSummary(chatId: string): Promise<string | null> {
-    if (!chatId || chatId.startsWith('temp-')) return null;
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('chat_analysis')
-        .select('summary')
-        .eq('chat_id', chatId)
-        .single();
-    if (error || !data) return null;
-    return data.summary || null;
-}
-
 
 interface TopicData extends Omit<Topic, 'id' | 'created_at' | 'chapter_id' | 'order' | 'explanation'> {
     id?: string; // id is present when updating
@@ -930,7 +916,7 @@ export async function deleteChat(chatId: string) {
     return { success: true, error: null };
 }
 
-export async function createNewChat(title: string = 'New Chat'): Promise<Chat | null> {
+export async function createNewChat(title: string): Promise<Chat | null> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -979,45 +965,27 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
         return { success: false, error: "Failed to save messages." };
     }
 
-    // Handle Auto-Naming and Conversation Analysis
+    // Generate and save conversation summary, even after the first message
     if (messages.length >= 1) {
         const transcript = messages.map(m => `${m.role}: ${m.content}`).join('\n');
-        
-        after(async () => {
-            try {
-                // 1. Auto-Naming (Only if it's the first bot response and title is generic)
-                if (messages.length === 2) {
-                    const { data: chat } = await supabase.from('chats').select('title').eq('id', chatId).single();
-                    if (chat && (chat.title === 'New Chat' || !chat.title)) {
-                        generateChatTitle(messages[0].content || '').then(newTitle => {
-                            if (newTitle) {
-                                supabase.from('chats').update({ title: newTitle }).eq('id', chatId).then(({ error }) => {
-                                    if (error) console.error("Failed to update chat title in background:", error);
-                                    else revalidatePath('/chat', 'layout');
-                                });
-                            }
-                        });
-                    }
-                }
-
-                // 2. Continuous Transcription Analysis (run only after the first exchange to avoid useless first-turn summaries)
-                if (messages.length > 2) {
-                    analyzeChatConversation({ transcript }).then(analysis => {
-                        if (analysis.summary) {
-                            supabase.from('chat_analysis').upsert({
-                                chat_id: chatId,
-                                summary: analysis.summary,
-                                updated_at: new Date().toISOString()
-                            }, { onConflict: 'chat_id' }).then(({ error }) => {
-                                if (error) console.error("Failed to update chat analysis in background:", error);
-                            });
-                        }
+        try {
+            // This is an async call but we don't wait for it to finish,
+            // allowing the UI to feel faster. It runs in the background.
+            analyzeChatConversation({ transcript }).then(analysis => {
+                if (analysis.summary) {
+                    supabase.from('chat_analysis').upsert({
+                        chat_id: chatId,
+                        summary: analysis.summary,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'chat_id' }).then(({ error }) => {
+                        if (error) console.error("Failed to update chat analysis in background:", error);
                     });
                 }
-            } catch (e) {
-                console.error("Error in background chat processing:", e);
-            }
-        });
+            });
+        } catch (e) {
+            // Log this error but don't fail the whole operation
+            console.error("Failed to trigger chat analysis generation:", e);
+        }
     }
     
     revalidatePath(`/chat/${chatId}`);

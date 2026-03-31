@@ -93,12 +93,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-muted/30 flex">
-        <div className="fixed top-0 left-0 h-screen p-2 flex flex-col z-30">
-            <Sidebar className="p-0 m-0 h-full w-56 shrink-0 rounded-xl bg-card border flex flex-col">
+        <div className="fixed top-0 left-0 h-screen p-2 flex flex-col">
+            <Sidebar className="p-0 m-0 h-full w-[14rem] shrink-0 rounded-xl bg-card border flex flex-col">
                 <SidebarHeader>
                     <Logo />
                 </SidebarHeader>
@@ -166,16 +173,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Sidebar>
         </div>
 
-        <div className="flex-1 flex flex-col gap-2 pl-[calc(14rem+1.5rem)] p-2 min-h-screen">
-            <div className="bg-card border rounded-xl flex flex-col shrink-0">
+        <div className="flex-1 flex flex-col gap-2 pl-[calc(14rem+1rem)] p-2">
+            <div className="bg-card border rounded-xl flex flex-col">
                 <AppHeader profile={profile} onLogout={handleLogout} />
             </div>
             <div className="flex-1 bg-card border rounded-xl p-4 md:p-6 lg:p-8 overflow-y-auto">
-                {loading ? (
-                    <div className="flex items-center justify-center h-full min-h-[200px]">
-                        <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                    </div>
-                ) : children}
+                {children}
             </div>
         </div>
       </div>

@@ -5,69 +5,91 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 263.4 70% 50.4%; /* Electric Violet/Indigo */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 238 83% 66%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 263.4 70% 50.4%;
-    --radius: 1rem;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 238 83% 66%;
+    --radius: 0.75rem;
 
     /* Syntax Highlighting Colors */
-    --code-keyword: 280 85% 75%; 
-    --code-function: 190 90% 70%; 
-    --code-string: 140 80% 70%;   
-    --code-number: 40 90% 70%;  
-    --code-comment: 220 10% 50%; 
-    --code-punctuation: 210 20% 80%; 
+    --code-keyword: 300 85% 75%; /* A bright, vibrant magenta for keywords */
+    --code-function: 160 80% 65%; /* A pleasant, readable teal for function names */
+    --code-string: 50 90% 70%;   /* A warm, noticeable gold for strings */
+    --code-number: 210 85% 75%;  /* A cool, light blue for numbers */
+    --code-comment: 220 15% 60%; /* A lighter gray for comments, improving contrast */
+    --code-punctuation: 210 20% 80%; /* A brighter, neutral white for punctuation */
 
-    /* New Premium Theme Variables */
-    --glass-background: 240 10% 3.9% / 0.7;
-    --glass-border: 240 3.7% 15.9% / 0.5;
-    
-    --sidebar-background: 240 10% 3.9%;
-    --sidebar-foreground: 240 5% 64.9%;
-    --sidebar-primary: 263.4 70% 50.4%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 5% 90%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 263.4 70% 50.4%;
+    /* Game UI Theme Variables */
+    --game-bg: 30 54% 25%; /* Dark wood color */
+    --game-surface: 30 52% 35%; /* Lighter wood panel */
+    --game-border: 35 65% 45%; /* Wood border color */
+    --game-accent: 40 90% 55%; /* Gold/Amber accent */
+    --game-accent-glow: 40 90% 65%;
+    --game-text: 35 33% 95%; /* Light text color */
+
+    --chart-1: 210 40% 96.1%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 238 83% 66%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 238 83% 66%;
+
+    /* New Homepage Theme */
+    --hp-background: 240 10% 4%; /* zinc-950 */
+    --hp-background-deep: 240 10% 4%;
+    --hp-accent: 221 83% 53%; /* blue-600 */
+    --hp-accent-glow: 221 83% 63%;
+    --hp-text: 240 5% 95%; /* zinc-100 */
+    --hp-text-muted: 240 5% 63%; /* zinc-400 */
   }
 
   .light {
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 262.1 83.3% 57.8%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 238 83% 66%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 262.1 83.3% 57.8%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.75rem;
+
+    --hp-background: 0 0% 100%;
+    --hp-grid: 0 0% 95%;
   }
 }
 
@@ -117,37 +139,25 @@
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-[hsl(var(--glass-background))] backdrop-blur-md border border-[hsl(var(--glass-border))] shadow-xl;
-  }
-
-  .glass-morphism {
-    @apply bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl;
-  }
-
-  .premium-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-400 to-cyan-400 animate-gradient-x;
-  }
-
-  .premium-border-glow {
-    @apply border-primary/50 shadow-[0_0_15px_rgba(139,92,246,0.3)];
-  }
-
   /* New Game UI Button Style */
   .btn-game {
-    @apply inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-bold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(263.4 70% 40%));
-    color: white;
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    background-color: hsl(var(--game-surface));
+    border: 2px solid hsl(var(--game-border));
+    color: hsl(var(--game-text));
+    text-shadow: 1px 1px 2px hsl(var(--game-bg) / 0.5);
+    box-shadow: 0 4px 0 hsl(var(--game-bg)), 0 6px 12px hsla(0, 0%, 0%, 0.4), inset 0 1px 1px hsl(var(--game-border));
     padding: 0.75rem 1.5rem;
+    transform: translateY(-2px);
   }
-  
   .btn-game:hover {
-    @apply scale-105 brightness-110 shadow-[0_6px_20px_rgba(139,92,246,0.5)];
+    transform: translateY(-4px);
+    filter: brightness(1.1);
+    box-shadow: 0 6px 0 hsl(var(--game-bg)), 0 8px 16px hsla(0, 0%, 0%, 0.4), inset 0 1px 1px hsl(var(--game-border));
   }
-  
   .btn-game:active {
-    @apply scale-95;
+    transform: translateY(0);
+    box-shadow: 0 2px 0 hsl(var(--game-bg)), 0 2px 4px hsla(0, 0%, 0%, 0.3), inset 0 1px 1px hsl(var(--game-border));
   }
 
   .tabs-game {

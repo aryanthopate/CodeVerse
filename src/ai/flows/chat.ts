@@ -9,6 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
 
 const ChatInputSchema = z.object({
   messages: z.array(
@@ -19,7 +20,6 @@ const ChatInputSchema = z.object({
   ),
   chatId: z.string().optional(),
   userName: z.string().optional(),
-  contextSummary: z.string().optional(), // injected from client before calling
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
@@ -43,12 +43,21 @@ function hello() {
 [-----]
 This is more text.`;
 
-    // Inject long-term conversation memory if provided
-    if (input.contextSummary) {
-        systemPrompt += `\n\n---
-Here is a summary of the conversation history so far. Use it to maintain context and continuity.
-${input.contextSummary}
+    // If a chatId is provided, try to get the long-term memory summary.
+    if (input.chatId) {
+        const supabase = createClient();
+        const { data: analysis } = await supabase
+            .from('chat_analysis')
+            .select('summary')
+            .eq('chat_id', input.chatId)
+            .single();
+
+        if (analysis?.summary) {
+            systemPrompt += `\n\n---
+Here is a summary of the conversation so far. Use it to maintain context about what has been discussed previously.
+${analysis.summary}
 ---`;
+        }
     }
 
 
