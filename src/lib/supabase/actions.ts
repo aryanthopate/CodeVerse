@@ -987,18 +987,20 @@ export async function saveChat(chatId: string, messages: Partial<ChatMessage>[])
                     }
                 }
 
-                // 2. Continuous Transcription Analysis
-                analyzeChatConversation({ transcript }).then(analysis => {
-                    if (analysis.summary) {
-                        supabase.from('chat_analysis').upsert({
-                            chat_id: chatId,
-                            summary: analysis.summary,
-                            updated_at: new Date().toISOString()
-                        }, { onConflict: 'chat_id' }).then(({ error }) => {
-                            if (error) console.error("Failed to update chat analysis in background:", error);
-                        });
-                    }
-                });
+                // 2. Continuous Transcription Analysis (run only after the first exchange to avoid useless first-turn summaries)
+                if (messages.length > 2) {
+                    analyzeChatConversation({ transcript }).then(analysis => {
+                        if (analysis.summary) {
+                            supabase.from('chat_analysis').upsert({
+                                chat_id: chatId,
+                                summary: analysis.summary,
+                                updated_at: new Date().toISOString()
+                            }, { onConflict: 'chat_id' }).then(({ error }) => {
+                                if (error) console.error("Failed to update chat analysis in background:", error);
+                            });
+                        }
+                    });
+                }
             } catch (e) {
                 console.error("Error in background chat processing:", e);
             }

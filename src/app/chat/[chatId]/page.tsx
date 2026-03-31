@@ -6,9 +6,10 @@ import { ChatClient } from '@/components/chat-client';
 import { notFound } from 'next/navigation';
 import type { Chat, ChatMessage } from '@/lib/types';
 
-export default async function SpecificChatPage({ params }: { params: { chatId: string }}) {
+export default async function SpecificChatPage({ params }: { params: Promise<{ chatId: string }>}) {
+  const { chatId } = await params;
   const chats = await getUserChats();
-  const { chat, messages } = await getChat(params.chatId);
+  const { chat, messages } = await getChat(chatId);
   const settings = await getWebsiteSettings();
   const profile = await getUserProfile();
 

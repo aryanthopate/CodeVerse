@@ -540,19 +540,19 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                                             </Avatar>
                                         )}
                                     </div>
-                                    <div className={cn("flex items-center gap-1 transition-opacity opacity-0 group-hover:opacity-100", isUser ? "justify-end pr-14" : "justify-start pl-14")}>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(message.content || '')}>
+                                    <div className={cn("flex items-center gap-1 transition-opacity", isUser ? "justify-end pr-14" : "justify-start pl-14", "opacity-100 md:opacity-0 md:group-hover:opacity-100")}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(message.content || '')}>
                                             <Copy className="w-4 h-4" />
                                         </Button>
                                         {!isUser && isLastMessage && !isStreaming && (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-7 w-7"
+                                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                                 onClick={handleRegenerate}
                                                 disabled={isStreaming}
                                             >
-                                                <RefreshCw className="h-4 h-4" />
+                                                <RefreshCw className="h-4 w-4" />
                                             </Button>
                                         )}
                                     </div>
