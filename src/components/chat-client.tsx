@@ -18,7 +18,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MarkdownRenderer } from './markdown-renderer';
 import { CodeRunnerDialog } from './code-runner-dialog';
-import { CodeRunnerDialog } from './code-runner-dialog';
 
 
 interface ActiveChat extends Chat {
