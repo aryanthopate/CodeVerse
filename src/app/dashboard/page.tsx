@@ -124,16 +124,20 @@ function DashboardContent() {
 
   if (loading) {
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Skeleton className="h-[250px] lg:col-span-2" />
-                <Skeleton className="h-[250px]" />
+        <div className="space-y-8 w-full animate-pulse">
+            {/* Hero row: 2/3 card + 1/3 stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
+                <div className="lg:col-span-2 h-[260px] rounded-3xl bg-white/5" />
+                <div className="h-[260px] rounded-3xl bg-white/5" />
             </div>
-            <div className="space-y-4">
-                <Skeleton className="h-8 w-1/4" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Skeleton className="h-[150px]" />
-                    <Skeleton className="h-[150px]" />
+            {/* Active Courses row */}
+            <div className="space-y-4 w-full">
+                <div className="h-7 w-40 rounded-lg bg-white/5" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+                    <div className="h-44 rounded-2xl bg-white/5" />
+                    <div className="h-44 rounded-2xl bg-white/5" />
+                    <div className="h-44 rounded-2xl bg-white/5 hidden lg:block" />
+                    <div className="h-44 rounded-2xl bg-white/5 hidden lg:block" />
                 </div>
             </div>
         </div>
