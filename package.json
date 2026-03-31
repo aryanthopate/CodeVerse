@@ -49,7 +49,7 @@
     "firebase": "^12.11.0",
     "genkit": "^1.31.0",
     "lucide-react": "^1.7.0",
-    "next": "16.2.1",
+    "next": "15.2.0",
     "patch-package": "^8.0.0",
     "react": "^19.2.4",
     "react-confetti": "^6.1.0",
