@@ -31,7 +31,7 @@ const initialPrompts = [
     "Write a simple HTML boilerplate",
 ]
 
-export function ChatClient({ chats: initialChats, activeChat: initialActiveChat, settings, profile, homepageContent }: { chats: Chat[] | null, activeChat: ActiveChat | null, settings: WebsiteSettings | null, profile: UserProfile | null, homepageContent?: React.ReactNode }) {
+export function ChatClient({ chats: initialChats, activeChat: initialActiveChat, settings, profile }: { chats: Chat[] | null, activeChat: ActiveChat | null, settings: WebsiteSettings | null, profile: UserProfile | null }) {
     const router = useRouter();
     const params = useParams();
     const { toast } = useToast();
@@ -507,7 +507,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                 </header>
                 <ScrollArea className="flex-1" ref={scrollAreaRef}>
                     <div className="p-4 md:p-6 space-y-8">
-                         {homepageContent && !activeChat && homepageContent}
+                        {/* homepageContent removed */ }
                          
                         {(activeChat?.messages || []).map((message, index) => {
                              const isUser = message.role === 'user';
@@ -571,7 +571,7 @@ export function ChatClient({ chats: initialChats, activeChat: initialActiveChat,
                             </div>
                         )}
 
-                        {activeChat && (activeChat.messages || []).length === 0 && !homepageContent && (
+                        {(!activeChat || (activeChat.messages || []).length === 0) && (
                             <div className="text-center text-muted-foreground pt-12 md:pt-24 space-y-8">
                                 <div>
                                     <Bot className="mx-auto h-12 w-12" />
