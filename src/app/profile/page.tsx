@@ -126,7 +126,7 @@ export default function ProfilePage() {
     if (loading) {
         return (
             <AppLayout>
-                 <div className="space-y-6 max-w-5xl mx-auto">
+                 <div className="space-y-6 w-full max-w-7xl mx-auto">
                     <Skeleton className="h-[250px] w-full rounded-2xl" />
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
                         <Skeleton className="h-32 rounded-xl" />
@@ -157,7 +157,7 @@ export default function ProfilePage() {
 
     return (
         <AppLayout>
-            <div className="max-w-5xl mx-auto pb-10">
+            <div className="w-full max-w-7xl mx-auto pb-10">
                 {/* Profile Header & Banner */}
                 <div className="relative mb-20 sm:mb-24">
                     {/* Cover Photo Area */}
