@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -21,8 +20,8 @@ const navItems = [
 export function FloatingNav() {
   const pathname = usePathname();
 
-  // Hide the floating nav on admin pages
-  if (pathname.startsWith('/admin')) {
+  // Hide the floating nav on admin and chat pages
+  if (pathname.startsWith('/admin') || pathname.startsWith('/chat')) {
     return null;
   }
 
